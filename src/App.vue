@@ -1,199 +1,164 @@
 <template>
-  <div id="app">
-    <nav class="navbar">
-      <!-- Left side with Logo and Left links -->
-      <div class="navbar-left">
-        <!-- Logo Section -->
-        <div class="logo">
-          <img src="./assets/2.png" alt="Logo" class="logo-image" />
+  <div class="app-container">
+    <el-container class="main-container">
+      <el-header>
+        <div class="header-content">
+          <img src="@/assets/2.png" alt="Logo" class="logo">
+          <div class="nav-menu">
+            <el-menu
+              :default-active="activeIndex"
+              mode="horizontal"
+              router
+              @select="handleSelect"
+            >
+              <el-menu-item index="/">首页</el-menu-item>
+              <el-menu-item index="/project-square">项目广场</el-menu-item>
+              <el-menu-item index="/ai-assistant">AI助手</el-menu-item>
+              <el-menu-item index="/ai-learning">AI学习</el-menu-item>
+            </el-menu>
+          </div>
+          <div class="user-info">
+            <el-dropdown @command="handleCommand" trigger="click">
+              <img 
+                src="@/assets/客户头像.png" 
+                alt="用户头像" 
+                class="user-avatar"
+              >
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="personal">个人信息</el-dropdown-item>
+                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </div>
-        
-        <!-- Navigation Links -->
-        <div class="navbar-links">
-          <router-link to="/" class="navbar-item" active-class="active-link">首页</router-link>
-          <router-link to="/project-square" class="navbar-item" active-class="active-link">项目广场</router-link>
-          <router-link to="/ai-assistant" class="navbar-item" active-class="active-link">AI助手</router-link>
-          <router-link to="/ai-learning" class="navbar-item" active-class="active-link">AI学习</router-link>
-        </div>
-      </div>
-      
-      <!-- Right side: "个人信息" as a clickable logo -->
-      <div class="navbar-right">
-        <router-link to="/personal-info" class="navbar-item">
-          <img src="./assets/客户头像.png" alt="个人信息" class="personal-info-logo" />
-        </router-link>
-      </div>
-    </nav>
-
-    <router-view />
+      </el-header>
+      <el-main>
+        <router-view></router-view>
+      </el-main>
+    </el-container>
   </div>
 </template>
 
 <script>
+import { ElMessage } from 'element-plus'
+
 export default {
   name: 'App',
-};
+  data() {
+    return {
+      activeIndex: '/',
+      username: localStorage.getItem('username') || '未登录'
+    }
+  },
+  computed: {
+    isLoggedIn() {
+      return localStorage.getItem('token') !== null
+    }
+  },
+  methods: {
+    handleSelect(key) {
+      this.activeIndex = key
+    },
+    handleCommand(command) {
+      if (command === 'logout') {
+        localStorage.removeItem('token')
+        localStorage.removeItem('username')
+        localStorage.removeItem('email')
+        this.username = '未登录'
+        ElMessage.success('已退出登录')
+        this.$router.push('/')
+      } else if (command === 'personal') {
+        this.$router.push('/personal-info')
+      }
+    }
+  }
+}
 </script>
 
 <style scoped>
-/* Prevents any margin collapse issues */
-#app {
-  padding: 0;
-  margin: 0;
-  font-family: 'Arial', sans-serif;
+.app-container {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background-color: #f4f4f4;
-  transition: background-color 0.3s ease;
 }
 
-/* Navbar Styling */
-.navbar {
+.main-container {
+  flex: 1;
   display: flex;
-  justify-content: space-between; /* Ensures space between left and right sections */
-  align-items: center; /* Center items vertically */
+  flex-direction: column;
+}
+
+.el-header {
+  padding: 0;
   background-color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 15px 20px;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .12);
   z-index: 1000;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Left Group: Logo and Links */
-.navbar-left {
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 60px;
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* Align to the left */
-  width: 100%;
-  max-width: 800px; /* Limit width of left section */
-  flex-grow: 1;
+  padding: 0 20px;
+  justify-content: space-between;
 }
 
-/* Logo Styling - move logo to the right */
 .logo {
-  margin-left: 100px; /* Increase space to move the logo further right */
+  height: 40px;
+  width: auto;
+  margin-right: 20px;
 }
 
-.logo-image {
-  width: 40px; /* Adjust logo size */
-  height: auto;
+.nav-menu {
+  flex-grow: 1;
+  margin-right: auto;
 }
 
-/* Navbar Links Styling (Left side items) */
-.navbar-links {
+.nav-menu .el-menu {
+  border-bottom: none;
+}
+
+.user-info {
+  margin-left: auto;
   display: flex;
-  justify-content: space-between; /* Distribute items evenly */
-  width: 100%; /* Allow the links container to take up available space */
+  align-items: center;
 }
 
-/* Navbar Item Styling */
-.navbar-item {
-  text-decoration: none;
-  color: #555;
-  margin: 0 15px; /* Set some margin between items */
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  position: relative;
-  transition: color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  object-fit: cover;
 }
 
-.navbar-item:hover {
-  color: #007BFF;
-  transform: translateY(-2px);
+.el-main {
+  flex: 1;
+  padding: 20px;
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 60px); /* 减去header的高度 */
+  box-sizing: border-box;
 }
 
-.navbar-item::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background-color: #007BFF;
-  transition: width 0.3s ease;
-}
-
-.navbar-item:hover::after {
-  width: 100%;
-}
-
-/* Active Link Styling */
-.active-link {
-  color: #0056b3;
-  font-weight: bold;
-  text-decoration: underline;
-  text-decoration-color: #1a73e8;
-}
-
-/* Right Group: "个人信息" as logo */
-.navbar-right {
-  display: flex;
-  justify-content: center; /* Center the logo */
-  flex-grow: 1; /* Ensure right section fills the remaining space */
-  margin-left: auto; /* Push it to the far right */
-}
-
-/* Personal Info Logo Styling */
-.personal-info-logo {
-  width: 40px; /* Set logo size */
-  height: auto;
-  cursor: pointer; /* Change cursor to pointer to indicate clickability */
-}
-
-/* Page content area */
-router-view {
-  margin-top: 80px; /* Ensure the content isn't hidden under the navbar */
-  width: 100%;
-  padding: 40px;
-  max-width: 1200px;
-  background-color: #fff;
-  border-radius: 15px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-router-view:hover {
-  box-shadow: 0 4px 40px rgba(0, 0, 0, 0.2);
-}
-
-/* Smooth Scroll Effects */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Responsive Design for smaller screens */
-@media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    align-items: center;
-    padding: 10px 20px;
-  }
-
-  .navbar-item {
-    margin: 10px 0;
-  }
-
-  router-view {
-    padding: 20px;
+/* 确保内容区域最小宽度 */
+@media screen and (min-width: 1200px) {
+  .el-main {
+    padding: 20px calc((100% - 1200px) / 2);
   }
 }
 
-@media (max-width: 480px) {
-  .navbar-item {
-    font-size: 16px;
-    margin: 8px 0;
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+  .header-content {
+    padding: 0 20px;
   }
-
-  router-view {
-    padding: 15px;
+  
+  .el-main {
+    padding: 10px;
   }
 }
 </style>

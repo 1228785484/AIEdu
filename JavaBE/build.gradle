@@ -38,7 +38,13 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.9'
+    implementation("com.baomidou:mybatis-plus-jsqlparser")
+    // https://mvnrepository.com/artifact/com.auth0/java-jwt
+    implementation 'com.auth0:java-jwt:4.4.0'
+    // spring boot3 引入可选模块
+    implementation("com.baomidou:mybatis-plus-spring-boot3-starter")
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     testImplementation 'io.projectreactor:reactor-test'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -52,8 +58,10 @@ dependencies {
 dependencyManagement {
     imports {
         mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+        mavenBom "com.baomidou:mybatis-plus-bom:3.5.9"
     }
 }
+
 
 tasks.named('test') {
     useJUnitPlatform()
