@@ -20,7 +20,13 @@
             :alt="message.isUser ? '用户' : 'AI助手'"
             class="avatar"
           />
-          <div class="text" v-html="message.text"></div>
+          <div class="text">
+            <!-- 如果消息是 "进入学习!"，渲染链接按钮，否则直接显示文本 -->
+            <span v-if="message.text === '进入学习!'">
+              <button @click="goToLearning">进入学习</button>
+            </span>
+            <span v-else v-html="message.text"></span>
+          </div>
         </div>
 
         <!-- 加载指示器，当AI正在处理消息时显示 -->
@@ -47,6 +53,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { useRouter } from "vue-router";
 
 // 消息数据和状态
 const messages = ref([
@@ -60,13 +67,15 @@ const messages = ref([
   },
   { text: "是否满意此学习计划", isUser: false },
   { text: "是", isUser: true },
-  { text: "进入学习？", isUser: false },
+  { text: "进入学习!", isUser: false },
 ]);
 
 const userInput = ref("");
 const isLoading = ref(false);
 const userAvatar = require("@/assets/客户头像.png");
 const botAvatar = require("@/assets/AI老师.png");
+
+const router = useRouter(); // 使用 Vue Router
 
 const sendMessage = async () => {
   if (userInput.value.trim()) {
@@ -88,7 +97,7 @@ const sendMessage = async () => {
       });
 
       if (!response.ok) {
-        throw new Error('从服务器获取响应失败');
+        throw new Error("从服务器获取响应失败");
       }
 
       const data = await response.json();
@@ -111,6 +120,11 @@ const scrollToBottom = () => {
     const chatBox = document.getElementById("chat-box");
     chatBox.scrollTop = chatBox.scrollHeight;
   }, 0);
+};
+
+// 处理点击“进入学习”
+const goToLearning = () => {
+  router.push("/learning");
 };
 </script>
 
@@ -138,8 +152,8 @@ const scrollToBottom = () => {
 
 #logo {
   width: 100%;
-  height: auto;  /* 设置logo的高度自适应 */
-  max-height: 100%;  /* 设置最大高度为容器的高度 */
+  height: auto; /* 设置logo的高度自适应 */
+  max-height: 100%; /* 设置最大高度为容器的高度 */
 }
 
 /* 右侧聊天窗口 */
