@@ -5,7 +5,8 @@ import Home from '../views/Home.vue';
 import ProjectSquare from '../views/ProjectSquare.vue';
 import AiAssistant from '../views/AiAssistant.vue';
 import AiLearning from '../views/AiLearning.vue';
-import PersonalInfo from '../views/PersonalInfo.vue';  // 引入 PersonalInfo 组件
+import PersonalInfo from '../views/PersonalInfo.vue';
+import Learning from '../views/Learning.vue';  // 新增 Learning 页面
 
 // 配置路由
 const routes = [
@@ -33,6 +34,11 @@ const routes = [
     path: '/personal-info',    // 个人信息页面路径
     name: 'PersonalInfo',      // 路由名称
     component: PersonalInfo    // 映射 PersonalInfo 组件
+  },
+  {
+    path: '/learning',         // 新增学习页面路径
+    name: 'Learning',          // 路由名称
+    component: Learning        // 映射 Learning 组件
   }
 ];
 
