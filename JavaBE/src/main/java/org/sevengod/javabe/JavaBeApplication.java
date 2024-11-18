@@ -10,6 +10,7 @@ public class JavaBeApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(JavaBeApplication.class, args);
+        System.out.println("——————————启动成功——————————");
     }
 
 }
