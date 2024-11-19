@@ -1,4 +1,4 @@
-package org.sevengod.javabe.service;
+package org.sevengod.javabe.web.service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;

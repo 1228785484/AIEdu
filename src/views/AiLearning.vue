@@ -86,22 +86,33 @@ const sendMessage = async () => {
     scrollToBottom();
     isLoading.value = true;
 
+    // 从 localStorage 获取 token
+    const token = localStorage.getItem('token');
+    
     try {
-      const response = await fetch("http://127.0.0.1:8000/send_message", {
+      const response = await fetch("http://localhost:8008/api/test/askAi", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // 添加 token 到请求头
+        },
+        credentials: 'include',
         body: JSON.stringify({
-          query: inputText,
-          user_id: "abc-123",
+          query: inputText
         }),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // token 过期或无效，重定向到登录页面
+          router.push('/login');
+          throw new Error("请先登录");
+        }
         throw new Error("从服务器获取响应失败");
       }
 
       const data = await response.json();
-      messages.value.push({ text: data.result, isUser: false });
+      messages.value.push({ text: data.answer, isUser: false });
       scrollToBottom();
     } catch (error) {
       messages.value.push({

@@ -1,10 +1,10 @@
-package org.sevengod.javabe.service.impl;
+package org.sevengod.javabe.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.sevengod.javabe.entity.User;
-import org.sevengod.javabe.mapper.UserMapper;
-import org.sevengod.javabe.service.UserService;
+import org.sevengod.javabe.web.mapper.UserMapper;
+import org.sevengod.javabe.web.service.UserService;
 import org.springframework.stereotype.Service;
 
 @Service

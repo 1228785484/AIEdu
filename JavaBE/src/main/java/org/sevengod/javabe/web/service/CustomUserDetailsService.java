@@ -1,4 +1,4 @@
-package org.sevengod.javabe.service;
+package org.sevengod.javabe.web.service;
 
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.entity.User;
