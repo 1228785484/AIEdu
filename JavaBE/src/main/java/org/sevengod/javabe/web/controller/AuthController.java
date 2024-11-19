@@ -1,12 +1,11 @@
-package org.sevengod.javabe.controller;
+package org.sevengod.javabe.web.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.dto.LoginRequest;
 import org.sevengod.javabe.dto.RegisterRequest;
-import org.sevengod.javabe.service.AuthService;
-import org.sevengod.javabe.service.EmailService;
-import org.sevengod.javabe.service.VerificationCodeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.sevengod.javabe.web.service.AuthService;
+import org.sevengod.javabe.web.service.EmailService;
+import org.sevengod.javabe.web.service.VerificationCodeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

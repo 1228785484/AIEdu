@@ -1,4 +1,4 @@
-package org.sevengod.javabe.service;
+package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.sevengod.javabe.entity.User;
