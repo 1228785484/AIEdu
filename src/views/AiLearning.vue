@@ -5,9 +5,8 @@
       <img src="@/assets/AI老师.png" alt="Logo" id="logo" />
     </div>
 
-    <!-- 右侧聊天容器 -->
+    <!-- 中间聊天框 -->
     <div id="chat-container">
-      <!-- 用于显示消息的聊天框 -->
       <div id="chat-box" ref="chatBox">
         <div
           v-for="(message, index) in messages"
@@ -21,21 +20,28 @@
             class="avatar"
           />
           <div class="text">
-            <!-- 如果消息是 "进入学习!"，渲染链接按钮，否则直接显示文本 -->
-            <span v-if="message.text === '进入学习!'">
-              <button @click="goToLearning">进入学习</button>
-            </span>
+            <div v-if="!message.isUser">
+              <div v-if="message.type === 'plan'" class="plan-message">
+                <div class="plan-title">学习计划</div>
+                <ul class="plan-details">
+                  <li v-for="(week, idx) in message.data" :key="idx">{{ week }}</li>
+                </ul>
+              </div>
+              <div v-else-if="message.type === 'error'" class="error-message">
+                <div class="error-title">错误</div>
+                <p>{{ message.text }}</p>
+              </div>
+              <div v-else class="general-message">
+                <span>{{ message.text }}</span>
+              </div>
+            </div>
             <span v-else v-html="message.text"></span>
           </div>
         </div>
-
-        <!-- 加载指示器，当AI正在处理消息时显示 -->
         <div v-if="isLoading" class="loading-indicator">
           <span>AI正在输入...</span>
         </div>
       </div>
-
-      <!-- 用户输入区域 -->
       <div id="user-input-area">
         <input
           type="text"
@@ -48,6 +54,16 @@
         <button @click="sendMessage" id="send-btn">发送</button>
       </div>
     </div>
+
+    <!-- 右侧下拉框容器 -->
+    <div id="dropdown-container">
+      <select v-model="selectedCourse" @change="handleCourseChange" id="course-select">
+        <option value="" disabled selected>选择课程</option>
+        <option value="c-language">C语言</option>
+        <option value="python">Python</option>
+        <option value="java">Java</option>
+      </select>
+    </div>
   </div>
 </template>
 
@@ -57,17 +73,7 @@ import { useRouter } from "vue-router";
 
 // 消息数据和状态
 const messages = ref([
-  { text: "你好，我是你的C语言老师，下面由我带领你学习C语言", isUser: false },
-  { text: "您好", isUser: true },
-  { text: "正在生成学习计划......", isUser: false },
-  {
-    text:
-      "第一周：C语言基础<br>第二周：C语言进阶<br>第三周：C语言项目<br>第四周：C语言复习；考试",
-    isUser: false,
-  },
-  { text: "是否满意此学习计划", isUser: false },
-  { text: "是", isUser: true },
-  { text: "进入学习!", isUser: false },
+  { text: "AI助手为您服务", isUser: false },
 ]);
 
 const userInput = ref("");
@@ -76,6 +82,9 @@ const userAvatar = require("@/assets/客户头像.png");
 const botAvatar = require("@/assets/AI老师.png");
 
 const router = useRouter(); // 使用 Vue Router
+
+// 控制选中的课程
+const selectedCourse = ref('');
 
 const sendMessage = async () => {
   if (userInput.value.trim()) {
@@ -112,10 +121,25 @@ const sendMessage = async () => {
       }
 
       const data = await response.json();
-      messages.value.push({ text: data.answer, isUser: false });
+      
+      // 假设返回的数据是以下格式
+      const responseMessage = {
+        text: data.answer, 
+        isUser: false
+      };
+      if (data.type === 'plan') {
+        responseMessage.type = 'plan';
+        responseMessage.data = data.data; // 假设返回的是一个学习计划数组
+      } else if (data.error) {
+        responseMessage.type = 'error';
+        responseMessage.text = data.error;
+      }
+
+      messages.value.push(responseMessage);
       scrollToBottom();
     } catch (error) {
       messages.value.push({
+        type: 'error',
         text: `错误：${error.message}`,
         isUser: false,
       });
@@ -133,9 +157,12 @@ const scrollToBottom = () => {
   }, 0);
 };
 
-// 处理点击“进入学习”
-const goToLearning = () => {
-  router.push("/learning");
+// 处理下拉框变化，跳转到不同的学习页面
+const handleCourseChange = () => {
+  if (selectedCourse.value === 'c-language') {
+    // 如果选择了 C语言，跳转到对应的学习页面
+    router.push("/learning");
+  }
 };
 </script>
 
@@ -146,6 +173,9 @@ const goToLearning = () => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px;
+  width: 100%;
+  height: 100%; /* 确保容器高度填满整个页面 */
+  position: relative;
 }
 
 /* 左侧Logo部分 */
@@ -155,26 +185,28 @@ const goToLearning = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f0f0;
+  background-color: rgba(240, 240, 240, 0.8); /* 半透明背景以确保不遮挡背景图 */
   border-radius: 15px;
   padding: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-left: -100px; /* 向左移动 */
 }
 
 #logo {
-  width: 100%;
-  height: auto; /* 设置logo的高度自适应 */
-  max-height: 100%; /* 设置最大高度为容器的高度 */
+  width: 90%;
+  height: auto;
+  max-height: 400%;
 }
 
-/* 右侧聊天窗口 */
+/* 中间聊天窗口 */
 #chat-container {
   width: 928px;
-  height: 755px;
-  margin-left: 20px;
+  height: 750px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  margin-left: 20px;
+  margin-right: 50px;
 }
 
 #chat-box {
@@ -231,6 +263,39 @@ const goToLearning = () => {
   max-width: 70%;
 }
 
+/* 学习计划 */
+.plan-message {
+  padding: 10px;
+  background-color: #f4f8fc;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.plan-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.plan-details {
+  list-style-type: disc;
+  padding-left: 20px;
+}
+
+/* 错误消息 */
+.error-message {
+  padding: 10px;
+  background-color: #fff4f4;
+  border-radius: 10px;
+  color: red;
+  margin-top: 10px;
+}
+
+.error-title {
+  font-weight: bold;
+}
+
+/* 输入框和按钮 */
 #user-input-area {
   display: flex;
   justify-content: space-between;
@@ -244,12 +309,6 @@ const goToLearning = () => {
   border-radius: 25px;
   border: 1px solid #ccc;
   font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-#user-input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
 }
 
 #send-btn {
@@ -259,17 +318,39 @@ const goToLearning = () => {
   border-radius: 25px;
   background-color: #007bff;
   color: white;
-  font-size: 16px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 #send-btn:hover {
   background-color: #0056b3;
 }
 
-/* 加载指示器的样式 */
+/* 右侧下拉框容器样式 */
+#dropdown-container {
+  width: 300px;
+  height: 650px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(248, 249, 250, 0.9); /* 半透明背景 */
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+#course-select {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+#course-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+/* 加载指示器 */
 .loading-indicator {
   text-align: center;
   color: #007bff;
