@@ -5,6 +5,7 @@ import org.sevengod.javabe.dto.LoginRequest;
 import org.sevengod.javabe.dto.RegisterRequest;
 import org.sevengod.javabe.web.service.AuthService;
 import org.sevengod.javabe.web.service.EmailService;
+import org.sevengod.javabe.web.service.UserService;
 import org.sevengod.javabe.web.service.VerificationCodeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:8080")
 public class AuthController {
 
+    private final UserService userService;
     private final AuthService authService;
     private final VerificationCodeService verificationCodeService;
     private final EmailService emailService;
@@ -45,5 +47,10 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "发送验证码失败: " + e.getMessage()));
         }
+    }
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmailExists(@RequestParam String email) {
+        boolean exists = userService.findByEmail(email) != null;
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 } 

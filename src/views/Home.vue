@@ -39,7 +39,14 @@
           </div>
           <div class="form-group">
             <label>邮箱:</label>
-            <input v-model="registerForm.email" type="email" required>
+            <input 
+              v-model="registerForm.email" 
+              type="email" 
+              required
+              @input="validateEmail"
+              :class="{ error: emailError }"
+            >
+            <span class="email-error" v-if="emailError">{{ emailError }}</span>
           </div>
           <div class="form-group verification-code">
             <label>验证码:</label>
@@ -55,11 +62,22 @@
           </div>
           <div class="form-group">
             <label>密码:</label>
-            <input v-model="registerForm.password" type="password" required>
+            <input 
+              v-model="registerForm.password" 
+              type="password" 
+              required
+              @input="validatePassword"
+            >
           </div>
           <div class="form-group">
             <label>确认密码:</label>
-            <input v-model="registerForm.confirmPassword" type="password" required>
+            <input 
+              v-model="registerForm.confirmPassword" 
+              type="password" 
+              required
+              @input="validatePassword"
+            >
+            <span class="password-error" v-if="passwordError">{{ passwordError }}</span>
           </div>
           <div class="modal-buttons">
             <button type="submit" class="submit-btn">注册</button>
@@ -91,7 +109,10 @@ export default {
         confirmPassword: '',
         verificationCode: ''
       },
-      cooldown: 0
+      cooldown: 0,
+      passwordError: '',
+      emailError: '',
+      emailCheckTimeout: null,
     }
   },
   methods: {
@@ -155,9 +176,62 @@ export default {
       }
     },
     
+    validatePassword() {
+      if (this.registerForm.confirmPassword) {
+        if (this.registerForm.password !== this.registerForm.confirmPassword) {
+          this.passwordError = '两次输入的密码不一致';
+        } else {
+          this.passwordError = '';
+        }
+      }
+    },
+    
+    async validateEmail() {
+      // 清除之前的定时器
+      if (this.emailCheckTimeout) {
+        clearTimeout(this.emailCheckTimeout);
+      }
+      
+      // 邮箱格式验证
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.registerForm.email)) {
+        this.emailError = '请输入有效的邮箱地址';
+        return;
+      }
+      
+      // 设置新的定时器（防抖）
+      this.emailCheckTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch(
+            `http://localhost:8008/api/auth/check-email?email=${encodeURIComponent(this.registerForm.email)}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          const data = await response.json();
+          if (data.exists) {
+            this.emailError = '该邮箱已被注册';
+          } else {
+            this.emailError = '';
+          }
+        } catch (error) {
+          console.error('检查邮箱错误:', error);
+        }
+      }, 500); // 500ms 的防抖延迟
+    },
+    
     async handleRegister() {
-      if (this.registerForm.password !== this.registerForm.confirmPassword) {
-        alert('两次输入的密码不一致');
+      if (this.emailError) {
+        ElMessage.error(this.emailError);
+        return;
+      }
+      
+      if (this.passwordError) {
+        ElMessage.error('两次输入的密码不一致');
         return;
       }
       
@@ -300,5 +374,23 @@ export default {
 .send-code-btn:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+}
+
+.password-error {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+}
+
+.form-group input.error {
+  border-color: #f44336;
+}
+
+.email-error {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
 }
 </style>
