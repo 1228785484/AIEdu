@@ -66,3 +66,7 @@ dify:
   url: https://dify.aipfuture.com/v1
   key:
     ask-ai: app-oGCLThhvLjBwqnhzLbNnOure
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui

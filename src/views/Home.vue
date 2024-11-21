@@ -105,6 +105,7 @@ export default {
       registerForm: {
         username: '',
         email: '',
+        userid: '',
         password: '',
         confirmPassword: '',
         verificationCode: ''
@@ -131,8 +132,11 @@ export default {
           localStorage.setItem('token', data.token);
           localStorage.setItem('username', data.username);
           localStorage.setItem('email', data.email);
+          localStorage.setItem('userid', data.userid);
           
           ElMessage.success('登录成功');
+          // 测试用户ID
+          // ElMessage.info(String(data.userid));
           this.$router.push('/personal-info');
         } else {
           ElMessage.error(data.message || '登录失败');
