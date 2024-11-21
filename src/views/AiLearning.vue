@@ -57,12 +57,16 @@
 
     <!-- 右侧下拉框容器 -->
     <div id="dropdown-container">
-      <select v-model="selectedCourse" @change="handleCourseChange" id="course-select">
-        <option value="" disabled selected>选择课程</option>
-        <option value="c-language">C语言</option>
-        <option value="python">Python</option>
-        <option value="java">Java</option>
-      </select>
+      <div id="course-list">
+        <div class="course-item" @click="selectCourse('c')">C语言</div>
+        <div class="course-item" @click="selectCourse('python')">Python</div>
+        <div class="course-item" @click="selectCourse('network')">网络安全</div>
+        <div class="course-item" @click="selectCourse('computer_network')">计算机网络</div>
+        <div class="course-item" @click="selectCourse('computer_organization')">计算机组成原理</div>
+        <div class="course-item" @click="selectCourse('operating_system')">操作系统</div>
+        <div class="course-item" @click="selectCourse('java')">Java</div>
+        <div class="course-item" @click="selectCourse('database')">数据库</div>
+      </div>
     </div>
   </div>
 </template>
@@ -83,8 +87,6 @@ const botAvatar = require("@/assets/AI老师.png");
 
 const router = useRouter(); // 使用 Vue Router
 
-// 控制选中的课程
-const selectedCourse = ref('');
 
 const sendMessage = async () => {
   if (userInput.value.trim()) {
@@ -156,14 +158,13 @@ const scrollToBottom = () => {
     chatBox.scrollTop = chatBox.scrollHeight;
   }, 0);
 };
-
-// 处理下拉框变化，跳转到不同的学习页面
-const handleCourseChange = () => {
-  if (selectedCourse.value === 'c-language') {
-    // 如果选择了 C语言，跳转到对应的学习页面
-    router.push("/learning");
+function selectCourse(course) {
+  if (course === 'c') {
+    router.push("/learning"); // Redirect to /learning when C语言 is clicked
+  } else {
+    console.log(`Selected course: ${course}`);
   }
-};
+}
 </script>
 
 <style scoped>
@@ -180,44 +181,42 @@ const handleCourseChange = () => {
 
 /* 左侧Logo部分 */
 #logo-container {
-  width: 450px;
+  width: 300px;
   height: 650px;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(240, 240, 240, 0.8); /* 半透明背景以确保不遮挡背景图 */
+  background-color: rgba(248, 249, 250, 0.9);
   border-radius: 15px;
   padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  margin-left: -100px; /* 向左移动 */
+  box-shadow: 0 4px 20px rgb(237,201,237);
 }
 
 #logo {
-  width: 90%;
-  height: auto;
-  max-height: 400%;
+  width: 300px;
+  height: auto; /* 设置logo的高度自适应 */
+  max-height: 600px; /* 设置最大高度为容器的高度 */
 }
 
 /* 中间聊天窗口 */
 #chat-container {
-  width: 928px;
-  height: 750px;
+  width: 600px;
+  height: 700px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-left: 20px;
-  margin-right: 50px;
+  margin-left: 5px;
+  margin-right: 10px;
 }
 
 #chat-box {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  border: 2px solid #ccc;
   border-radius: 15px;
   padding: 20px;
-  background: #f7f7f7;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+  background:rgba(248, 249, 250, 0.9);
+  box-shadow: inset 0 0 10px rgb(237,201,237);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -230,22 +229,22 @@ const handleCourseChange = () => {
 .message {
   display: flex;
   align-items: center;
-  max-width: 75%;
+  max-width: 500px;
   padding: 12px;
   border-radius: 12px;
   margin-bottom: 12px;
   word-wrap: break-word;
   background-color: #f0f0f0;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgb(249, 198, 198);
 }
 
 .user-message {
-  background-color: #d1e7ff;
+  background-color: rgb(245, 249, 194);
   align-self: flex-end;
 }
 
 .ai-message {
-  background-color: #e2ffe2;
+  background-color: rgb(248, 227, 248);
   align-self: flex-start;
 }
 
@@ -287,7 +286,7 @@ const handleCourseChange = () => {
   padding: 10px;
   background-color: #fff4f4;
   border-radius: 10px;
-  color: red;
+  color: rgb(240, 189, 189);
   margin-top: 10px;
 }
 
@@ -304,10 +303,10 @@ const handleCourseChange = () => {
 }
 
 #user-input {
-  width: 80%;
+  width: 500px;
   padding: 12px;
   border-radius: 25px;
-  border: 1px solid #ccc;
+  border: 1px solid rgb(237,201,237);
   font-size: 16px;
 }
 
@@ -316,45 +315,42 @@ const handleCourseChange = () => {
   padding: 12px;
   margin-left: 10px;
   border-radius: 25px;
-  background-color: #007bff;
+  background-color: rgb(237,201,237);
   color: white;
+  border:yellow;
 }
 
 #send-btn:hover {
-  background-color: #0056b3;
+  background-color: rgb(229, 188, 229);
 }
-
-/* 右侧下拉框容器样式 */
-#dropdown-container {
-  width: 300px;
+#dropdown-container{
+  margin-left: 10px;
+  width: 100px;
   height: 650px;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(248, 249, 250, 0.9); /* 半透明背景 */
+  background-color: rgba(248, 249, 250, 0.9);
+  padding: 5px;
   border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  box-shadow: 0 4px 20px rgb(237,201,237);
+  color:rgb(129, 129, 231);
 }
 
-#course-select {
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-  background-color: #ffffff;
-  transition: all 0.3s ease;
+.course-item {
+  margin-bottom: 10px;
+  padding: 5px;
+  border-bottom: 1px solid rgb(247, 237, 142);
 }
-
-#course-select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+.course-item:last-child {
+  border-bottom: none; /* Remove the bottom border from the last item */
 }
-
-/* 加载指示器 */
-.loading-indicator {
-  text-align: center;
-  color: #007bff;
-  font-style: italic;
-  margin-top: 10px;
+.course-item.active {
+  background-color: rgb(248, 190, 190); /* 点击后的背景颜色 */
+  color: white; /* 点击后的文字颜色 */
+}
+.course-list{
+  margin-top:10px;
 }
 </style>

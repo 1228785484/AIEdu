@@ -18,6 +18,7 @@
         </div>
         <div class="learning-plan-item vertical">
           <span class="label">学习进度</span>
+          
           <e-charts class="chart" :option="option" />
         </div>
       </div>
@@ -51,14 +52,19 @@
         <div id="plan-title">学习计划</div>
         <div id="plan-line"></div><!--在学习计划下面添加一条横线-->
         <div id="scrollable-area">
-          <!-- 目录树 -->
-          <el-tree
-            style="max-width: 600px"
-            :data="treeData"
-            :props="defaultProps"
-            @node-click="handleNodeClick"
-          />
-          
+          <ul class="chapter-list">
+            <li v-for="chapter in chapters" :key="chapter.id" class="chapter-item">
+              <span @click="toggleChapter(chapter.id)" :class="{ 'chapter-name': true, 'expanded': chapter.expanded }">
+                {{ chapter.name }}
+                <span class="arrow" v-if="chapter.sections.length > 0">{{ chapter.expanded ? '▼' : '►' }}</span>
+              </span>
+              <ul v-if="chapter.expanded" class="section-list">
+                <li v-for="section in chapter.sections" :key="section.id" class="section-item">
+                  <span @click="selectSection(section.id)">{{ section.name }}</span>
+                </li>
+              </ul>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -67,7 +73,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { ElTree } from 'element-plus';
+
 //另一种进度图
 var progressValue = 60;
 var option = {
@@ -173,143 +179,43 @@ var option = {
         ],
  
       };
+
+const chapters = ref([
+  {
+    id: 1,
+    name: '第一章',
+    expanded: false,
+    sections: [
+      { id: 1.1, name: '第一节' },
+      { id: 1.2, name: '第二节' },
+    ],
+  },
+  {
+    id: 2,
+    name: '第二章',
+    expanded: false,
+    sections: [
+      { id: 2.1, name: '第一节' },
+      { id: 2.2, name: '第二节' },
+    ],
+  }
+]);
 const selectedAction = ref(''); // 用于跟踪当前选中的动作
+function toggleChapter(chapterId) {
+  const chapter = chapters.value.find(c => c.id === chapterId);
+  if (chapter) {
+    chapter.expanded = !chapter.expanded;
+  }
+}
+
+function selectSection(sectionId) {
+  // 处理小节点击事件
+  console.log(`小节 ${sectionId} 被点击`);
+}
+
 function selectAction(action) {
   selectedAction.value = action; // 更新选中的动作
 }
-// 目录树数据，添加了id字段
-const treeData = [
-  {
-    label: '第一章：C语言基础',
-    id: 'chapter1',
-    children: [
-      { label: '第一节：C语言的发展历程、特点及应用领域', id: 'section1-1' },
-      { label: '第二节：基本语法规则', id: 'section1-2' },
-      { label: '第三节：变量、数据类型和常量', id: 'section1-3' },
-      { label: '第四节：输入输出函数', id: 'section1-4' },
-    ],
-  },
-  {
-    label: '第二章：运算符与表达式',
-    id: 'chapter2',
-    children: [
-      { label: '第一节：算术运算符、关系运算符和逻辑运算符', id: 'section2-1' },
-      { label: '第二节：赋值运算符和复合赋值运算符', id: 'section2-2' },
-      { label: '第三节：表达式的概念及运算规则', id: 'section2-3' },
-    ],
-  },
-  {
-    label: '第三章：控制结构',
-    id: 'chapter3',
-    children: [
-      { label: '第一节：顺序结构和选择结构', id: 'section3-1' },
-      { label: '第二节：循环结构', id: 'section3-2' },
-      { label: '第三节：break和continue', id: 'section3-3' },
-    ],
-  },
-  {
-    label: '第四章：函数',
-    id: 'chapter4',
-    children: [
-      { label: '第一节：函数的定义、声明和调用', id: 'section4-1' },
-      { label: '第二节：函数的参数传递方式', id: 'section4-2' },
-      { label: '第三节：局部变量和全局变量', id: 'section4-3' },
-    ],
-  },
-  {
-    label: '第五章：数组和字符串',
-    id: 'chapter5',
-    children: [
-      { label: '第一节：一维数组和二维数组的定义、初始化和遍历', id: 'section5-1' },
-      { label: '第二节：字符串的基本操作', id: 'section5-2' },
-      { label: '第三节：字符数组与字符串', id: 'section5-3' },
-    ],
-  },
-  {
-    label: '第六章：指针',
-    id: 'chapter6',
-    children: [
-      { label: '第一节：指针的基本概念和用法', id: 'section6-1' },
-      { label: '第二节：指针与数组的关系', id: 'section6-2' },
-      { label: '第三节：指针与函数的参数传递', id: 'section6-3' },
-    ],
-  },
-  {
-    label: '第七章：结构体和共用体',
-    id: 'chapter7',
-    children: [
-      { label: '第一节：结构体的定义和初始化', id: 'section7-1' },
-      { label: '第二节：结构体数组、结构体指针和结构体嵌套', id: 'section7-2' },
-      { label: '第三节：共用体的概念和用法', id: 'section7-3' },
-    ],
-  },
-  {
-    label: '第八章：文件操作',
-    id: 'chapter8',
-    children: [
-      { label: '第一节：文件的基本概念和分类', id: 'section8-1' },
-      { label: '第二节：文件的基本操作', id: 'section8-2' },
-      { label: '第三节：文件定位函数', id: 'section8-3' },
-    ],
-  },
-  {
-    label: '第九章：预处理器和宏定义',
-    id: 'chapter9',
-    children: [
-      { label: '第一节：宏定义的基本用法', id: 'section9-1' },
-      { label: '第二节：文件包含指令', id: 'section9-2' },
-      { label: '第三节：条件编译指令', id: 'section9-3' },
-    ],
-  },
-  {
-    label: '第十章：动态内存分配',
-    id: 'chapter10',
-    children: [
-      { label: '第一节：动态内存分配的函数', id: 'section10-1' },
-      { label: '第二节：动态内存分配的原理和注意事项', id: 'section10-2' },
-      { label: '第三节：链表的基本操作', id: 'section10-3' },
-    ],
-  },
-];
-// el-tree 需要的默认属性配置
-const defaultProps = {
-  children: 'children',
-  label: 'label',
-};
-
-// 响应式变量，用于存储后端返回的章节内容
-const sectionData = ref(null);
-
-// 点击节点时的处理函数，发送请求给后端
-const handleNodeClick = async (nodeData) => {
-  const sectionId = nodeData.id;
-  console.log('Clicked node ID:', sectionId);
-
-  // 使用 fetch 请求后端接口
-  try {
-    // 拼接 URL，假设后端接受类似于这个格式的请求
-    const response = await fetch(`http://localhost:8008/api/test/askAi?sectionId=${sectionId}`, {
-      method: 'GET', // GET 请求方式
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // 检查响应状态
-    if (!response.ok) {
-      throw new Error('网络请求失败');
-    }
-
-    // 获取响应的 JSON 数据
-    const data = await response.json();
-    console.log('Received section data:', data);
-
-    // 更新响应式变量，将章节数据存储并展示
-    sectionData.value = data;
-  } catch (error) {
-    console.error('Error fetching section data:', error);
-  }
-};
 </script>
 
 <style scoped>
@@ -320,14 +226,13 @@ const handleNodeClick = async (nodeData) => {
     align-items: flex-start;
     padding: 20px;
     margin:0 20px;/*添加外边距*/
-    width:100%;
   }
   #learning-plan-container {
     margin-top: 30px;
   }
   /* 左侧模块 */
   #left-container {
-    width: 400px;
+    width: 450px;
     height: 650px;
     background-color: #f8f9fa;
     border-radius: 15px;
@@ -338,10 +243,6 @@ const handleNodeClick = async (nodeData) => {
     padding: 20px;
     height: 100%;
     overflow-y: auto;
-  }
-  .chart{
-    height:250px;
-    width: 280px;
   }
 
   /* 学习计划模块 */
@@ -372,7 +273,7 @@ const handleNodeClick = async (nodeData) => {
 
 /* 中间模块 */
 #middle-container {
-    width: 530px;
+    width: 500px;
     height: 650px;
     background-color: #f8f9fa;
     border-radius: 15px;
@@ -435,7 +336,7 @@ const handleNodeClick = async (nodeData) => {
 .purple-border {
   border-color: rgb(237, 201, 237);
   height:490px;
-  width:280px;
+  width:290px;
 }
 /*测试内容区域样式 */
 .tets-section{
@@ -445,10 +346,9 @@ const handleNodeClick = async (nodeData) => {
 }
   /* 右侧模块 */
   #right-container {
-    width: 370px;
+    width: 350px;
     height: 650px;
     background-color: #f8f9fa;
-    border: rgb(255, 206, 255);
     border-radius: 15px;
     box-shadow: 0 10px 10px rgb(237, 201, 237);
     margin:0 30px;
@@ -468,26 +368,49 @@ const handleNodeClick = async (nodeData) => {
   #scrollable-area {
     height: 100%; /* 设置滚动区域高度为100% */
     overflow-y: auto; /* 允许垂直滚动 */
-    color:rgb(237, 201, 237);
   }
   #right-content {
     padding: 20px;
     height: 100%;
   }
-/* 树形目录样式 */
-.el-tree {
-  margin-top: 20px;
-  max-height: 400px;
-  overflow-y: auto;
-  color:black;
+  .chapter-list {
+    margin-top:28px;
+    list-style: none;
+    padding: 0;
 }
 
-/* 章节数据展示部分 */
-#section-content {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px #a7caf0;
+.chapter-item {
+  margin-bottom: 10px;
+}
+
+.chapter-name{
+  font-size: 1.2em;/*设置一级目录比二级目录大 */
+  cursor:pointer;
+}
+
+.expanded .arrow{
+  transform: rotate(90deg);
+}
+
+.arrow{
+  display: inline-block;
+  transition: transform 0.3s;
+  color:rgb(237,201,237);
+}
+.section-list {
+  list-style: none;
+  padding-left: 20px;
+}
+
+.section-item {
+  margin-bottom: 5px;
+}
+.section-name{
+  font-size:1em;/*设置二级目录字体大小 */
+  cursor:pointer;
+}
+.chart{
+  height:250px;
+  width: 400px;
 }
 </style>
