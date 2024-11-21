@@ -23,6 +23,7 @@ public class AuthController {
     private final VerificationCodeService verificationCodeService;
     private final EmailService emailService;
 
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         return authService.login(request);

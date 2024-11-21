@@ -71,6 +71,7 @@ public class AuthService {
             response.put("token", token);
             response.put("username", user.getUsername());
             response.put("email", user.getEmail());
+            response.put("userid",user.getUserId());
             
             return ResponseEntity.ok(response);
             
