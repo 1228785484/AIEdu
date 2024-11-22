@@ -4,20 +4,29 @@
     <!-- 左侧模块 -->
     <div id="left-container">
       <div id="left-content">
-        <div class="learning-plan-item vertical">
+        <div class="learning-plan-item vertical" style="width: 93%; height: 60px;">
+          <img class='image' src="@/assets/task.png" alt="描述文本">
           <span class="label">任务点</span>
-          <span class="value">11/20</span>
+          <!-- <span class="value">{{note.task}}/{{note.sumTask}}</span> -->
+           <button class="value" @click="changeTask" style="background: rgba(0, 0, 0, 0);border: none;font-size: 18px;">{{note.task}}/{{note.sumTask}}</button>
         </div>
-        <div class="learning-plan-item vertical">
+        <div class="learning-plan-item vertical" style="width: 93%; height: 60px;">
+          <img class='image' src="@/assets/test.png" alt="描述文本">
           <span class="label">测试</span>
-          <span class="value">0/0</span>
+          <span class="value">{{note.test}}/{{note.sumTest}}</span>
         </div>
-        <div class="learning-plan-item vertical">
-          <span class="label">学习次数</span>
-          <span class="value">10</span>
+        <div class="learning-plan-item vertical" style="width: 93%; height: 60px;">
+          <!-- <span class="label">学习次数</span>
+          <span class="value">10</span> -->
+          <img class='image' src="@/assets/frequency.png" alt="描述文本">
+          <div class="label">学习次数</div>
+          <div class="value">{{note.frequency}}</div>
+          
         </div>
-        <div class="learning-plan-item vertical">
-          <span class="label">学习进度</span>
+        <div class="learning-plan-item vertical" style="width: 93%; height: 220px;">
+          <img class='image' src="@/assets/progress.png" alt="描述文本" style="top: 10%;">
+          <span class="label" style="top:10%;">学习进度</span>
+          
           <e-charts class="chart" :option="option" />
         </div>
       </div>
@@ -58,7 +67,6 @@
             :props="defaultProps"
             @node-click="handleNodeClick"
           />
-          
         </div>
       </div>
     </div>
@@ -68,6 +76,24 @@
 <script setup>
 import { ref } from 'vue';
 import { ElTree } from 'element-plus';
+//任务点
+var data1 = 12;
+var data2 = 20;
+var data3 = 0;
+var data4 = 0;
+var data5 = 3;
+let note = ref({
+  task:data1,
+  sumTask:data2,
+  test:data3,
+  sumTest:data4,
+  frequency:data5
+});
+function changeTask() {
+  if (note.value.task < note.value.sumTask){
+    note.value.task += 1
+  }
+}
 //另一种进度图
 var progressValue = 60;
 var option = {
@@ -350,6 +376,7 @@ const handleNodeClick = async (nodeData) => {
   }
 
 .learning-plan-item.vertical {
+  position:relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -361,15 +388,27 @@ const handleNodeClick = async (nodeData) => {
 }
 
 .learning-plan-item.vertical .label {
+  position:absolute;
+  top:30%;
+  left:15%;
   font-weight: bold;
   margin-bottom: 10px;
   margin-top:5px;
 }
 
 .learning-plan-item.vertical .value {
+  position: absolute;
+  top:35%;
+  left:80%;
   color: #007bff;
 }
 
+.image{
+  position: absolute;
+  top:40%;
+  left:6%
+
+}
 /* 中间模块 */
 #middle-container {
     width: 530px;
