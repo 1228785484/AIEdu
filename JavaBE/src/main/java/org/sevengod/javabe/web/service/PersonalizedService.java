@@ -10,4 +10,5 @@ import org.springframework.stereotype.Service;
 public interface PersonalizedService extends IService<PersonalizedContents> {
     PersonalizedContents getByUserAndChapter (Long userId, Long chapterId);
     PersonalizedContents generateContent (Long userId, Long chapterId);
+
 }

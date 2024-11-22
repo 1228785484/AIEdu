@@ -1,7 +1,8 @@
-package org.sevengod.javabe.web.service;
+package org.sevengod.javabe.web.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.entity.User;
+import org.sevengod.javabe.web.service.UserService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

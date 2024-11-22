@@ -3,10 +3,10 @@ package org.sevengod.javabe.web.controller;
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.dto.LoginRequest;
 import org.sevengod.javabe.dto.RegisterRequest;
-import org.sevengod.javabe.web.service.AuthService;
-import org.sevengod.javabe.web.service.EmailService;
+import org.sevengod.javabe.web.service.AuthService.AuthService;
+import org.sevengod.javabe.web.service.AuthService.EmailService;
 import org.sevengod.javabe.web.service.UserService;
-import org.sevengod.javabe.web.service.VerificationCodeService;
+import org.sevengod.javabe.web.service.AuthService.VerificationCodeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

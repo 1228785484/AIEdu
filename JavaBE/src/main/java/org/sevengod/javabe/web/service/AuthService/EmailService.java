@@ -1,4 +1,4 @@
-package org.sevengod.javabe.web.service;
+package org.sevengod.javabe.web.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

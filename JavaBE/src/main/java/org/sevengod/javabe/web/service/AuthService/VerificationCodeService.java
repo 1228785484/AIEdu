@@ -1,4 +1,4 @@
-package org.sevengod.javabe.web.service;
+package org.sevengod.javabe.web.service.AuthService;
 
 import org.springframework.stereotype.Service;
 import java.util.Map;
