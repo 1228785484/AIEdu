@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+//课程树以及各种课程的查询服务
+//我忘了改成Impl格式的了
 @Service
 @RequiredArgsConstructor
 public class CourseTreeService {
@@ -72,5 +74,8 @@ public class CourseTreeService {
 
         tree.add(courseNode);
         return tree;
+    }
+    public Chapter getChapterById(Long chapterId) {
+        return chapterMapper.selectById(chapterId);
     }
 }
