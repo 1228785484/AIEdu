@@ -33,23 +33,20 @@ public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapp
     //TODO 等Dify的接口完成制作
     @Override
     public PersonalizedContents generateContent(Long userId, Long chapterId) {
-        if(getByUserAndChapter(userId, chapterId) == null) {
-            //创建新的个性化内容
-            PersonalizedContents newContent = new PersonalizedContents();
-            newContent.setUserId(userId);
-            newContent.setChapterId(chapterId);
-            newContent.setContent(
-                    difyService.blockingMessage(
-                            courseTreeService.getChapterById(chapterId).getContentPrompt(),
-                            userId,
-                            APIKey
-                    ).getAnswer()
-            );
-            newContent.setCreatedAt(LocalDateTime.now());
-            newContent.setIsActive(true);
-        }else{
-            throw new RuntimeException("内容已生成过了");
-        }
-        return null;
+        //创建新的个性化内容
+        PersonalizedContents newContent = new PersonalizedContents();
+        newContent.setUserId(userId);
+        newContent.setChapterId(chapterId);
+        newContent.setContent(
+                difyService.blockingMessage(
+                        courseTreeService.getChapterById(chapterId).getContentPrompt(),
+                        userId,
+                        APIKey
+                ).getAnswer()
+        );
+        newContent.setCreatedAt(LocalDateTime.now());
+        newContent.setIsActive(true);
+        personalizedContentsMapper.insert(newContent);
+        return newContent;
     }
 }
