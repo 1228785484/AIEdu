@@ -110,13 +110,13 @@ public class DifyService {
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("inputs", inputs);
-        requestBody.put("response_mode", "blocking");
+        requestBody.put("response_mode", "streaming");
         requestBody.put("user", user);
 
         HttpEntity<String> entity = new HttpEntity<>(JSON.toJSONString(requestBody), headers);
         
         ResponseEntity<List<WorkflowResponse>> response = restTemplate.exchange(
-            url + "/workflow/run",
+            url + "/workflows/run",
             HttpMethod.POST,
             entity,
             new ParameterizedTypeReference<List<WorkflowResponse>>() {}
@@ -138,7 +138,7 @@ public class DifyService {
         requestBody.put("user", user);
 
         return webClient.post()
-            .uri(url + "/workflow/run")
+            .uri(url + "/workflows/run")
             .headers(httpHeaders -> {
                 httpHeaders.setContentType(MediaType.APPLICATION_JSON);
                 httpHeaders.setBearerAuth(apiKey);

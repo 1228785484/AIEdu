@@ -7,12 +7,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.sevengod.javabe.common.AjaxResult;
+import org.sevengod.javabe.entity.PersonalizedContents;
 import org.sevengod.javabe.entity.resp.BlockResponse;
 import org.sevengod.javabe.entity.resp.StreamResponse;
 import org.sevengod.javabe.web.service.DifyService;
+import org.sevengod.javabe.web.service.PersonalizedService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/test")
@@ -25,6 +30,8 @@ public class DifyController {
     private String testKey;
 
     private final DifyService difyService;
+
+    private final PersonalizedService personalizedService;
 
 //    @GetMapping("/block")
 //    public String test1() {
@@ -63,5 +70,24 @@ public class DifyController {
             1L,  // 使用默认用户ID
             testKey  // 使用默认API key
         );
+    }
+
+    @PostMapping("/genContent")
+    @Operation(summary = "生成个性化内容")
+    public AjaxResult genContent(@RequestBody Map<String, Long> request) {
+        try {
+            Long userId = request.get("userId");
+            Long chapterId = request.get("chapterId");
+            
+            if (userId == null || chapterId == null) {
+                return AjaxResult.error("用户ID和章节ID不能为空");
+            }
+
+            PersonalizedContents content = personalizedService.generateContent(userId, chapterId);
+            return AjaxResult.success("生成内容成功", content);
+            
+        } catch (Exception e) {
+            return AjaxResult.error("生成内容失败：" + e.getMessage());
+        }
     }
 }

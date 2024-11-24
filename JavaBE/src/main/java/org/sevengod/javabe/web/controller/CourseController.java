@@ -10,10 +10,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.common.AjaxResult;
+import org.sevengod.javabe.entity.ChapterProgress;
 import org.sevengod.javabe.entity.CourseEnrollment;
 import org.sevengod.javabe.entity.TreeNode;
 import org.sevengod.javabe.entity.Units;
 import org.sevengod.javabe.entity.vo.EnrollRequestVo;
+import org.sevengod.javabe.entity.vo.ProgressRequestVo;
+import org.sevengod.javabe.web.service.ChapterProgressService;
 import org.sevengod.javabe.web.service.CourseTreeService;
 import org.sevengod.javabe.web.service.EnrollmentService;
 import org.sevengod.javabe.web.service.UnitService;
@@ -21,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 //课程相关控制类
 @RestController
@@ -33,6 +37,8 @@ public class CourseController {
     private CourseTreeService courseTreeService;
     @Autowired
     private EnrollmentService enrollmentService;
+    @Autowired
+    private ChapterProgressService chapterProgressService;
 
     @GetMapping("/findUnits")
     @Operation(summary = "查询课程单元", description = "根据课程ID查询所有单元")
@@ -78,6 +84,40 @@ public class CourseController {
             return AjaxResult.success("选课成功", enrollment);
         } catch (Exception e) {
             return AjaxResult.error(e.getMessage());
+        }
+    }
+    @PostMapping("/updProgress")
+    public AjaxResult updateProgress(@RequestBody ProgressRequestVo request) {
+        try {
+            boolean success = chapterProgressService.updateProgress(
+                request.getChapterId(),
+                request.getEnrollmentId(),
+                request.getPercentage()
+            );
+            if (success) {
+                return AjaxResult.success("修改进度成功", true);
+            } else {
+                return AjaxResult.error("修改进度失败");
+            }
+        } catch (Exception e) {
+            return AjaxResult.error("修改进度失败：" + e.getMessage());
+        }
+    }
+    @GetMapping("/getProgress")
+    public AjaxResult getProgress(@RequestParam Long chapterId,
+                                  @RequestParam Long enrollmentId) {
+        try {
+            ChapterProgress progress = chapterProgressService.getProgress(chapterId, enrollmentId);
+            if (progress != null) {
+                return AjaxResult.success("获取进度成功", progress);
+            } else {
+                // 没有进度记录时返回空数据但不是错误
+                return AjaxResult.success("暂无进度记录", null);
+            }
+        } catch (IllegalArgumentException e) {
+            return AjaxResult.error("参数错误：" + e.getMessage());
+        } catch (Exception e) {
+            return AjaxResult.error("获取进度失败：" + e.getMessage());
         }
     }
 

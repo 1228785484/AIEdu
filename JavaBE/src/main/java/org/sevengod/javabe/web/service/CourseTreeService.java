@@ -78,4 +78,5 @@ public class CourseTreeService {
     public Chapter getChapterById(Long chapterId) {
         return chapterMapper.selectById(chapterId);
     }
+
 }
