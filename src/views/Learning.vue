@@ -56,26 +56,6 @@
           </div>
         </div>
 
-        <!-- 课程树 -->
-        <div class="course-tree">
-          <el-tree
-            ref="tree"
-            :data="treeData"
-            :props="defaultProps"
-            @node-click="handleNodeClick"
-            node-key="id"
-            :highlight-current="true"
-            :expand-on-click-node="false"
-            class="custom-tree"
-          >
-            <template #default="{ node, data }">
-              <div class="custom-tree-node">
-                <span class="node-label">{{ node.label }}</span>
-                <span v-if="data.children" class="node-count">{{ data.children.length }}</span>
-              </div>
-            </template>
-          </el-tree>
-        </div>
       </div>
     </div>
 
