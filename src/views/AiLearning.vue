@@ -87,7 +87,6 @@ const botAvatar = require("@/assets/AI老师.png");
 
 const router = useRouter(); // 使用 Vue Router
 
-
 const sendMessage = async () => {
   if (userInput.value.trim()) {
     messages.value.push({ text: userInput.value, isUser: true });
@@ -158,9 +157,58 @@ const scrollToBottom = () => {
     chatBox.scrollTop = chatBox.scrollHeight;
   }, 0);
 };
-function selectCourse(course) {
+
+async function selectCourse(course) {
   if (course === 'c') {
-    router.push("/learning"); // Redirect to /learning when C语言 is clicked
+    try {
+      const userId = parseInt(localStorage.getItem('userid'));
+      const token = localStorage.getItem('token');
+      
+      // 先检查是否已经选过这门课
+      const checkResponse = await fetch(`http://localhost:8008/api/course/check-enrollment?userId=${userId}&courseId=1`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const checkResult = await checkResponse.json();
+      
+      if (checkResult.code === 200 && checkResult.data === true) {
+        // 已经选过课，直接跳转
+        localStorage.setItem('selectedCourseId', '1');
+        router.push("/learning");
+        return;
+      }
+      
+      // 没选过课，进行选课
+      console.log('Sending enrollment request with:', {
+        userId: userId,
+        courseId: 1
+      });
+      
+      const response = await fetch('http://localhost:8008/api/course/enroll', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: userId,
+          courseId: 1
+        })
+      });
+      
+      const result = await response.json();
+      console.log('Response:', result);
+      
+      if (result.code === 200) {
+        localStorage.setItem('selectedCourseId', '1');
+        router.push("/learning");
+      } else {
+        console.error('选课失败:', result.msg);
+      }
+    } catch (error) {
+      console.error('选课请求失败:', error);
+    }
   } else {
     console.log(`Selected course: ${course}`);
   }

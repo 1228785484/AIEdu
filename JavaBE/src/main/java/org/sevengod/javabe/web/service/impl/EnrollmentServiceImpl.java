@@ -45,4 +45,14 @@ public class EnrollmentServiceImpl extends ServiceImpl<EnrollmentMapper, CourseE
         mapper.insert(enrollment);
         return enrollment;
     }
+
+    @Override
+    public boolean isEnrolled(Long userId, Long courseId) {
+        QueryWrapper<CourseEnrollment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId)
+                   .eq("course_id", courseId)
+                   .ne("status", "dropped");  // 排除已退课的情况
+        
+        return mapper.selectCount(queryWrapper) > 0;
+    }
 }

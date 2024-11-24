@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref,onMounted } from 'vue';
 import { ElTree } from 'element-plus';
 //任务点
 var data1 = 12;
@@ -203,104 +203,64 @@ const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
   selectedAction.value = action; // 更新选中的动作
 }
-// 目录树数据，添加了id字段
-const treeData = [
-  {
-    label: '第一章：C语言基础',
-    id: 'chapter1',
-    children: [
-      { label: '第一节：C语言的发展历程、特点及应用领域', id: 'section1-1' },
-      { label: '第二节：基本语法规则', id: 'section1-2' },
-      { label: '第三节：变量、数据类型和常量', id: 'section1-3' },
-      { label: '第四节：输入输出函数', id: 'section1-4' },
-    ],
-  },
-  {
-    label: '第二章：运算符与表达式',
-    id: 'chapter2',
-    children: [
-      { label: '第一节：算术运算符、关系运算符和逻辑运算符', id: 'section2-1' },
-      { label: '第二节：赋值运算符和复合赋值运算符', id: 'section2-2' },
-      { label: '第三节：表达式的概念及运算规则', id: 'section2-3' },
-    ],
-  },
-  {
-    label: '第三章：控制结构',
-    id: 'chapter3',
-    children: [
-      { label: '第一节：顺序结构和选择结构', id: 'section3-1' },
-      { label: '第二节：循环结构', id: 'section3-2' },
-      { label: '第三节：break和continue', id: 'section3-3' },
-    ],
-  },
-  {
-    label: '第四章：函数',
-    id: 'chapter4',
-    children: [
-      { label: '第一节：函数的定义、声明和调用', id: 'section4-1' },
-      { label: '第二节：函数的参数传递方式', id: 'section4-2' },
-      { label: '第三节：局部变量和全局变量', id: 'section4-3' },
-    ],
-  },
-  {
-    label: '第五章：数组和字符串',
-    id: 'chapter5',
-    children: [
-      { label: '第一节：一维数组和二维数组的定义、初始化和遍历', id: 'section5-1' },
-      { label: '第二节：字符串的基本操作', id: 'section5-2' },
-      { label: '第三节：字符数组与字符串', id: 'section5-3' },
-    ],
-  },
-  {
-    label: '第六章：指针',
-    id: 'chapter6',
-    children: [
-      { label: '第一节：指针的基本概念和用法', id: 'section6-1' },
-      { label: '第二节：指针与数组的关系', id: 'section6-2' },
-      { label: '第三节：指针与函数的参数传递', id: 'section6-3' },
-    ],
-  },
-  {
-    label: '第七章：结构体和共用体',
-    id: 'chapter7',
-    children: [
-      { label: '第一节：结构体的定义和初始化', id: 'section7-1' },
-      { label: '第二节：结构体数组、结构体指针和结构体嵌套', id: 'section7-2' },
-      { label: '第三节：共用体的概念和用法', id: 'section7-3' },
-    ],
-  },
-  {
-    label: '第八章：文件操作',
-    id: 'chapter8',
-    children: [
-      { label: '第一节：文件的基本概念和分类', id: 'section8-1' },
-      { label: '第二节：文件的基本操作', id: 'section8-2' },
-      { label: '第三节：文件定位函数', id: 'section8-3' },
-    ],
-  },
-  {
-    label: '第九章：预处理器和宏定义',
-    id: 'chapter9',
-    children: [
-      { label: '第一节：宏定义的基本用法', id: 'section9-1' },
-      { label: '第二节：文件包含指令', id: 'section9-2' },
-      { label: '第三节：条件编译指令', id: 'section9-3' },
-    ],
-  },
-  {
-    label: '第十章：动态内存分配',
-    id: 'chapter10',
-    children: [
-      { label: '第一节：动态内存分配的函数', id: 'section10-1' },
-      { label: '第二节：动态内存分配的原理和注意事项', id: 'section10-2' },
-      { label: '第三节：链表的基本操作', id: 'section10-3' },
-    ],
-  },
-];
+
+// 目录树数据改为响应式
+const treeData = ref([]);
+
+// 加载课程树数据的方法
+const loadCourseTree = async () => {
+  try {
+    const courseId = localStorage.getItem('selectedCourseId');
+    if (!courseId) {
+      console.error('No course selected');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8008/api/course/${courseId}/tree`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch course tree');
+    }
+
+    const result = await response.json();
+    console.log('Received course tree:', result);
+
+    // 转换数据结构
+    const transformNode = (node) => {
+      return {
+        id: node.id,
+        label: `${node.name}`, // 显示名称
+        children: Array.isArray(node.children) ? node.children.map(child => transformNode(child)) : []
+      };
+    };
+
+    // 取第一个元素（课程），然后转换其children
+    if (result && result.length > 0 && result[0].children) {
+      treeData.value = result[0].children.map(chapter => transformNode(chapter));
+    } else {
+      console.error('Invalid course tree structure');
+      treeData.value = [];
+    }
+  } catch (error) {
+    console.error('Error loading course tree:', error);
+    treeData.value = [];
+  }
+};
+
+// 在组件挂载时加载数据
+onMounted(() => {
+  loadCourseTree();
+});
+
 // el-tree 需要的默认属性配置
 const defaultProps = {
   children: 'children',
-  label: 'label',
+  label: 'label'
 };
 
 // 响应式变量，用于存储后端返回的章节内容
@@ -308,29 +268,25 @@ const sectionData = ref(null);
 
 // 点击节点时的处理函数，发送请求给后端
 const handleNodeClick = async (nodeData) => {
-  const sectionId = nodeData.id;
+  const sectionId = nodeData.id;  // 使用节点的实际ID
   console.log('Clicked node ID:', sectionId);
 
-  // 使用 fetch 请求后端接口
   try {
-    // 拼接 URL，假设后端接受类似于这个格式的请求
     const response = await fetch(`http://localhost:8008/api/test/askAi?sectionId=${sectionId}`, {
-      method: 'GET', // GET 请求方式
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
     });
 
-    // 检查响应状态
     if (!response.ok) {
       throw new Error('网络请求失败');
     }
 
-    // 获取响应的 JSON 数据
     const data = await response.json();
     console.log('Received section data:', data);
 
-    // 更新响应式变量，将章节数据存储并展示
     sectionData.value = data;
   } catch (error) {
     console.error('Error fetching section data:', error);

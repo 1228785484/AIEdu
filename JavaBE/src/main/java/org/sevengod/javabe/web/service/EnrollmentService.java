@@ -9,4 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 public interface EnrollmentService extends IService<CourseEnrollment> {
     @Transactional
     public CourseEnrollment enrollCourse(Long userId, Long courseId);
+    
+    boolean isEnrolled(Long userId, Long courseId);
 }

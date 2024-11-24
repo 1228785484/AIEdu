@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+
 //课程相关控制类
 @RestController
 @RequestMapping("/api/course")
@@ -86,6 +87,22 @@ public class CourseController {
             return AjaxResult.error(e.getMessage());
         }
     }
+
+    @GetMapping("/check-enrollment")
+    @Operation(summary = "检查课程选课状态", description = "检查用户是否已经选过某个课程")
+    @Parameters({
+        @Parameter(name = "userId", description = "用户ID", required = true),
+        @Parameter(name = "courseId", description = "课程ID", required = true)
+    })
+    public AjaxResult checkEnrollment(@RequestParam Long userId, @RequestParam Long courseId) {
+        try {
+            boolean isEnrolled = enrollmentService.isEnrolled(userId, courseId);
+            return AjaxResult.success("查询成功", isEnrolled);
+        } catch (Exception e) {
+            return AjaxResult.error(e.getMessage());
+        }
+    }
+
     @PostMapping("/updProgress")
     public AjaxResult updateProgress(@RequestBody ProgressRequestVo request) {
         try {
@@ -103,6 +120,7 @@ public class CourseController {
             return AjaxResult.error("修改进度失败：" + e.getMessage());
         }
     }
+
     @GetMapping("/getProgress")
     public AjaxResult getProgress(@RequestParam Long chapterId,
                                   @RequestParam Long enrollmentId) {
