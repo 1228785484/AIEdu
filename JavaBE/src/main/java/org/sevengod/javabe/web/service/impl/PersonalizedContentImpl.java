@@ -39,7 +39,6 @@ public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapp
                    .eq("is_active", true);
         return personalizedContentsMapper.selectOne(queryWrapper);
     }
-    //TODO 等Dify的接口完成制作
     @Override
     public PersonalizedContents generateContent(Long userId, Long chapterId) {
         try {

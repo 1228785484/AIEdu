@@ -13,6 +13,7 @@ import org.sevengod.javabe.entity.resp.BlockResponse;
 import org.sevengod.javabe.entity.resp.StreamResponse;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.PersonalizedService;
+import org.sevengod.javabe.web.service.QuizzesService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -30,6 +31,8 @@ public class DifyController {
     private String testKey;
 
     private final DifyService difyService;
+
+    private final QuizzesService quizzesService;
 
     private final PersonalizedService personalizedService;
 
@@ -86,6 +89,23 @@ public class DifyController {
             PersonalizedContents content = personalizedService.generateContent(userId, chapterId);
             return AjaxResult.success("生成内容成功", content);
             
+        } catch (Exception e) {
+            return AjaxResult.error("生成内容失败：" + e.getMessage());
+        }
+    }
+    @PostMapping("/genQuiz")
+    public AjaxResult genQuiz(@RequestBody Map<String,Long> request){
+        try {
+            Long userId = request.get("userId");
+            Long chapterId = request.get("chapterId");
+
+            if (userId == null || chapterId == null) {
+                return AjaxResult.error("用户ID和章节ID不能为空");
+            }
+
+            Map<String, Object> res = quizzesService.getQuizWithDifyResponse(chapterId, userId);
+            return AjaxResult.success("生成内容成功", res);
+
         } catch (Exception e) {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
