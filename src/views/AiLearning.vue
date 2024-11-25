@@ -32,7 +32,7 @@
                 <p>{{ message.text }}</p>
               </div>
               <div v-else class="general-message">
-                <span>{{ message.text }}</span>
+                <div v-html="renderMarkdown(message.text)"></div>
               </div>
             </div>
             <span v-else v-html="message.text"></span>
@@ -74,6 +74,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { marked } from "marked"; // 正确导入 marked 库
 
 // 消息数据和状态
 const messages = ref([
@@ -123,11 +124,14 @@ const sendMessage = async () => {
 
       const data = await response.json();
       
-      // 假设返回的数据是以下格式
+      // 处理返回的文本，去掉星号（**）等标记，并做其他格式清理
+      let cleanedText = data.answer.replace(/\*\*(.*?)\*\*/g, '$1'); // 去掉 ** 星号加粗标记
+
       const responseMessage = {
-        text: data.answer, 
+        text: cleanedText, 
         isUser: false
       };
+      
       if (data.type === 'plan') {
         responseMessage.type = 'plan';
         responseMessage.data = data.data; // 假设返回的是一个学习计划数组
@@ -157,13 +161,18 @@ const scrollToBottom = () => {
     chatBox.scrollTop = chatBox.scrollHeight;
   }, 0);
 };
+  // 使用 marked 渲染 Markdown 文本
+
+  const renderMarkdown = (text) => {
+  return marked.parse(text); // 使用 marked 转换文本为 HTML
+};
+
 
 async function selectCourse(course) {
   if (course === 'c') {
     try {
       const userId = parseInt(localStorage.getItem('userid'));
       const token = localStorage.getItem('token');
-      
       // 先检查是否已经选过这门课
       const checkResponse = await fetch(`http://localhost:8008/api/course/check-enrollment?userId=${userId}&courseId=1`, {
         headers: {
