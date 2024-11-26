@@ -77,7 +77,11 @@ public class DifyController {
 
     @PostMapping("/genContent")
     @Operation(summary = "生成个性化内容")
-    public AjaxResult genContent(@RequestBody Map<String, Long> request) {
+    public AjaxResult genContent(
+            @Parameter(name = "request", description = "包含用户ID和章节ID的请求体",
+                    required = true,
+                    schema = @Schema(example = "{\"userId\": 123, \"chapterId\": 123}"))
+            @RequestBody Map<String, Long> request) {
         try {
             Long userId = request.get("userId");
             Long chapterId = request.get("chapterId");
@@ -94,7 +98,12 @@ public class DifyController {
         }
     }
     @PostMapping("/genQuiz")
-    public AjaxResult genQuiz(@RequestBody Map<String,Long> request){
+    @Operation(summary = "生成个性化题目")
+    public AjaxResult genQuiz(
+            @Parameter(name = "request", description = "包含用户ID和章节ID的请求体",
+                    required = true,
+                    schema = @Schema(example = "{\"userId\": 123, \"chapterId\": 123}"))
+            @RequestBody Map<String,Long> request){
         try {
             Long userId = request.get("userId");
             Long chapterId = request.get("chapterId");
