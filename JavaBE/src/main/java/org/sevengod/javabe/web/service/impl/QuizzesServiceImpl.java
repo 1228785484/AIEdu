@@ -3,13 +3,17 @@ package org.sevengod.javabe.web.service.impl;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.sevengod.javabe.entity.QuizSubmission;
 import org.sevengod.javabe.entity.Quizzes;
+import org.sevengod.javabe.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
-import org.sevengod.javabe.web.service.QuizzesService;
 import org.sevengod.javabe.web.service.DifyService;
+import org.sevengod.javabe.web.service.QuizzesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,6 +22,9 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
     
     @Autowired
     private DifyService difyService;
+
+    @Autowired
+    private QuizSubmissionMapper quizSubmissionMapper;
 
     private final String APIKey = "app-RjU3aR6XQ5Dd91QmeGF8UMoK";
 
@@ -67,6 +74,29 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
                 result.put("error", "Error processing quiz data: " + e.getMessage());
             }
         }
+        
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> submitAnswerAndScore(Long quizId, Long userId, String questions, String answers, BigDecimal score) {
+        // 1. 创建提交记录
+        QuizSubmission submission = new QuizSubmission();
+        submission.setQuizId(quizId);
+        submission.setUserId(userId);
+        submission.setGeneratedQuestions(questions);
+        submission.setAnswers(answers);
+        submission.setScore(score);
+        submission.setSubmittedAt(LocalDateTime.now());
+
+        // 2. 保存到数据库
+        quizSubmissionMapper.insert(submission);
+
+        // 3. 返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("submissionId", submission.getSubmissionId());
+        result.put("score", submission.getScore());
+        result.put("submittedAt", submission.getSubmittedAt());
         
         return result;
     }

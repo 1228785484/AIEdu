@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -119,4 +120,6 @@ public class DifyController {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
     }
+
+
 }
