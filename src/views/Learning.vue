@@ -89,7 +89,24 @@
           </div>
           <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
-              测验内容将在这里显示
+              <div class="quiz-container">
+                <div v-for="question in questions" :key="question.id" class="question">
+                  <h3>{{ question.id }}. {{ question.question }}</h3>
+                  <div v-if="question.type === 'single'">
+                    <label v-for="(option, key) in question.options" :key="key" class="option">
+                      <input type="radio" :name="`question-${question.id}`" :value="key" v-model="userAnswers[question.id]">
+                      {{ key }}: {{ option }}
+                    </label>
+                  </div>
+                  <div v-else-if="question.type === 'multiple'">
+                    <label v-for="(option, key) in question.options" :key="key" class="option">
+                      <input type="checkbox" :name="`question-${question.id}-${key}`" :value="key" v-model="userAnswers[question.id]">
+                      {{ key }}: {{ option }}
+                    </label>
+                  </div>
+                </div>
+                <button @click="submitQuiz">Submit Quiz</button>
+              </div>
             </div>
           </div>
         </div>
@@ -238,8 +255,49 @@ var option = {
  
       };
 const selectedAction = ref(''); // 用于跟踪当前选中的动作
-function selectAction(action) {
+var questions = ref('')
+async function selectAction(action) {
   selectedAction.value = action; // 更新选中的动作
+  if (action=='test'){
+    console.log('点击测验')
+    questions.value = await test()
+    console.log('为什么这不输出')
+    console.log(questions.value,'为什么这个')
+  // ... (这里插入上面提供的JSON数据中的questions数组)
+      
+    }
+    
+  }
+
+let res
+async function test(){
+    const token = localStorage.getItem('token');
+    console.log('开始测验')
+    let obj = {
+      "userId": user,
+      "chapterId": sectionId
+    }
+    console.log(JSON.stringify(obj))
+    res = await fetch('http://localhost:8008/api/test/genQuiz',{
+      method:'post',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body:JSON.stringify(obj)
+    })
+    let json = await res.json()
+    console.log(json,'点击测验成功')
+    let data =  json.data
+    console.log(json.data)
+    console.log(data.questions)
+    return data.questions
+}
+const userAnswers = ref({});
+
+function submitQuiz() {
+  // 这里可以添加提交逻辑，例如验证答案
+  console.log(userAnswers.value);
 }
 
 // 目录树数据改为响应式
@@ -303,33 +361,16 @@ const defaultProps = {
 
 // 响应式变量，用于存储后端返回的章节内容
 const sectionData = ref(null);
+let user = localStorage.getItem('userid')
+let sectionId
+async function handleNodeClick(nodeData){
+  sectionId = nodeData.id
+  console.log('Clicked node ID',sectionId,nodeData)
+  console.log(user)
+}
 
-// 点击节点时的处理函数，发送请求给后端
-const handleNodeClick = async (nodeData) => {
-  const sectionId = nodeData.id;  // 使用节点的实际ID
-  console.log('Clicked node ID:', sectionId);
 
-  try {
-    const response = await fetch(`http://localhost:8008/api/test/askAi?sectionId=${sectionId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error('网络请求失败');
-    }
-
-    const data = await response.json();
-    console.log('Received section data:', data);
-
-    sectionData.value = data;
-  } catch (error) {
-    console.error('Error fetching section data:', error);
-  }
-};
 </script>
 
 <style scoped>
@@ -637,6 +678,7 @@ const handleNodeClick = async (nodeData) => {
 
 .section-content {
     line-height: 1.6;
+    height:500px;
     color: #333;
     width: 100%;
     max-width: 100%;
@@ -835,5 +877,22 @@ const handleNodeClick = async (nodeData) => {
   background-color:rgb(245, 205, 245) ;
   padding:20px;
   border-radius:8px;
+}
+.quiz-container
+ {
+  /* 样式根据你的需求来定义 */
+  border: #a7caf0;
+  height: 500px;
+
+}
+.question
+ {
+  margin-bottom: 20px
+;
+}
+.option
+ {
+  display: block;
+  margin: 5px 0;
 }
 </style>
