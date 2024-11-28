@@ -5,10 +5,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling  // 启用定时任务
+@EnableAspectJAutoProxy // 启用AOP
 // 确保扫描到所有需要的包
 public class JavaBeApplication {
 
