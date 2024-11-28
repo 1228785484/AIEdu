@@ -126,9 +126,11 @@ const sendMessage = async () => {
       }
 
       const data = await response.json();
-      
+      // console.log(data);
+      const aiResponse = data.data;
+
       // 处理返回的文本，去掉星号（**）等标记，并做其他格式清理
-      let cleanedText = data.answer.replace(/\*\*(.*?)\*\*/g, '$1'); // 去掉 ** 星号加粗标记
+      let cleanedText = aiResponse.answer.replace(/\*\*(.*?)\*\*/g, '$1'); // 去掉 ** 星号加粗标记
 
       const responseMessage = {
         text: cleanedText, 

@@ -67,18 +67,40 @@ public class DifyController {
                    @ApiResponse(responseCode = "400", description = "请求错误"),
                    @ApiResponse(responseCode = "500", description = "服务器内部错误")
                })
-    public BlockResponse askAi(
-              @Parameter(description = "发送给AI的查询内容",
-                   required = true,
-                   schema = @Schema(type = "string"))
-            @RequestBody String request) {
-        //TODO 增加锁请求机制
-        return difyService.blockingMessage(
-            request,
-            1L,  // 使用默认用户ID
-            testKey  // 使用默认API key
-        );
+    public AjaxResult askAi(
+            @RequestBody Map<String, Object> request
+    ){
+        try {
+            Long userId = Long.valueOf((String)request.get("userId"));
+            String query = (String) request.get("query");
+
+            if (userId == null || query == null) {
+                return AjaxResult.error("用户ID和查询ID不能为空");
+            }
+
+            BlockResponse resp = difyService.blockingMessage(
+                    query,
+                    userId,
+                    testKey
+            );
+            return AjaxResult.success("生成内容成功", resp);
+
+        } catch (Exception e) {
+            return AjaxResult.error("生成内容失败：" + e.getMessage());
+        }
     }
+//    public BlockResponse askAi(
+//              @Parameter(description = "发送给AI的查询内容",
+//                   required = true,
+//                   schema = @Schema(type = "string"))
+//            @RequestBody String request) {
+//        //TODO 增加锁请求机制
+//        return difyService.blockingMessage(
+//            request,
+//            1L,  // 使用默认用户ID
+//            testKey  // 使用默认API key
+//        );
+//    }
 
     @PostMapping("/genContent")
     @Operation(summary = "生成个性化内容")
