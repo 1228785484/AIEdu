@@ -8,7 +8,7 @@
           <h2>课程大纲</h2>
           <div class="header-underline"></div>
         </div>
-        
+
         <!-- 课程进度统计 -->
         <div class="course-stats">
           <div class="stat-item">
@@ -55,7 +55,6 @@
             <e-charts class="progress-chart" :option="option" />
           </div>
         </div>
-
       </div>
     </div>
 
@@ -84,29 +83,15 @@
         <div class="content-wrapper">
           <div v-if="selectedAction === 'learn'" class="content-section learn-section">
             <div class="section-content">
-              {{ sectionData ? sectionData.content : '请选择一个章节开始学习' }}
+              <!-- 显示章节内容 -->
+              <div v-html="sectionData.content || '请选择一个章节开始学习'"></div>
             </div>
           </div>
+
           <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
-              <div class="quiz-container">
-                <div v-for="question in questions" :key="question.id" class="question">
-                  <h3>{{ question.id }}. {{ question.question }}</h3>
-                  <div v-if="question.type === 'single'">
-                    <label v-for="(option, key) in question.options" :key="key" class="option">
-                      <input type="radio" :name="`question-${question.id}`" :value="key" v-model="userAnswers[question.id]">
-                      {{ key }}: {{ option }}
-                    </label>
-                  </div>
-                  <div v-else-if="question.type === 'multiple'">
-                    <label v-for="(option, key) in question.options" :key="key" class="option">
-                      <input type="checkbox" :name="`question-${question.id}-${key}`" :value="key" v-model="userAnswers[question.id]">
-                      {{ key }}: {{ option }}
-                    </label>
-                  </div>
-                </div>
-                <button @click="submitQuiz">Submit Quiz</button>
-              </div>
+              <!-- 显示测验内容 -->
+              <div v-html="testData.content || '请选择一个章节开始测验'"></div>
             </div>
           </div>
         </div>
@@ -133,171 +118,102 @@
 </template>
 
 <script setup>
-import { ref,onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElTree } from 'element-plus';
-//任务点
+
 var data1 = 12;
 var data2 = 20;
 var data3 = 0;
 var data4 = 0;
 var data5 = 3;
 let note = ref({
-  task:data1,
-  sumTask:data2,
-  test:data3,
-  sumTest:data4,
-  frequency:data5
+  task: data1,
+  sumTask: data2,
+  test: data3,
+  sumTest: data4,
+  frequency: data5
 });
 
 //另一种进度图
 var progressValue = 60;
 var option = {
-        title: { // 中间标题、数据
-          text: progressValue+'%', // 标题
-          textStyle: {
-            color: '#28BCFE',
-            fontSize: '25px'
-          },
-          subtext: '加载进度', // 副文本标题
-          subtextStyle: {
-            // 
-            color: '#a9a9a9',
-            fontSize: '10px',
-          },
-          itemGap: 20, // 标题间的距离
-          left: 'center',
-          top: '43%'
-        },
-        grid: [
-          {x: '7%', y: '7%', width: '33%', height: '100%'},
-        ],
-        // 极坐标系的角度轴
-        angleAxis: {
-          // 起始角度，180 也可以是 225
-          startAngle: 180,
-          max: 360,
-          clockwise: true, // 逆时针
-          // 隐藏刻度线
-          show: false
-        },
-        // 极坐标系的径向轴
-        radiusAxis: {
-          type: 'category',
-          show: true,
-          axisLabel: {
-            show: false
-          },
-          axisLine: {
-            show: false
- 
-          },
-          axisTick: {
-            show: false
-          }
-        },
-        polar: {
-          center: ['50%', '60%'],
-          radius: '150%', //图形大小
-        },
-        series: [
-          // 上层数据
-          {
-            type: 'bar',
-            z: 2,
-            // 数值
-            data: [progressValue*180/100],
-            showBackground: true,
-            backgroundStyle: {
-              color: 'transparent'
-            },
-            coordinateSystem: 'polar',  // 使用极坐标系
-            roundCap: true,
-            barWidth: 20,
-            barGap: '-100%',
-            itemStyle: {
-              opacity: 1,
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                 {
-                    offset: 0,
-                    color: '#25BFFF'
-                  }, {
-                    offset: 1,
-                    color: '#5284DE'
-                  }],
-                shadowBlur: 5,
-                shadowColor: '#f92a2a'
-              }
-            }
-          },
-          // 底层背景色
-          {
-            type: 'bar',
-            z: 1,
-            // 需要的圆环跨度大小，可以是180,270等
-            data: [180],
-            coordinateSystem: 'polar',
-            roundCap: true,
-            barWidth: 20,
-            barGap: '-100%',
-            itemStyle: {
-              opacity: 1,
-              color: '#093368'
-            }
-          }
-          ,
-        ],
- 
-      };
+  title: {
+    text: progressValue + '%',
+    textStyle: {
+      color: '#28BCFE',
+      fontSize: '25px'
+    },
+    subtext: '加载进度',
+    subtextStyle: {
+      color: '#a9a9a9',
+      fontSize: '10px',
+    },
+    itemGap: 20,
+    left: 'center',
+    top: '43%'
+  },
+  grid: [{ x: '7%', y: '7%', width: '33%', height: '100%' }],
+  angleAxis: {
+    startAngle: 180,
+    max: 360,
+    clockwise: true,
+    show: false
+  },
+  radiusAxis: {
+    type: 'category',
+    show: true,
+    axisLabel: { show: false },
+    axisLine: { show: false },
+    axisTick: { show: false }
+  },
+  polar: {
+    center: ['50%', '60%'],
+    radius: '150%',
+  },
+  series: [
+    {
+      type: 'bar',
+      z: 2,
+      data: [progressValue * 180 / 100],
+      showBackground: true,
+      backgroundStyle: { color: 'transparent' },
+      coordinateSystem: 'polar',
+      roundCap: true,
+      barWidth: 20,
+      barGap: '-100%',
+      itemStyle: {
+        opacity: 1,
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: '#25BFFF' },
+            { offset: 1, color: '#5284DE' }
+          ],
+          shadowBlur: 5,
+          shadowColor: '#f92a2a'
+        }
+      }
+    },
+    {
+      type: 'bar',
+      z: 1,
+      data: [180],
+      coordinateSystem: 'polar',
+      roundCap: true,
+      barWidth: 20,
+      barGap: '-100%',
+      itemStyle: { opacity: 1, color: '#093368' }
+    }
+  ]
+};
+
 const selectedAction = ref(''); // 用于跟踪当前选中的动作
-var questions = ref('')
-async function selectAction(action) {
+function selectAction(action) {
   selectedAction.value = action; // 更新选中的动作
-  if (action=='test'){
-    console.log('点击测验')
-    questions.value = await test()
-    console.log('为什么这不输出')
-    console.log(questions.value,'为什么这个')
-  // ... (这里插入上面提供的JSON数据中的questions数组)
-      
-    }
-    
-  }
-
-let res
-async function test(){
-    const token = localStorage.getItem('token');
-    console.log('开始测验')
-    let obj = {
-      "userId": user,
-      "chapterId": sectionId
-    }
-    console.log(JSON.stringify(obj))
-    res = await fetch('http://localhost:8008/api/test/genQuiz',{
-      method:'post',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body:JSON.stringify(obj)
-    })
-    let json = await res.json()
-    console.log(json,'点击测验成功')
-    let data =  json.data
-    console.log(json.data)
-    console.log(data.questions)
-    return data.questions
-}
-const userAnswers = ref({});
-
-function submitQuiz() {
-  // 这里可以添加提交逻辑，例如验证答案
-  console.log(userAnswers.value);
 }
 
 // 目录树数据改为响应式
@@ -326,16 +242,14 @@ const loadCourseTree = async () => {
     const result = await response.json();
     console.log('Received course tree:', result);
 
-    // 转换数据结构
     const transformNode = (node) => {
       return {
         id: node.id,
-        label: `${node.name}`, // 显示名称
+        label: `${node.name}`,
         children: Array.isArray(node.children) ? node.children.map(child => transformNode(child)) : []
       };
     };
 
-    // 取第一个元素（课程），然后转换其children
     if (result && result.length > 0 && result[0].children) {
       treeData.value = result[0].children.map(chapter => transformNode(chapter));
     } else {
@@ -348,7 +262,6 @@ const loadCourseTree = async () => {
   }
 };
 
-// 在组件挂载时加载数据
 onMounted(() => {
   loadCourseTree();
 });
@@ -359,19 +272,77 @@ const defaultProps = {
   label: 'label'
 };
 
-// 响应式变量，用于存储后端返回的章节内容
-const sectionData = ref(null);
-let user = localStorage.getItem('userid')
-let sectionId
-async function handleNodeClick(nodeData){
-  sectionId = nodeData.id
-  console.log('Clicked node ID',sectionId,nodeData)
-  console.log(user)
-}
+// 响应式变量，用于存储章节内容
+const sectionData = ref({
+  content: '' // 初始化为空字符串
+});
 
+// 响应式变量，用于存储测验内容
+const testData = ref({
+  content: '' // 初始化为空字符串
+});
 
+// 点击节点时的处理函数，发送请求给后端
+const handleNodeClick = async (nodeData) => {
+  const chapterId = nodeData.id;
+  const userId = localStorage.getItem('userid');
 
+  console.log('Clicked node ID:', chapterId);
+  console.log('User ID:', userId);
+
+  try {
+    // 获取章节内容
+    const sectionResponse = await fetch(`http://localhost:8008/api/test/genContent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: userId,
+        chapterId: chapterId
+      })
+    });
+
+    if (sectionResponse.ok) {
+      const sectionResult = await sectionResponse.json();
+      if (sectionResult && sectionResult.data && sectionResult.data.content) {
+        sectionData.value = { content: sectionResult.data.content };
+      } else {
+        sectionData.value = { content: '无法加载内容' };
+      }
+    }
+
+    // 获取测验内容
+    const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: userId,
+        chapterId: chapterId
+      })
+    });
+
+    if (quizResponse.ok) {
+      const quizResult = await quizResponse.json();
+      if (quizResult && quizResult.data && quizResult.data.questions) {
+        testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
+      } else {
+        testData.value = { content: '无法加载测验内容' };
+      }
+    }
+
+  } catch (error) {
+    console.error('Error fetching content or quiz data:', error);
+    sectionData.value = { content: '请求失败，请稍后重试' };
+    testData.value = { content: '请求失败，请稍后重试' };
+  }
+};
 </script>
+
 
 <style scoped>
 /* 主容器 */
@@ -678,7 +649,6 @@ async function handleNodeClick(nodeData){
 
 .section-content {
     line-height: 1.6;
-    height:500px;
     color: #333;
     width: 100%;
     max-width: 100%;
@@ -877,22 +847,5 @@ async function handleNodeClick(nodeData){
   background-color:rgb(245, 205, 245) ;
   padding:20px;
   border-radius:8px;
-}
-.quiz-container
- {
-  /* 样式根据你的需求来定义 */
-  border: #a7caf0;
-  height: 500px;
-
-}
-.question
- {
-  margin-bottom: 20px
-;
-}
-.option
- {
-  display: block;
-  margin: 5px 0;
 }
 </style>

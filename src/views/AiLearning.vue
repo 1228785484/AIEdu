@@ -99,6 +99,8 @@ const sendMessage = async () => {
 
     // 从 localStorage 获取 token
     const token = localStorage.getItem('token');
+    //获取userid
+    const userId = localStorage.getItem('userid');
     
     try {
       const response = await fetch("http://localhost:8008/api/test/askAi", {
@@ -109,7 +111,8 @@ const sendMessage = async () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          query: inputText
+          query: inputText,
+          userId: userId
         }),
       });
 
