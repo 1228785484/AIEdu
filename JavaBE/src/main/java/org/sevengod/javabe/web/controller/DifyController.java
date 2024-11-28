@@ -16,6 +16,7 @@ import org.sevengod.javabe.web.service.PersonalizedService;
 import org.sevengod.javabe.web.service.QuizzesService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.sevengod.javabe.service.UserRequestLockService;
 import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
@@ -32,6 +33,8 @@ public class DifyController {
     private String testKey;
 
     private final DifyService difyService;
+
+    private final UserRequestLockService lockService;
 
     private final QuizzesService quizzesService;
 
@@ -69,6 +72,7 @@ public class DifyController {
                    required = true,
                    schema = @Schema(type = "string"))
             @RequestBody String request) {
+        //TODO 增加锁请求机制
         return difyService.blockingMessage(
             request,
             1L,  // 使用默认用户ID
