@@ -126,6 +126,18 @@ const sendMessage = async () => {
       }
 
       const data = await response.json();
+
+      // 检查响应状态
+      if (data.code !== 200) {
+        messages.value.push({
+          type: 'error',
+          text: data.msg || "请求失败",
+          isUser: false
+        });
+        scrollToBottom();
+        return;
+      }
+
       // console.log(data);
       const aiResponse = data.data;
 

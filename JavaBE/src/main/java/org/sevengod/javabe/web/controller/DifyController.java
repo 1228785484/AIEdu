@@ -68,6 +68,9 @@ public class DifyController {
                    @ApiResponse(responseCode = "500", description = "服务器内部错误")
                })
     public AjaxResult askAi(
+            @Parameter(name = "request", description = "包含用户ID和查询内容的请求体",
+                    required = true,
+                    schema = @Schema(example = "{\"userId\": 123, \"query\": 你要查的内容}"))
             @RequestBody Map<String, Object> request
     ){
         try {
@@ -77,30 +80,27 @@ public class DifyController {
             if (userId == null || query == null) {
                 return AjaxResult.error("用户ID和查询ID不能为空");
             }
+            if (!lockService.tryLock(String.valueOf(userId))) {
+                return AjaxResult.error("请耐心等待AI回复");
+            }
+            try {
+                BlockResponse response = difyService.blockingMessage(
+                        query,
+                        userId,
+                        testKey
+                );
+                return AjaxResult.success("生成内容成功", response);
+            } finally {
+                // 确保锁一定会被释放
+                lockService.unlock(String.valueOf(userId));
+            }
 
-            BlockResponse resp = difyService.blockingMessage(
-                    query,
-                    userId,
-                    testKey
-            );
-            return AjaxResult.success("生成内容成功", resp);
 
         } catch (Exception e) {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
     }
-//    public BlockResponse askAi(
-//              @Parameter(description = "发送给AI的查询内容",
-//                   required = true,
-//                   schema = @Schema(type = "string"))
-//            @RequestBody String request) {
-//        //TODO 增加锁请求机制
-//        return difyService.blockingMessage(
-//            request,
-//            1L,  // 使用默认用户ID
-//            testKey  // 使用默认API key
-//        );
-//    }
+
 
     @PostMapping("/genContent")
     @Operation(summary = "生成个性化内容")

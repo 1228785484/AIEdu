@@ -1,7 +1,6 @@
 package org.sevengod.javabe.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,22 +17,27 @@ public class UserRequestLockService {
 
     private static final long DEFAULT_WAIT_TIME = 5000; // 等待锁的最大时间（毫秒）
     private static final long DEFAULT_LEASE_TIME = 30000; // 持有锁的最大时间（毫秒）
-    private static final long KEY_EXPIRE_TIME = 1;
 
     private String getUserLockKey(String userId) {
-        return "user:request.lock:" + userId;
+        return "user_request_lock:" + userId;
     }
 
     public boolean tryLock(String userId) {
-        String lockKey = getUserLockKey(userId);
-        RBucket<String> bucket = redissonClient.getBucket(lockKey);
-        if (!bucket.isExists()) {
-            bucket.set(userId, KEY_EXPIRE_TIME, TimeUnit.HOURS);
-            log.info("为用户 {} 创建锁key，过期时间为1小时", userId);
+        if (userId == null || userId.trim().isEmpty()) {
+            log.warn("尝试获取锁时userId为空");
+            return false;
         }
+
+        String lockKey = getUserLockKey(userId);
         RLock lock = redissonClient.getLock(lockKey);
+        //如果已经是锁上的
+        if(lock.isLocked()){
+            log.info("已上锁");
+            return false;
+        }
+        //不是的话就开始获取锁
         try {
-            // 尝试获取锁，如果获取不到就返回false
+            // 尝试获取锁，设置等待时间和持有时间
             boolean acquired = lock.tryLock(DEFAULT_WAIT_TIME, DEFAULT_LEASE_TIME, TimeUnit.MILLISECONDS);
             if (acquired) {
                 log.info("用户 {} 获取请求锁成功", userId);
@@ -42,18 +46,27 @@ public class UserRequestLockService {
             }
             return acquired;
         } catch (InterruptedException e) {
-            log.error("获取用户请求锁时发生异常", e);
+            log.error("获取用户 {} 请求锁时发生异常", userId, e);
             Thread.currentThread().interrupt();
             return false;
         }
     }
 
     public void unlock(String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            log.warn("尝试释放锁时userId为空");
+            return;
+        }
+
         String lockKey = getUserLockKey(userId);
         RLock lock = redissonClient.getLock(lockKey);
-        if (lock.isHeldByCurrentThread()) {
-            lock.unlock();
-            log.info("用户 {} 释放请求锁", userId);
+        try {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("用户 {} 释放请求锁成功", userId);
+            }
+        } catch (Exception e) {
+            log.error("释放用户 {} 请求锁时发生异常", userId, e);
         }
     }
 }
