@@ -40,7 +40,7 @@ public class AuthController {
         if (email == null || email.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "邮箱地址不能为空"));
         }
-        
+
         try {
             String code = verificationCodeService.generateCode(email);
             emailService.sendVerificationCode(email, code);
@@ -49,6 +49,7 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(Map.of("message", "发送验证码失败: " + e.getMessage()));
         }
     }
+
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmailExists(@RequestParam String email) {
         boolean exists = userService.findByEmail(email) != null;

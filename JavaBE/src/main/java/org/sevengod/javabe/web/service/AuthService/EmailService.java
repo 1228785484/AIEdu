@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
-    
+
     private final JavaMailSender mailSender;
-    
+
     @Value("${spring.mail.username}")
     private String fromEmail;
-    
+
     @Async
     public void sendVerificationCode(String to, String code) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -28,7 +28,7 @@ public class EmailService {
                 + "如果这不是您的操作，请忽略此邮件。\n\n"
                 + "此邮件由系统自动发送，请勿回复。\n"
                 + "© 2024 AI教育平台");
-        
+
         mailSender.send(message);
     }
 } 

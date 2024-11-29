@@ -44,7 +44,7 @@ public class JwtService {
         try {
             DecodedJWT jwt = decodeToken(token);
             if (jwt == null) return false;
-            
+
             final String username = jwt.getSubject();
             return (username.equals(userDetails.getUsername()) && !isTokenExpired(jwt));
         } catch (JWTVerificationException e) {
