@@ -93,6 +93,27 @@
             <div class="section-content">
               <!-- 显示测验内容 -->
               <!-- <div v-html="testData.content || '请选择一个章节开始测验'"></div> -->
+              <!-- 显示测验内容 -->
+              <div v-if="testData.content" v-html="testData.content"></div>
+              <div v-else>请选择一个章节开始测验</div>
+            </div>
+            <!-- 提交按钮 -->
+            <button @click="submitAnswers">提交</button>
+            <!-- 显示得分和解析 -->
+            <div v-if="showResults" class="results-section">
+              <div class="score">得分：{{ score }}分</div>
+              <div class="answers">
+                <div v-for="(question, index) in testData.questions" :key="index" class="question-result">
+                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                    用户答案：{{ userAnswers[index] || '未作答' }}
+                  </div>
+                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                    解析：{{ question.explanation }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -357,7 +378,8 @@ const handleNodeClick = async (nodeData) => {
       const quizResult = await quizResponse.json();
       console.log(quizResult,'这是quizeResult')
       if (quizResult && quizResult.data && quizResult.data.questions) {
-        testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
+        //testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
+        testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
 
       } else {
         testData.value = { content: '无法加载测验内容' };
@@ -370,7 +392,26 @@ const handleNodeClick = async (nodeData) => {
     testData.value = { content: '请求失败，请稍后重试' };
   }
 };
-
+// 响应式变量，用于存储用户答案
+const userAnswers = ref([]);
+// 响应式变量，用于控制是否显示结果
+const showResults = ref(false);
+ //渲染测验题目的函数
+function renderQuizQuestions(questions) {
+  return questions.map((question, index) => {
+    let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
+    questionHtml += `<div class="options">`;
+    for (const [option, text] of Object.entries(question.options)) {
+      const inputType = index < 7 ? 'radio' : 'checkbox'; // 前七题为单选，后三题为多选
+      questionHtml += `<div class="option">
+        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}">
+        <label for="question-${index}-${option}">${option}:${text}</label>
+      </div>`;
+    }
+    questionHtml += `</div>`;
+    return questionHtml;
+  }).join('');
+}
 </script>
 
 
