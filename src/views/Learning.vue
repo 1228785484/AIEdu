@@ -145,22 +145,6 @@ import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 
 
-
-// const markdownContent = ref(
-// `
-// # 关于C语言中的指针
-
-// 以下哪些说法是正确的？
-
-// - **A**: 指针是一个变量，它存储另一个变量的地址
-// - **B**: 指针可以用于动态内存分配
-// - **C**: 指针不能用于数组
-// - **D**: 指针可以指向函数
-
-// 正确答案是：**A, B, D**
-// `
-// );
-
 // 计算属性，将Markdown转换为HTML
 const markdownToHtml = computed(() =>
  {
@@ -396,6 +380,8 @@ const handleNodeClick = async (nodeData) => {
 const userAnswers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
+// 响应式变量，用于存储用户的得分
+const score = ref(0);
  //渲染测验题目的函数
 function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
@@ -411,6 +397,64 @@ function renderQuizQuestions(questions) {
     questionHtml += `</div>`;
     return questionHtml;
   }).join('');
+}
+// 提交答案的方法
+function submitAnswers() {
+  // 收集用户答案并计算得分
+  let score = 0; // 初始化得分
+  console.log(JSON.parse(JSON.stringify(que))._value,'这是计算得分的')
+  let c = JSON.parse(JSON.stringify(que))._value
+  if (c) {
+    c.forEach((question, index) => {
+      const inputType = index <= 7 ? 'radio' : 'checkbox';
+      const questionId = `question-${index}`;
+      const selectedOptions = Array.from(document.querySelectorAll(`input[name="${questionId}"]:checked`));
+      
+      // 检查是否有选中的选项
+      if (selectedOptions.length > 0) {
+        const userAnswer = inputType === 'radio' ? selectedOptions[0].value : selectedOptions.map(input => input.value);
+        answers.value.push(userAnswer.value);
+        
+        // 比较用户答案和正确答案
+        if (inputType === 'radio') {
+          // 对于单选题
+          if (userAnswer === question.answer) {
+            score += 10; // 如果答案正确，增加得分
+          }
+        } else {
+          // 对于多选题
+          // 假设正确答案是一个数组
+          const correctAnswers = question.answer; // 正确答案应该是一个数组
+          if (userAnswer.length === correctAnswers.length && userAnswer.every(answer => correctAnswers.includes(answer))) {
+            score += 10; // 如果所有选项都正确，增加得分
+          }
+        }
+      } else {
+        // 如果没有选中任何选项，可以选择不增加得分
+        answers.value.push(inputType === 'radio' ? null : []);
+      }
+    });
+  } else {
+    console.error('Test data or questions are undefined');
+  }
+  
+  // 更新得分
+  updateScore(score);
+  // 可能还需要更新其他状态，比如显示结果
+  updateResultsDisplay(answers);
+}
+
+// 假设这是更新得分的函数
+function updateScore(newScore) {
+  score.value = newScore;
+}
+
+// 假设这是更新结果显示的函数
+function updateResultsDisplay(answers) {
+  // 这里可以设置显示结果的逻辑，比如：
+  showResults.value = true;
+  // 可能还需要将answers赋值给某个响应式变量
+  answers.value = answers
 }
 </script>
 
