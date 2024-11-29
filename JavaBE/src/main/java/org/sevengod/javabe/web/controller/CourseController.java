@@ -104,7 +104,16 @@ public class CourseController {
     }
 
     @PostMapping("/updProgress")
-    public AjaxResult updateProgress(@RequestBody ProgressRequestVo request) {
+    @Operation(summary = "更新课程进度", description = "更新学生在特定章节的学习进度")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "进度更新成功",
+                    content = @Content(schema = @Schema(implementation = AjaxResult.class))),
+            @ApiResponse(responseCode = "400", description = "更新失败")
+    })
+    public AjaxResult updateProgress(
+            @Parameter(description = "进度更新请求体", required = true,
+                    schema = @Schema(implementation = ProgressRequestVo.class))
+            @RequestBody ProgressRequestVo request) {
         try {
             boolean success = chapterProgressService.updateProgress(
                 request.getChapterId(),
@@ -122,6 +131,19 @@ public class CourseController {
     }
 
     @GetMapping("/getProgress")
+    @Operation(summary = "获取课程进度", description = "获取学生在特定章节的学习进度")
+    @Parameters({
+            @Parameter(name = "chapterId", description = "章节ID", required = true,
+                    schema = @Schema(type = "integer", format = "int64", example = "1")),
+            @Parameter(name = "enrollmentId", description = "选课记录ID", required = true,
+                    schema = @Schema(type = "integer", format = "int64", example = "1"))
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "获取成功",
+                    content = @Content(schema = @Schema(implementation = ChapterProgress.class))),
+            @ApiResponse(responseCode = "400", description = "获取失败"),
+            @ApiResponse(responseCode = "404", description = "进度记录不存在")
+    })
     public AjaxResult getProgress(@RequestParam Long chapterId,
                                   @RequestParam Long enrollmentId) {
         try {

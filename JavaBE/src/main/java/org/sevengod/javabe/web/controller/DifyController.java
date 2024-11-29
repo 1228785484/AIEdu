@@ -52,11 +52,7 @@ public class DifyController {
 //        String query = "鲁迅和周树人什么关系？";
 //        return difyService.streamingMessage(query, 0L, testKey);
 //    }
-//    @GetMapping("/askAi")
-//    public String askAi(String query) {
-//        BlockResponse blockResponse = difyService.blockingMessage(query, 0L, testKey);
-//        return blockResponse.getAnswer();
-//    }
+
     @PostMapping("/askAi")
     @Operation(summary = "询问AI",
                description = "向AI发送查询并接收块响应",
@@ -68,9 +64,9 @@ public class DifyController {
                    @ApiResponse(responseCode = "500", description = "服务器内部错误")
                })
     public AjaxResult askAi(
-            @Parameter(name = "request", description = "包含用户ID和查询内容的请求体",
+            @Parameter(name = "request", description = "包含用户ID和用户输入的请求体",
                     required = true,
-                    schema = @Schema(example = "{\"userId\": 123, \"query\": 你要查的内容}"))
+                    schema = @Schema(example = "{\"userId\": 123, \"query\": 用户输入内容}"))
             @RequestBody Map<String, Object> request
     ){
         try {
