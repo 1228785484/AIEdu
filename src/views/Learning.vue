@@ -84,14 +84,15 @@
           <div v-if="selectedAction === 'learn'" class="content-section learn-section">
             <div class="section-content">
               <!-- 显示章节内容 -->
-              <div v-html="sectionData.content || '请选择一个章节开始学习'"></div>
+              <!-- <div v-html="sectionData.content || '请选择一个章节开始学习'"></div> -->
+              <div v-html="markdownToHtml"></div>
             </div>
           </div>
 
-          <div v-if="selectedAction === 'test'" class="content-section test-section">
+          <div v-if="selectedAction === 'test'&& testData.content" class="content-section test-section">
             <div class="section-content">
               <!-- 显示测验内容 -->
-              <div v-html="testData.content || '请选择一个章节开始测验'"></div>
+              <!-- <div v-html="testData.content || '请选择一个章节开始测验'"></div> -->
             </div>
           </div>
         </div>
@@ -118,8 +119,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted ,computed} from 'vue';
 import { ElTree } from 'element-plus';
+import {marked} from 'marked';
+
+
+
+// const markdownContent = ref(
+// `
+// # 关于C语言中的指针
+
+// 以下哪些说法是正确的？
+
+// - **A**: 指针是一个变量，它存储另一个变量的地址
+// - **B**: 指针可以用于动态内存分配
+// - **C**: 指针不能用于数组
+// - **D**: 指针可以指向函数
+
+// 正确答案是：**A, B, D**
+// `
+// );
+
+// 计算属性，将Markdown转换为HTML
+const markdownToHtml = computed(() =>
+ {
+  return marked(sectionData.value.content
+);
+});
+
 
 var data1 = 12;
 var data2 = 20;
@@ -279,9 +306,9 @@ const sectionData = ref({
 
 // 响应式变量，用于存储测验内容
 const testData = ref({
-  content: '' // 初始化为空字符串
+  content: null // 初始化为空字符串
 });
-
+ 
 // 点击节点时的处理函数，发送请求给后端
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
@@ -308,6 +335,7 @@ const handleNodeClick = async (nodeData) => {
       const sectionResult = await sectionResponse.json();
       if (sectionResult && sectionResult.data && sectionResult.data.content) {
         sectionData.value = { content: sectionResult.data.content };
+        console.log(sectionData.value.content)
       } else {
         sectionData.value = { content: '无法加载内容' };
       }
@@ -325,11 +353,12 @@ const handleNodeClick = async (nodeData) => {
         chapterId: chapterId
       })
     });
-
     if (quizResponse.ok) {
       const quizResult = await quizResponse.json();
+      console.log(quizResult,'这是quizeResult')
       if (quizResult && quizResult.data && quizResult.data.questions) {
         testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
+
       } else {
         testData.value = { content: '无法加载测验内容' };
       }
@@ -341,6 +370,7 @@ const handleNodeClick = async (nodeData) => {
     testData.value = { content: '请求失败，请稍后重试' };
   }
 };
+
 </script>
 
 
@@ -848,4 +878,22 @@ const handleNodeClick = async (nodeData) => {
   padding:20px;
   border-radius:8px;
 }
+/* .quiz-container
+ {
+  
+  border: #a7caf0;
+  height: 500px;
+
+} */
+.question
+ {
+  margin-bottom: 20px
+;
+}
+.option
+ {
+  display: block;
+  margin: 5px 0;
+}
+
 </style>
