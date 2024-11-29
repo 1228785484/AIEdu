@@ -854,7 +854,20 @@ function renderQuizQuestions(questions) {
     overflow-y: auto;
     position:absolute;
 }
+/* 提交按钮样式 */
+button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 20px;
+}
 
+button:hover {
+  background-color: #0056b3;
+}
 /* 按钮容器样式 */
 .button-container {
   display: flex;
