@@ -95,6 +95,7 @@
               <!-- <div v-html="testData.content || '请选择一个章节开始测验'"></div> -->
               <!-- 显示测验内容 -->
               <div v-if="testData.content" v-html="testData.content"></div>
+              <!-- <div v-if="testData.content" v-html=strhtml></div> -->
               <div v-else>请选择一个章节开始测验</div>
             </div>
             <!-- 提交按钮 -->
@@ -103,7 +104,7 @@
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
-                <div v-for="(question, index) in testData.questions" :key="index" class="question-result">
+                <div v-for="(question, index) in testData.questions" :key="index">
                   <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
                   <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
                     用户答案：{{ userAnswers[index] || '未作答' }}
@@ -144,14 +145,12 @@ import { ref, onMounted ,computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 
-
 // 计算属性，将Markdown转换为HTML
 const markdownToHtml = computed(() =>
  {
   return marked(sectionData.value.content
 );
 });
-
 
 var data1 = 12;
 var data2 = 20;
@@ -313,7 +312,8 @@ const sectionData = ref({
 const testData = ref({
   content: null // 初始化为空字符串
 });
- 
+
+const que = ref('')
 // 点击节点时的处理函数，发送请求给后端
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
@@ -361,9 +361,12 @@ const handleNodeClick = async (nodeData) => {
     if (quizResponse.ok) {
       const quizResult = await quizResponse.json();
       console.log(quizResult,'这是quizeResult')
+      que.value = quizResult.data.questions
       if (quizResult && quizResult.data && quizResult.data.questions) {
         //testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
         testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
+        console.log(testData.value.questions)
+        
 
       } else {
         testData.value = { content: '无法加载测验内容' };
@@ -377,13 +380,17 @@ const handleNodeClick = async (nodeData) => {
   }
 };
 // 响应式变量，用于存储用户答案
-const userAnswers = ref([]);
+// const userAnswers = ref([]);
+const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
+
 // 响应式变量，用于存储用户的得分
 const score = ref(0);
+
  //渲染测验题目的函数
 function renderQuizQuestions(questions) {
+  
   return questions.map((question, index) => {
     let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
     questionHtml += `<div class="options">`;
@@ -398,6 +405,7 @@ function renderQuizQuestions(questions) {
     return questionHtml;
   }).join('');
 }
+
 // 提交答案的方法
 function submitAnswers() {
   // 收集用户答案并计算得分
@@ -456,6 +464,7 @@ function updateResultsDisplay(answers) {
   // 可能还需要将answers赋值给某个响应式变量
   answers.value = answers
 }
+
 </script>
 
 
