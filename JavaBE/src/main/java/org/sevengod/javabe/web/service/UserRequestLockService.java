@@ -32,7 +32,7 @@ public class UserRequestLockService {
         RLock lock = redissonClient.getLock(lockKey);
         //如果已经是锁上的
         if(lock.isLocked()){
-            log.info("已上锁");
+            log.info("已拒绝用户 {} 的请求，原因:已上锁",userId);
             return false;
         }
         //不是的话就开始获取锁

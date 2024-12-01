@@ -98,10 +98,10 @@ public class DifyService {
     /**
      * 阻塞式调用 Workflow
      * @param inputs 输入参数键值对
-     * @param user 用户标识
+     * @param userId 用户标识
      * @return List<WorkflowResponse> 工作流响应列表
      */
-    public List<WorkflowResponse> callWorkflow(Map<String, String> inputs, String user, String apiKey) {
+    public List<WorkflowResponse> callWorkflow(Map<String, String> inputs, String userId, String apiKey) {
         // 使用 RestTemplate 保持与原代码一致的风格
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -111,7 +111,7 @@ public class DifyService {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("inputs", inputs);
         requestBody.put("response_mode", "streaming");
-        requestBody.put("user", user);
+        requestBody.put("user", userId);
 
         HttpEntity<String> entity = new HttpEntity<>(JSON.toJSONString(requestBody), headers);
         
@@ -128,14 +128,14 @@ public class DifyService {
     /**
      * 流式调用 Workflow
      * @param inputs 输入参数键值对
-     * @param user 用户标识
+     * @param userId 用户ID
      * @return Flux<WorkflowResponse> 工作流响应流
      */
-    public Flux<WorkflowResponse> streamWorkflow(Map<String, String> inputs, String user, String apiKey) {
+    public Flux<WorkflowResponse> streamWorkflow(Map<String, String> inputs, String userId, String apiKey) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("inputs", inputs);
         requestBody.put("response_mode", "streaming");
-        requestBody.put("user", user);
+        requestBody.put("user", userId);
 
         return webClient.post()
             .uri(url + "/workflows/run")
