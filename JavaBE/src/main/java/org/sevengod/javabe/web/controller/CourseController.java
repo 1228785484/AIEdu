@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.common.AjaxResult;
 import org.sevengod.javabe.entity.ChapterProgress;
 import org.sevengod.javabe.entity.CourseEnrollment;
@@ -16,16 +15,18 @@ import org.sevengod.javabe.entity.TreeNode;
 import org.sevengod.javabe.entity.Units;
 import org.sevengod.javabe.entity.vo.EnrollRequestVo;
 import org.sevengod.javabe.entity.vo.ProgressRequestVo;
+import org.sevengod.javabe.entity.vo.StudyTimesUpdateRequestVo;
 import org.sevengod.javabe.web.service.ChapterProgressService;
 import org.sevengod.javabe.web.service.CourseTreeService;
 import org.sevengod.javabe.web.service.EnrollmentService;
+import org.sevengod.javabe.web.service.InfoBoardService;
 import org.sevengod.javabe.web.service.UnitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 //课程相关控制类
 @RestController
@@ -40,6 +41,8 @@ public class CourseController {
     private EnrollmentService enrollmentService;
     @Autowired
     private ChapterProgressService chapterProgressService;
+    @Autowired
+    private InfoBoardService infoBoardService;
 
     @GetMapping("/findUnits")
     @Operation(summary = "查询课程单元", description = "根据课程ID查询所有单元")
@@ -161,6 +164,117 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/completion-status")
+    @Operation(summary = "获取用户完成状态", description = "检查用户是否完成了特定章节的测验和个性化内容(章节完成情况)")
+    @Parameters({
+        @Parameter(name = "userId", description = "用户ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1")),
+        @Parameter(name = "chapterId", description = "章节ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1"))
+    })
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "400", description = "获取失败")
+    })
+    public AjaxResult getCompletionStatus(
+            @RequestParam Long userId,
+            @RequestParam Long chapterId) {
+        try {
+            boolean isComplete = infoBoardService.getCompleteStatus(userId, chapterId);
+            return AjaxResult.success("获取完成状态成功", isComplete);
+        } catch (Exception e) {
+            return AjaxResult.error("获取完成状态失败：" + e.getMessage());
+        }
+    }
 
+    @GetMapping("/unit-completion")
+    @Operation(summary = "获取单元完成状态", description = "获取用户在指定单元下所有章节的完成情况统计(单元章节完成情况【任务点】)")
+    @Parameters({
+        @Parameter(name = "userId", description = "用户ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1")),
+        @Parameter(name = "unitId", description = "单元ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1"))
+    })
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "400", description = "获取失败")
+    })
+    public AjaxResult getUnitCompletion(
+            @RequestParam Long userId,
+            @RequestParam Long unitId) {
+        try {
+            Map<String, Integer> stats = infoBoardService.getUnitCompletionStats(userId, unitId);
+            return AjaxResult.success("获取单元完成情况成功", stats);
+        } catch (Exception e) {
+            return AjaxResult.error("获取单元完成情况失败：" + e.getMessage());
+        }
+    }
 
+    @GetMapping("/quiz-completion")
+    @Operation(summary = "获取单元测验完成情况", description = "获取用户在指定单元下的测验完成统计(测验)")
+    @Parameters({
+        @Parameter(name = "userId", description = "用户ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1")),
+        @Parameter(name = "unitId", description = "单元ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1"))
+    })
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "400", description = "获取失败")
+    })
+    public AjaxResult getQuizCompletion(
+            @RequestParam Long userId,
+            @RequestParam Long unitId) {
+        try {
+            Map<String, Integer> stats = infoBoardService.getQuizCompletionStats(userId, unitId);
+            return AjaxResult.success("获取测验完成情况成功", stats);
+        } catch (Exception e) {
+            return AjaxResult.error("获取测验完成情况失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/course-completion-percentage")
+    @Operation(summary = "获取课程完成百分比", description = "获取用户在指定课程的完成百分比(返回的是一个百分比的StringMap)")
+    @Parameters({
+        @Parameter(name = "userId", description = "用户ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1")),
+        @Parameter(name = "courseId", description = "课程ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1"))
+    })
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "400", description = "获取失败")
+    })
+    public AjaxResult getCourseCompletionPercentage(
+            @RequestParam Long userId,
+            @RequestParam Long courseId) {
+        try {
+            Map<String, String> percentage = infoBoardService.getCourseCompletionPercentage(userId, courseId);
+            return AjaxResult.success("获取课程完成百分比成功", percentage);
+        } catch (Exception e) {
+            return AjaxResult.error("获取课程完成百分比失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/study-times-update")
+    @Operation(summary = "更新学习次数", description = "更新用户每日学习次数(仅在章节完成时增加计数，24小时后自动清零)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "更新成功"),
+        @ApiResponse(responseCode = "400", description = "更新失败")
+    })
+    public AjaxResult updateStudyTimes(@RequestBody StudyTimesUpdateRequestVo request) {
+        try {
+            boolean updated = infoBoardService.studyTimesUpdate(
+                    request.getUserId(),
+                    request.getChapterId()
+            );
+            if (updated) {
+                return AjaxResult.success("学习次数更新成功");
+            } else {
+                return AjaxResult.error("章节未完成，无法更新学习次数");
+            }
+        } catch (Exception e) {
+            return AjaxResult.error("更新学习次数失败：" + e.getMessage());
+        }
+    }
 }

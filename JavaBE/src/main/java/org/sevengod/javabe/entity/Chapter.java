@@ -16,4 +16,5 @@ public class Chapter {
     private String title;
     private Integer sequenceNumber;
     private String contentPrompt;
+    private Integer totalMissionPoints;
 } 
