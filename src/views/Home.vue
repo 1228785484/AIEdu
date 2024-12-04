@@ -114,6 +114,7 @@ export default {
       passwordError: '',
       emailError: '',
       emailCheckTimeout: null,
+      loading: false,
     }
   },
   methods: {
@@ -264,6 +265,14 @@ export default {
       } catch (error) {
         console.error('注册错误:', error);
         alert('注册过程发生错误');
+      }
+    },
+    async handleSubmit() {
+      this.loading = true
+      try {
+        await this.submitForm()
+      } finally {
+        this.loading = false
       }
     }
   }
