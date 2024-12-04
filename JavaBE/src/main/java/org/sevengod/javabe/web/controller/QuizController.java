@@ -50,4 +50,27 @@ public class QuizController {
         }
     }
 
+    @PostMapping("/getUnitQuizScores")
+    @Operation(summary = "获取单元测验分数",
+            description = "获取用户在指定单元的所有章节测验分数")
+    public AjaxResult getUnitQuizScores(
+            @Parameter(name = "request", description = "获取单元测验分数请求体",
+                    required = true,
+                    schema = @Schema(example = "{\"unitId\": 123, \"userId\": 456}"))
+            @RequestBody Map<String, Object> request) {
+        try {
+            Long unitId = Long.parseLong(request.get("unitId").toString());
+            Long userId = Long.parseLong(request.get("userId").toString());
+
+            if (unitId == null || userId == null) {
+                return AjaxResult.error("单元ID和用户ID不能为空");
+            }
+
+            Map<String, Object> result = quizzesService.getUnitQuizScores(unitId, userId);
+            return AjaxResult.success("获取成功", result);
+
+        } catch (Exception e) {
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
 }
