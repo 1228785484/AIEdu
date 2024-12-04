@@ -3,8 +3,10 @@ package org.sevengod.javabe.web.service.impl;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.sevengod.javabe.entity.Chapter;
 import org.sevengod.javabe.entity.QuizSubmission;
 import org.sevengod.javabe.entity.Quizzes;
+import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
 import org.sevengod.javabe.web.service.DifyService;
@@ -14,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -25,6 +29,9 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
 
     @Autowired
     private QuizSubmissionMapper quizSubmissionMapper;
+
+    @Autowired
+    private ChapterMapper chapterMapper;
 
     private final String APIKey = "app-RjU3aR6XQ5Dd91QmeGF8UMoK";
 
@@ -106,6 +113,61 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
         result.put("submissionId", submission.getSubmissionId());
         result.put("score", submission.getScore());
         result.put("submittedAt", submission.getSubmittedAt());
+        
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getUnitQuizScores(Long unitId, Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 获取该单元的所有章节
+        LambdaQueryWrapper<Chapter> chapterWrapper = new LambdaQueryWrapper<>();
+        chapterWrapper.eq(Chapter::getUnitId, unitId);
+        List<Chapter> chapters = chapterMapper.selectList(chapterWrapper);
+        
+        // 存储每个章节的测验分数
+        List<Map<String, Object>> chapterScores = new ArrayList<>();
+        
+        for (Chapter chapter : chapters) {
+            Map<String, Object> chapterScore = new HashMap<>();
+            chapterScore.put("chapter_id", chapter.getChapterId());
+            chapterScore.put("chapter_title", chapter.getTitle());
+            
+            // 获取章节对应的测验
+            LambdaQueryWrapper<Quizzes> quizWrapper = new LambdaQueryWrapper<>();
+            quizWrapper.eq(Quizzes::getChapterId, chapter.getChapterId());
+            Quizzes quiz = this.getOne(quizWrapper);
+            
+            if (quiz != null) {
+                // 获取用户的测验提交记录
+                LambdaQueryWrapper<QuizSubmission> submissionWrapper = new LambdaQueryWrapper<>();
+                submissionWrapper.eq(QuizSubmission::getQuizId, quiz.getQuizId())
+                        .eq(QuizSubmission::getUserId, userId)
+                        .orderByDesc(QuizSubmission::getSubmittedAt)
+                        .last("LIMIT 1");
+                QuizSubmission submission = quizSubmissionMapper.selectOne(submissionWrapper);
+                
+                if (submission != null) {
+                    chapterScore.put("quiz_id", quiz.getQuizId());
+                    chapterScore.put("score", submission.getScore());
+                    chapterScore.put("submission_time", submission.getSubmittedAt());
+                } else {
+                    chapterScore.put("quiz_id", quiz.getQuizId());
+                    chapterScore.put("score", null);
+                    chapterScore.put("submission_time", null);
+                }
+            } else {
+                chapterScore.put("quiz_id", null);
+                chapterScore.put("score", null);
+                chapterScore.put("submission_time", null);
+            }
+            
+            chapterScores.add(chapterScore);
+        }
+        
+        result.put("unit_id", unitId);
+        result.put("chapter_scores", chapterScores);
         
         return result;
     }
