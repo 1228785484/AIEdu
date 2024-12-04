@@ -150,6 +150,14 @@
             :props="defaultProps"
             @node-click="handleNodeClick"
           />
+
+           <!-- 添加生成报告按钮 -->
+           <div class="report-btn-container">
+            <button class="report-btn" @click="goToReport">
+              <i class="fas fa-file-alt"></i>
+              生成学习报告
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -160,23 +168,13 @@
 import { ref, onMounted ,computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
-
-
-// const markdownContent = ref(
-// `
-// # 关于C语言中的指针
-
-// 以下哪些说法是正确的？
-
-// - **A**: 指针是一个变量，它存储另一个变量的地址
-// - **B**: 指针可以用于动态内存分配
-// - **C**: 指针不能用于数组
-// - **D**: 指针可以指向函数
-
-// 正确答案是：**A, B, D**
-// `
-// );
+// 添加跳转方法
+const goToReport = () => {
+  router.push('/report-generation');
+};
 
 // 计算属性，将Markdown转换为HTML
 const markdownToHtml = computed(() =>
@@ -184,7 +182,6 @@ const markdownToHtml = computed(() =>
   return marked(sectionData.value.content
 );
 });
-
 
 var data1 = 12;
 var data2 = 20;
@@ -1086,4 +1083,33 @@ button:hover {
   margin: 5px 0;
 }
 
+.report-btn-container {
+  margin-top: 20px;
+  padding: 0 10px;
+}
+
+.report-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.report-btn:hover {
+  background: rgb(226, 178, 226);
+  transform: translateY(-1px);
+}
+
+.report-btn i {
+  font-size: 16px;
+}
 </style>

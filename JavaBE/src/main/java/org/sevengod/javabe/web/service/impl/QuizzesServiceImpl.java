@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.sevengod.javabe.entity.QuizSubmission;
 import org.sevengod.javabe.entity.Quizzes;
-import org.sevengod.javabe.mapper.QuizSubmissionMapper;
+import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.QuizzesService;
@@ -80,6 +80,15 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
 
     @Override
     public Map<String, Object> submitAnswerAndScore(Long quizId, Long userId, String questions, String answers, BigDecimal score) {
+        // 检查是否已经提交过
+        LambdaQueryWrapper<QuizSubmission> checkWrapper = new LambdaQueryWrapper<>();
+        checkWrapper.eq(QuizSubmission::getQuizId, quizId)
+                   .eq(QuizSubmission::getUserId, userId);
+        
+        if (quizSubmissionMapper.exists(checkWrapper)) {
+            throw new IllegalStateException("您已经提交过这个测验，不能重复提交");
+        }
+
         // 1. 创建提交记录
         QuizSubmission submission = new QuizSubmission();
         submission.setQuizId(quizId);

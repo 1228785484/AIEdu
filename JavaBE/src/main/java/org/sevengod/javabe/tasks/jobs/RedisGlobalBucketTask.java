@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
-public class RedisBucketTask {
+public class RedisGlobalBucketTask {
     
     @Autowired
     private RedissonClient redissonClient;
@@ -40,7 +40,7 @@ public class RedisBucketTask {
                 }
             }
         } catch (InterruptedException e) {
-            log.error("获取令牌桶锁失败", e);
+            log.error("服务器获取令牌桶锁失败", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -49,11 +49,11 @@ public class RedisBucketTask {
         // 初始化令牌桶
         RBucket<Integer> bucket = redissonClient.getBucket(BUCKET_KEY);
         RBucket<Long> lastRefillTime = redissonClient.getBucket(LAST_REFILL_TIME_KEY);
-        
-        if (bucket.get() == null) {
+        //如果没找到Key
+        if (!bucket.isExists()) {
             bucket.set(MAX_TOKENS);
             lastRefillTime.set(Instant.now().toEpochMilli());
-            log.info("令牌桶初始化完成，当前令牌数: {}", MAX_TOKENS);
+            log.info("服务器全局令牌桶初始化完成，当前令牌数: {}", MAX_TOKENS);
             return;
         }
 
@@ -72,7 +72,7 @@ public class RedisBucketTask {
             bucket.set(newTokens);
             lastRefillTime.set(currentTime);
             
-            log.info("令牌已补充，当前令牌数: {}, 补充数量: {}", newTokens, newTokens - currentTokens);
+            log.info("服务器令牌已补充，当前令牌数: {}, 补充数量: {}", newTokens, newTokens - currentTokens);
         }
     }
 
