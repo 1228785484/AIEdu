@@ -93,7 +93,45 @@
             <div class="section-content">
               <!-- 显示测验内容 -->
               <!-- <div v-html="testData.content || '请选择一个章节开始测验'"></div> -->
+              <!-- 显示测验内容 -->
+              <div v-if="testData.content" v-html="testData.content"></div>
+              <!-- <div v-if="testData.content" v-html=strhtml></div> -->
+              <div v-else>请选择一个章节开始测验</div>
             </div>
+            <!-- 提交按钮 -->
+            <button @click="submitAnswers">提交</button>
+            <!-- 显示得分和解析 -->
+            <!-- <div v-if="showResults" class="results-section">
+              <div class="score">得分：{{ score }}分</div>
+              <div class="answers">
+                <div v-for="(question, index) in testData.questions" :key="index" class="question-result">
+                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                    用户答案：{{ userAnswers[index] || '未作答' }}
+                  </div>
+                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                    解析：{{ question.explanation }}
+                  </div>
+                </div>
+              </div>
+            </div> -->
+            <div v-if="showResults" class="results-section">
+              <div class="score">得分：{{ score }}分</div>
+              <div class="answers">
+                <div v-for="(question, index) in testData.questions" :key="index">
+                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                    用户答案：{{ userAnswers[index] || '未作答' }}
+                  </div>
+                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                    解析：{{ question.explanation }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -308,7 +346,9 @@ const sectionData = ref({
 const testData = ref({
   content: null // 初始化为空字符串
 });
- 
+
+const que = ref('')
+const quizId = ref()
 // 点击节点时的处理函数，发送请求给后端
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
@@ -356,8 +396,14 @@ const handleNodeClick = async (nodeData) => {
     if (quizResponse.ok) {
       const quizResult = await quizResponse.json();
       console.log(quizResult,'这是quizeResult')
+      quizId.value = quizResult.data.quiz_id
+      console.log(quizId.value)
+      que.value = quizResult.data.questions
       if (quizResult && quizResult.data && quizResult.data.questions) {
-        testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
+        //testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
+        testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
+        console.log(testData.value.questions)
+        
 
       } else {
         testData.value = { content: '无法加载测验内容' };
@@ -370,6 +416,137 @@ const handleNodeClick = async (nodeData) => {
     testData.value = { content: '请求失败，请稍后重试' };
   }
 };
+// 响应式变量，用于存储用户答案
+// const userAnswers = ref([]);
+const answers = ref([]);
+// 响应式变量，用于控制是否显示结果
+const showResults = ref(false);
+
+// 响应式变量，用于存储用户的得分
+const score = ref(0);
+
+ //渲染测验题目的函数
+function renderQuizQuestions(questions) {
+  
+  return questions.map((question, index) => {
+    let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
+    questionHtml += `<div class="options">`;
+    for (const [option, text] of Object.entries(question.options)) {
+      const inputType = index < 7 ? 'radio' : 'checkbox'; // 前七题为单选，后三题为多选
+      questionHtml += `<div class="option">
+        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}">
+        <label for="question-${index}-${option}">${option}:${text}</label>
+      </div>`;
+    }
+    questionHtml += `</div>`;
+    return questionHtml;
+  }).join('');
+}
+
+const quizData =ref()
+
+// 提交答案的方法
+function submitAnswers() {
+  // 收集用户答案并计算得分
+  let score = 0; // 初始化得分
+  console.log(JSON.parse(JSON.stringify(que))._value,'这是计算得分的')
+  let c = JSON.parse(JSON.stringify(que))._value
+  if (c) {
+    c.forEach((question, index) => {
+      const inputType = index <= 7 ? 'radio' : 'checkbox';
+      const questionId = `question-${index}`;
+      const selectedOptions = Array.from(document.querySelectorAll(`input[name="${questionId}"]:checked`));
+      
+      // 检查是否有选中的选项
+      if (selectedOptions.length > 0) {
+        const userAnswer = inputType === 'radio' ? selectedOptions[0].value : selectedOptions.map(input => input.value);
+        answers.value.push(userAnswer.value);
+        
+        // 比较用户答案和正确答案
+        if (inputType === 'radio') {
+          // 对于单选题
+          if (userAnswer === question.answer) {
+            score += 10; // 如果答案正确，增加得分
+          }
+        } else {
+          // 对于多选题
+          // 假设正确答案是一个数组
+          const correctAnswers = question.answer; // 正确答案应该是一个数组
+          if (userAnswer.length === correctAnswers.length && userAnswer.every(answer => correctAnswers.includes(answer))) {
+            score += 10; // 如果所有选项都正确，增加得分
+          }
+        }
+      } else {
+        // 如果没有选中任何选项，可以选择不增加得分
+        answers.value.push(inputType === 'radio' ? null : []);
+      }
+    });
+  } else {
+    console.error('Test data or questions are undefined');
+  }
+  
+  // 更新得分
+  updateScore(score);
+  // 可能还需要更新其他状态，比如显示结果
+  updateResultsDisplay(answers);
+  // const userId = localStorage.getItem('userid');
+  //修改quizData的内容
+  quizData.value = {
+    'quizId':quizId.value,
+    'useId':Number(localStorage.getItem('userid')),
+    'questions':JSON.parse(JSON.stringify(que))._value,
+    // 'questions':'[' + JSON.parse(JSON.stringify(que))._value.map(item => `'${item}'`).join(',') + ']',
+    'answers':['a','b','c','d','a','b','c','d','a','b'],
+    // 'answers': '[' + ['a','b','c','d','a','b','c','d','a','b'].map(item => `'${item}'`).join(',') + ']',
+    'score':score.toString()
+  }
+  console.log(quizData.value,'这是quizData')
+  //将数据返回给后端
+  if (que.value !== null && que.value !== undefined) {
+    submitQuizScore(quizData);
+  } else {
+    console.error('Test data or questions are undefined');
+  }
+}
+
+// 假设这是更新得分的函数
+function updateScore(newScore) {
+  score.value = newScore;
+}
+
+// 假设这是更新结果显示的函数
+function updateResultsDisplay(answers) {
+  // 这里可以设置显示结果的逻辑，比如：
+  showResults.value = true;
+  // 可能还需要将answers赋值给某个响应式变量
+  answers.value = answers
+}
+
+async function submitQuizScore(quizData) {
+  try {
+    const response = await fetch('http://localhost:8008/quiz/submitQuiz', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(quizData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Success:', data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+
+
+
 
 </script>
 
@@ -813,7 +990,20 @@ const handleNodeClick = async (nodeData) => {
     overflow-y: auto;
     position:absolute;
 }
+/* 提交按钮样式 */
+button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 20px;
+}
 
+button:hover {
+  background-color: #0056b3;
+}
 /* 按钮容器样式 */
 .button-container {
   display: flex;
