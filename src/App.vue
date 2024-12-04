@@ -12,30 +12,36 @@
               @select="handleSelect"
             >
               <el-menu-item index="/">首页</el-menu-item>
-              <el-menu-item index="/project-square">项目广场</el-menu-item>
-              <el-menu-item index="/ai-assistant">AI助手</el-menu-item>
-              <el-menu-item index="/ai-learning">AI学习</el-menu-item>
+              <el-menu-item v-if="isLoggedIn" index="/project-square">项目广场</el-menu-item>
+              <el-menu-item v-if="isLoggedIn" index="/ai-assistant">AI助手</el-menu-item>
+              <el-menu-item v-if="isLoggedIn" index="/ai-learning">AI学习</el-menu-item>
             </el-menu>
           </div>
           <div class="user-info">
-            <el-dropdown @command="handleCommand" trigger="click">
-              <img 
-                src="@/assets/客户头像.png" 
-                alt="用户头像" 
-                class="user-avatar"
-              >
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="personal">个人信息</el-dropdown-item>
-                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <template v-if="isLoggedIn">
+              <el-dropdown @command="handleCommand" trigger="click">
+                <img 
+                  src="@/assets/客户头像.png" 
+                  alt="用户头像" 
+                  class="user-avatar"
+                >
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="personal">个人信息</el-dropdown-item>
+                    <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
           </div>
         </div>
       </el-header>
       <el-main>
-        <router-view></router-view>
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </el-main>
     </el-container>
   </div>
@@ -48,7 +54,7 @@ export default {
   name: 'App',
   data() {
     return {
-      activeIndex: '/',
+      activeIndex: this.$route.path,
       username: localStorage.getItem('username') || '未登录'
     }
   },
@@ -57,27 +63,66 @@ export default {
       return localStorage.getItem('token') !== null
     }
   },
+  watch: {
+    '$route'(to) {
+      this.activeIndex = to.path;
+      // 检查登录状态和路由权限
+      if (!this.isLoggedIn && to.path !== '/') {
+        this.$router.push('/');
+        ElMessage.warning('请先登录');
+      }
+    }
+  },
   methods: {
     handleSelect(key) {
-      this.activeIndex = key
+      if (!this.isLoggedIn && key !== '/') {
+        ElMessage.warning('请先登录');
+        this.$router.push('/');
+        return;
+      }
+      this.activeIndex = key;
     },
     handleCommand(command) {
       if (command === 'logout') {
-        localStorage.removeItem('token')
-        localStorage.removeItem('username')
-        localStorage.removeItem('email')
-        this.username = '未登录'
-        ElMessage.success('已退出登录')
-        this.$router.push('/')
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('email');
+        this.username = '未登录';
+        ElMessage.success('已退出登录');
+        this.$router.push('/');
+        // 刷新页面以确保状态完全重置
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
       } else if (command === 'personal') {
-        this.$router.push('/personal-info')
+        this.$router.push('/personal-info');
       }
+    }
+  },
+  created() {
+    // 初始化时检查登录状态
+    if (!this.isLoggedIn && this.$route.path !== '/') {
+      this.$router.push('/');
     }
   }
 }
 </script>
 
-<style scoped>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 .app-container {
   min-height: 100vh;
   display: flex;
