@@ -101,6 +101,21 @@
             <!-- 提交按钮 -->
             <button @click="submitAnswers">提交</button>
             <!-- 显示得分和解析 -->
+            <!-- <div v-if="showResults" class="results-section">
+              <div class="score">得分：{{ score }}分</div>
+              <div class="answers">
+                <div v-for="(question, index) in testData.questions" :key="index" class="question-result">
+                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                    用户答案：{{ userAnswers[index] || '未作答' }}
+                  </div>
+                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                    解析：{{ question.explanation }}
+                  </div>
+                </div>
+              </div>
+            </div> -->
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
@@ -116,6 +131,7 @@
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -134,6 +150,14 @@
             :props="defaultProps"
             @node-click="handleNodeClick"
           />
+
+           <!-- 添加生成报告按钮 -->
+           <div class="report-btn-container">
+            <button class="report-btn" @click="goToReport">
+              <i class="fas fa-file-alt"></i>
+              生成学习报告
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -144,6 +168,13 @@
 import { ref, onMounted ,computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+// 添加跳转方法
+const goToReport = () => {
+  router.push('/report-generation');
+};
 
 // 计算属性，将Markdown转换为HTML
 const markdownToHtml = computed(() =>
@@ -314,6 +345,7 @@ const testData = ref({
 });
 
 const que = ref('')
+const quizId = ref()
 // 点击节点时的处理函数，发送请求给后端
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
@@ -361,6 +393,8 @@ const handleNodeClick = async (nodeData) => {
     if (quizResponse.ok) {
       const quizResult = await quizResponse.json();
       console.log(quizResult,'这是quizeResult')
+      quizId.value = quizResult.data.quiz_id
+      console.log(quizId.value)
       que.value = quizResult.data.questions
       if (quizResult && quizResult.data && quizResult.data.questions) {
         //testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
@@ -406,6 +440,8 @@ function renderQuizQuestions(questions) {
   }).join('');
 }
 
+const quizData =ref()
+
 // 提交答案的方法
 function submitAnswers() {
   // 收集用户答案并计算得分
@@ -450,6 +486,24 @@ function submitAnswers() {
   updateScore(score);
   // 可能还需要更新其他状态，比如显示结果
   updateResultsDisplay(answers);
+  // const userId = localStorage.getItem('userid');
+  //修改quizData的内容
+  quizData.value = {
+    'quizId':quizId.value,
+    'useId':Number(localStorage.getItem('userid')),
+    'questions':JSON.parse(JSON.stringify(que))._value,
+    // 'questions':'[' + JSON.parse(JSON.stringify(que))._value.map(item => `'${item}'`).join(',') + ']',
+    'answers':['a','b','c','d','a','b','c','d','a','b'],
+    // 'answers': '[' + ['a','b','c','d','a','b','c','d','a','b'].map(item => `'${item}'`).join(',') + ']',
+    'score':score.toString()
+  }
+  console.log(quizData.value,'这是quizData')
+  //将数据返回给后端
+  if (que.value !== null && que.value !== undefined) {
+    submitQuizScore(quizData);
+  } else {
+    console.error('Test data or questions are undefined');
+  }
 }
 
 // 假设这是更新得分的函数
@@ -464,6 +518,32 @@ function updateResultsDisplay(answers) {
   // 可能还需要将answers赋值给某个响应式变量
   answers.value = answers
 }
+
+async function submitQuizScore(quizData) {
+  try {
+    const response = await fetch('http://localhost:8008/quiz/submitQuiz', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(quizData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Success:', data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+
+
+
 
 </script>
 
@@ -1003,4 +1083,33 @@ button:hover {
   margin: 5px 0;
 }
 
+.report-btn-container {
+  margin-top: 20px;
+  padding: 0 10px;
+}
+
+.report-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.report-btn:hover {
+  background: rgb(226, 178, 226);
+  transform: translateY(-1px);
+}
+
+.report-btn i {
+  font-size: 16px;
+}
 </style>

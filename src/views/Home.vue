@@ -1,90 +1,96 @@
 <template>
   <div class="home-container">
-    <h1>欢迎来到AI教育平台</h1>
-    
-    <div class="auth-buttons">
-      <button @click="showLoginModal = true" class="auth-button login-btn">登录</button>
-      <button @click="showRegisterModal = true" class="auth-button register-btn">注册</button>
-    </div>
-
-    <!-- 登录模态框 -->
-    <div v-if="showLoginModal" class="modal">
-      <div class="modal-content">
-        <h2>登录</h2>
-        <form @submit.prevent="handleLogin">
-          <div class="form-group">
-            <label>用户名:</label>
-            <input v-model="loginForm.username" type="text" required>
-          </div>
-          <div class="form-group">
-            <label>密码:</label>
-            <input v-model="loginForm.password" type="password" required>
-          </div>
-          <div class="modal-buttons">
-            <button type="submit" class="submit-btn">登录</button>
-            <button type="button" @click="showLoginModal = false" class="cancel-btn">取消</button>
-          </div>
-        </form>
+    <div v-if="!isLoggedIn">
+      <h1>欢迎来到AI教育平台</h1>
+      <div class="auth-buttons">
+        <button @click="showLoginModal = true" class="auth-button login-btn">登录</button>
+        <button @click="showRegisterModal = true" class="auth-button register-btn">注册</button>
       </div>
-    </div>
 
-    <!-- 注册模态框 -->
-    <div v-if="showRegisterModal" class="modal">
-      <div class="modal-content">
-        <h2>注册</h2>
-        <form @submit.prevent="handleRegister">
-          <div class="form-group">
-            <label>用户名:</label>
-            <input v-model="registerForm.username" type="text" required>
-          </div>
-          <div class="form-group">
-            <label>邮箱:</label>
-            <input 
-              v-model="registerForm.email" 
-              type="email" 
-              required
-              @input="validateEmail"
-              :class="{ error: emailError }"
-            >
-            <span class="email-error" v-if="emailError">{{ emailError }}</span>
-          </div>
-          <div class="form-group verification-code">
-            <label>验证码:</label>
-            <div class="code-input-group">
-              <input v-model="registerForm.verificationCode" type="text" required>
-              <button type="button" 
-                      @click="sendVerificationCode" 
-                      :disabled="cooldown > 0" 
-                      class="send-code-btn">
-                {{ cooldown > 0 ? `${cooldown}秒后重试` : '发送验证码' }}
-              </button>
+      <!-- 登录模态框 -->
+      <div v-if="showLoginModal" class="modal">
+        <div class="modal-content">
+          <h2>登录</h2>
+          <form @submit.prevent="handleLogin">
+            <div class="form-group">
+              <label>用户名:</label>
+              <input v-model="loginForm.username" type="text" required>
             </div>
-          </div>
-          <div class="form-group">
-            <label>密码:</label>
-            <input 
-              v-model="registerForm.password" 
-              type="password" 
-              required
-              @input="validatePassword"
-            >
-          </div>
-          <div class="form-group">
-            <label>确认密码:</label>
-            <input 
-              v-model="registerForm.confirmPassword" 
-              type="password" 
-              required
-              @input="validatePassword"
-            >
-            <span class="password-error" v-if="passwordError">{{ passwordError }}</span>
-          </div>
-          <div class="modal-buttons">
-            <button type="submit" class="submit-btn">注册</button>
-            <button type="button" @click="showRegisterModal = false" class="cancel-btn">取消</button>
-          </div>
-        </form>
+            <div class="form-group">
+              <label>密码:</label>
+              <input v-model="loginForm.password" type="password" required>
+            </div>
+            <div class="modal-buttons">
+              <button type="submit" class="submit-btn">登录</button>
+              <button type="button" @click="showLoginModal = false" class="cancel-btn">取消</button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      <!-- 注册模态框 -->
+      <div v-if="showRegisterModal" class="modal">
+        <div class="modal-content">
+          <h2>注册</h2>
+          <form @submit.prevent="handleRegister">
+            <div class="form-group">
+              <label>用户名:</label>
+              <input v-model="registerForm.username" type="text" required>
+            </div>
+            <div class="form-group">
+              <label>邮箱:</label>
+              <input 
+                v-model="registerForm.email" 
+                type="email" 
+                required
+                @input="validateEmail"
+                :class="{ error: emailError }"
+              >
+              <span class="email-error" v-if="emailError">{{ emailError }}</span>
+            </div>
+            <div class="form-group verification-code">
+              <label>验证码:</label>
+              <div class="code-input-group">
+                <input v-model="registerForm.verificationCode" type="text" required>
+                <button type="button" 
+                        @click="sendVerificationCode" 
+                        :disabled="cooldown > 0" 
+                        class="send-code-btn">
+                  {{ cooldown > 0 ? `${cooldown}秒后重试` : '发送验证码' }}
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>密码:</label>
+              <input 
+                v-model="registerForm.password" 
+                type="password" 
+                required
+                @input="validatePassword"
+              >
+            </div>
+            <div class="form-group">
+              <label>确认密码:</label>
+              <input 
+                v-model="registerForm.confirmPassword" 
+                type="password" 
+                required
+                @input="validatePassword"
+              >
+              <span class="password-error" v-if="passwordError">{{ passwordError }}</span>
+            </div>
+            <div class="modal-buttons">
+              <button type="submit" class="submit-btn">注册</button>
+              <button type="button" @click="showRegisterModal = false" class="cancel-btn">取消</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 已登录状态 -->
+    <div v-else class="welcome-content">
+      <h1>欢迎进入首页</h1>
     </div>
   </div>
 </template>
@@ -113,7 +119,12 @@ export default {
       cooldown: 0,
       passwordError: '',
       emailError: '',
-      emailCheckTimeout: null,
+      emailCheckTimeout: null
+    }
+  },
+  computed: {
+    isLoggedIn() {
+      return localStorage.getItem('token') !== null
     }
   },
   methods: {
@@ -135,9 +146,8 @@ export default {
           localStorage.setItem('userid', data.userid);
           
           ElMessage.success('登录成功');
-          // 测试用户ID
-          // ElMessage.info(String(data.userid));
-          this.$router.push('/personal-info');
+          this.showLoginModal = false;
+          this.$router.go(0); // 刷新页面以更新状态
         } else {
           ElMessage.error(data.message || '登录失败');
         }
@@ -275,7 +285,20 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 50px;
+  justify-content: center;
+  min-height: calc(100vh - 60px);
+  padding: 20px;
+  background-color: #f5f7fa;
+}
+
+.welcome-content {
+  text-align: center;
+}
+
+.welcome-content h1 {
+  color: #409EFF;
+  font-size: 2.5em;
+  margin-bottom: 20px;
 }
 
 .auth-buttons {
