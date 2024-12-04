@@ -134,6 +134,14 @@
             :props="defaultProps"
             @node-click="handleNodeClick"
           />
+
+           <!-- 添加生成报告按钮 -->
+           <div class="report-btn-container">
+            <button class="report-btn" @click="goToReport">
+              <i class="fas fa-file-alt"></i>
+              生成学习报告
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -144,6 +152,13 @@
 import { ref, onMounted ,computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+// 添加跳转方法
+const goToReport = () => {
+  router.push('/report-generation');
+};
 
 // 计算属性，将Markdown转换为HTML
 const markdownToHtml = computed(() =>
@@ -1003,4 +1018,33 @@ button:hover {
   margin: 5px 0;
 }
 
+.report-btn-container {
+  margin-top: 20px;
+  padding: 0 10px;
+}
+
+.report-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.report-btn:hover {
+  background: rgb(226, 178, 226);
+  transform: translateY(-1px);
+}
+
+.report-btn i {
+  font-size: 16px;
+}
 </style>
