@@ -100,22 +100,6 @@
             </div>
             <!-- 提交按钮 -->
             <button @click="submitAnswers">提交</button>
-            <!-- 显示得分和解析 -->
-            <!-- <div v-if="showResults" class="results-section">
-              <div class="score">得分：{{ score }}分</div>
-              <div class="answers">
-                <div v-for="(question, index) in testData.questions" :key="index" class="question-result">
-                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
-                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
-                    用户答案：{{ userAnswers[index] || '未作答' }}
-                  </div>
-                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
-                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
-                    解析：{{ question.explanation }}
-                  </div>
-                </div>
-              </div>
-            </div> -->
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
@@ -414,19 +398,19 @@ const handleNodeClick = async (nodeData) => {
   }
 };
 // 响应式变量，用于存储用户答案
-// const userAnswers = ref([]);
+const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
-
 // 响应式变量，用于存储用户的得分
 const score = ref(0);
 
- //渲染测验题目的函数
- function renderQuizQuestions(questions) {
+ //渲染题目
+function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
+      // 根据题目类型决定是单选还是多选
       const inputType = question.type === 'single' ? 'radio' : 'checkbox';
       questionHtml += `<div class="option">
         <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}">
@@ -439,7 +423,6 @@ const score = ref(0);
 }
 
 const quizData =ref()
-const answers = ref([]);
 
 // 提交答案的方法
 function submitAnswers() {
@@ -491,44 +474,22 @@ function submitAnswers() {
   // 显示结果
   showResults.value = true;
 
-  // const userId = localStorage.getItem('userid');
-  //修改quizData的内容
-  // quizData.value = {
-  //   'quizId':quizId.value,
-  //   'userId':Number(localStorage.getItem('userid')),
-  //   'questions':JSON.parse(JSON.stringify(que))._value,
-  //   // 'questions':'[' + JSON.parse(JSON.stringify(que))._value.map(item => `'${item}'`).join(',') + ']',
-  //   'answers':['a','b','c','d','a','b','c','d','a','b'],
-  //   // 'answers': '[' + ['a','b','c','d','a','b','c','d','a','b'].map(item => `'${item}'`).join(',') + ']',
-  //   'score':score
-  // }
+  // 准备提交数据
   quizData.value = {
-    "quizId": quizId.value,
-    "userId": Number(localStorage.getItem('userid')),
-    "questions": JSON.stringify(que.value),
-    "answers": JSON.stringify(['a','b','c','d','a','b','c','d','a','b']),
-    "score": score
+    quizId: quizId.value,
+    userId: Number(localStorage.getItem('userid')),
+    questions: JSON.stringify(que.value),
+    answers: JSON.stringify(userAnswers),
+    score: totalScore
+  };
+  console.log(quizData.value)
+  // 提交到后端
+  if (que.value) {
+    submitQuizScore(quizData.value);
   }
-  console.log(quizData.value,'这是quizData')
-  //将数据返回给后端
-  if (que.value !== null && que.value !== undefined) {
-    submitQuizScore(quizData.value);  // Pass .value instead of the ref
-  } else {
-    console.error('Test data or questions are undefined');
-  }
+}
 
-// // 假设这是更新得分的函数
-// function updateScore(newScore) {
-//   score.value = newScore;
-// }
 
-// // 假设这是更新结果显示的函数
-// function updateResultsDisplay(answers) {
-//   // 这里可以设置显示结果的逻辑，比如：
-//   showResults.value = true;
-//   // 可能还需要将answers赋值给某个响应式变量
-//   answers.value = answers
-// }
 
 async function submitQuizScore(quizData) {
   try {
@@ -550,7 +511,6 @@ async function submitQuizScore(quizData) {
   } catch (error) {
     console.error('Error:', error);
   }
-}
 }
 
 
