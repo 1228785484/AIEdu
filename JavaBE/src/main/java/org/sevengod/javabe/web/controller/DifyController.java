@@ -21,6 +21,10 @@ import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 @RequestMapping("/api/test")
@@ -135,10 +139,14 @@ public class DifyController {
                 return AjaxResult.error("用户ID和章节ID不能为空");
             }
 
-            Map<String, Object> res = quizzesService.getQuizWithDifyResponse(chapterId, userId);
-            return AjaxResult.success("生成内容成功", res);
+            CompletableFuture<Map<String, Object>> res = quizzesService.getQuizWithDifyResponse(chapterId, userId);
+            // 等待异步操作完成，设置30秒超时
+            Map<String, Object> result = res.get(30, TimeUnit.SECONDS);
+            return AjaxResult.success("生成内容成功", result);
 
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
+            return AjaxResult.error("生成内容超时，请稍后重试");
+        } catch (InterruptedException | ExecutionException e) {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
     }

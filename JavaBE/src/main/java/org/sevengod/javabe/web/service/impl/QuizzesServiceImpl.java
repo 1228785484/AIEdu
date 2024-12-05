@@ -11,19 +11,26 @@ import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.QuizzesService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> implements QuizzesService {
     
+    private static final Logger log = LoggerFactory.getLogger(QuizzesServiceImpl.class);
+
     @Autowired
     private DifyService difyService;
 
@@ -36,54 +43,68 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
     private final String APIKey = "app-RjU3aR6XQ5Dd91QmeGF8UMoK";
 
     @Override
-    public Map<String, Object> getQuizWithDifyResponse(Long chapterId, Long userId) {
-        // 使用chapterId查询Quiz
-        LambdaQueryWrapper<Quizzes> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Quizzes::getChapterId, chapterId);
-        Quizzes quiz = this.getOne(queryWrapper);
-        
+    @Async("taskExecutor")
+    public CompletableFuture<Map<String, Object>> getQuizWithDifyResponse(Long chapterId, Long userId) {
+        log.info("开始异步生成测验 - 章节ID: {}, 线程: {}", chapterId, Thread.currentThread().getName());
         Map<String, Object> result = new HashMap<>();
         
-        if (quiz != null) {
-            result.put("quiz_id", quiz.getQuizId());
-            result.put("chapter_id", quiz.getChapterId());
-            result.put("title", quiz.getTitle());
-            result.put("quiz_prompt", quiz.getQuizPrompt());
+        try {
+            // 使用chapterId查询Quiz
+            LambdaQueryWrapper<Quizzes> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Quizzes::getChapterId, chapterId);
+            Quizzes quiz = this.getOne(queryWrapper);
             
-            try {
-                String aiResponse = difyService.streamWorkflow(
-                        Map.of("Content", quiz.getQuizPrompt(),
-                                "Type", "小测"
-                        ),
-                        userId.toString(),
-                        APIKey
-                )
-                        .collectList()
-                        .block()  // 等待所有响应
-                        .stream()
-                        .filter(response -> "workflow_finished".equals(response.getEvent()))
-                        .findFirst()
-                        .<String>map(response -> {
-                            return (String) response.getData().getOutputs().get("answer");
-                        })
-                        .orElseThrow(() -> new RuntimeException("未能获取到有效的生成内容"));
-
-                // 清理JSON字符串，去除markdown标记
-                aiResponse = aiResponse.replaceAll("```json\\n", "")
-                                    .replaceAll("```", "")
-                                    .trim();
-
-                // 使用Fastjson2解析JSON数据并添加到结果中
-                Map<String, Object> quizData = JSON.parseObject(aiResponse);
-                result.putAll(quizData);
+            if (quiz != null) {
+                result.put("quiz_id", quiz.getQuizId());
+                result.put("chapter_id", quiz.getChapterId());
+                result.put("title", quiz.getTitle());
+                result.put("quiz_prompt", quiz.getQuizPrompt());
                 
-            } catch (Exception e) {
-                result.put("error", "Error processing quiz data: " + e.getMessage());
+                try {
+                    String aiResponse = difyService.streamWorkflow(
+                            Map.of("Content", quiz.getQuizPrompt(),
+                                    "Type", "小测"
+                            ),
+                            userId.toString(),
+                            APIKey
+                    )
+                            .collectList()
+                            .block(Duration.ofSeconds(30))  // 设置30秒超时
+                            .stream()
+                            .filter(response -> "workflow_finished".equals(response.getEvent()))
+                            .findFirst()
+                            .<String>map(response -> {
+                                return (String) response.getData().getOutputs().get("answer");
+                            })
+                            .orElseThrow(() -> new RuntimeException("未能获取到有效的生成内容"));
+
+                    // 清理JSON字符串
+                    aiResponse = aiResponse.replaceAll("```json\\n", "")
+                                      .replaceAll("```", "")
+                                      .trim();
+
+                    // 解析JSON数据并添加到结果中
+                    Map<String, Object> quizData = JSON.parseObject(aiResponse);
+                    result.putAll(quizData);
+                    
+                } catch (Exception e) {
+                    result.put("error", "生成测验失败: " + e.getMessage());
+                    throw new RuntimeException("生成测验失败", e);
+                }
             }
+            
+            log.info("完成测验生成 - 章节ID: {}, 线程: {}", chapterId, Thread.currentThread().getName());
+            return CompletableFuture.completedFuture(result);
+            
+        } catch (Exception e) {
+            log.error("测验生成失败 - 章节ID: {}, 线程: {}, 错误: {}", 
+                     chapterId, Thread.currentThread().getName(), e.getMessage());
+            result.put("error", "处理测验数据时出错: " + e.getMessage());
+            return CompletableFuture.failedFuture(e);
         }
-        
-        return result;
     }
+
+
 
     @Override
     public Map<String, Object> submitAnswerAndScore(Long quizId, Long userId, String questions, String answers, BigDecimal score) {
