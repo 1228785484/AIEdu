@@ -404,24 +404,48 @@ const showResults = ref(false);
 // 响应式变量，用于存储用户的得分
 const score = ref(0);
 
- //渲染题目
-function renderQuizQuestions(questions) {
+ //渲染测验题目的函数
+ function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
-      // 根据题目类型决定是单选还是多选
       const inputType = question.type === 'single' ? 'radio' : 'checkbox';
       questionHtml += `<div class="option">
-        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}">
-        <label for="question-${index}-${option}">${option}:${text}</label>
+        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}" style="display:none">
+        <label for="question-${index}-${option}" class="option-box" style="display:flex; align-items:center; border:1px solid rgb(236,201,237); padding:10px; margin:5px 0; cursor:pointer; border-radius:4px; background-color:white; transition: all 0.3s ease">
+          <span style="width:30px; height:30px; border:2px solid rgb(236,201,237); border-radius:50%; display:flex; align-items:center; justify-content:center; background-color:white">${option}</span>
+          <span style="flex:1; text-align:center; margin-left:10px">${text}</span>
+        </label>
       </div>`;
     }
     questionHtml += `</div>`;
+    // 添加横线，除了最后一题
+    if (index < questions.length - 1) {
+      questionHtml += `<div style="height: 1px; background-color: black; margin: 30px 0;"></div>`;
+    }
+    questionHtml += `
+      <style>
+        .option-box:hover {
+          background-color: rgb(245,230,245) !important;
+          transform: translateX(5px);
+        }
+        input[type="radio"]:checked + label.option-box,
+        input[type="checkbox"]:checked + label.option-box {
+          background-color: rgb(236,201,237) !important;
+          border-color: rgb(236,201,237);
+        }
+        input[type="radio"]:checked + label.option-box span:first-child,
+        input[type="checkbox"]:checked + label.option-box span:first-child {
+          background-color: rgb(236,201,237);
+          border-color: black;
+          color: black;
+        }
+      </style>
+    `;
     return questionHtml;
   }).join('');
 }
-
 const quizData =ref()
 
 // 提交答案的方法
