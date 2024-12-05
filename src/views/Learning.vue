@@ -257,7 +257,7 @@ var option = {
   ]
 };
 
-const selectedAction = ref(''); // 用于跟踪当前选中的动作
+// const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
   selectedAction.value = action; // 更新选中的动作
 }
@@ -330,13 +330,25 @@ const testData = ref({
 
 const que = ref('')
 const quizId = ref()
-// 点击节点时的处理函数，发送请求给后端
+
+// ... existing code ...
+
+// 修改初始化状态
+const selectedAction = ref('learn'); // 默认显示学习界面
+
+// 修改节点点击处理函数
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
   const userId = localStorage.getItem('userid');
 
   console.log('Clicked node ID:', chapterId);
   console.log('User ID:', userId);
+
+  // 如果不是叶子节点，直接返回
+  if (nodeData.children && nodeData.children.length > 0) {
+    console.log("这是根节点")
+    return;
+  }
 
   try {
     // 获取章节内容
@@ -356,13 +368,13 @@ const handleNodeClick = async (nodeData) => {
       const sectionResult = await sectionResponse.json();
       if (sectionResult && sectionResult.data && sectionResult.data.content) {
         sectionData.value = { content: sectionResult.data.content };
-        console.log(sectionData.value.content)
+        selectedAction.value = 'learn'; // 切换到学习界面
       } else {
         sectionData.value = { content: '无法加载内容' };
       }
     }
 
-    // 获取测验内容
+    // 同时预加载测验内容，但不显示
     const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
       method: 'POST',
       headers: {
@@ -374,18 +386,13 @@ const handleNodeClick = async (nodeData) => {
         chapterId: chapterId
       })
     });
+
     if (quizResponse.ok) {
       const quizResult = await quizResponse.json();
-      console.log(quizResult,'这是quizeResult')
-      quizId.value = quizResult.data.quiz_id
-      console.log(quizId.value)
-      que.value = quizResult.data.questions
+      quizId.value = quizResult.data.quiz_id;
+      que.value = quizResult.data.questions;
       if (quizResult && quizResult.data && quizResult.data.questions) {
-        //testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
         testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-        console.log(testData.value.questions)
-        
-
       } else {
         testData.value = { content: '无法加载测验内容' };
       }
@@ -397,6 +404,8 @@ const handleNodeClick = async (nodeData) => {
     testData.value = { content: '请求失败，请稍后重试' };
   }
 };
+
+
 // 响应式变量，用于存储用户答案
 const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
@@ -404,6 +413,7 @@ const showResults = ref(false);
 // 响应式变量，用于存储用户的得分
 const score = ref(0);
 
+ //渲染题目
  //渲染测验题目的函数
  function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
@@ -446,6 +456,8 @@ const score = ref(0);
     return questionHtml;
   }).join('');
 }
+
+
 const quizData =ref()
 
 // 提交答案的方法
