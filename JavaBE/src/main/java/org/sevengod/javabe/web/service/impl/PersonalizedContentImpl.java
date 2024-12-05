@@ -12,17 +12,29 @@ import org.sevengod.javabe.web.service.CourseTreeService;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.PersonalizedService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapper, PersonalizedContents> implements PersonalizedService {
+    private static final Logger log = LoggerFactory.getLogger(PersonalizedContentImpl.class);
+
     @Autowired
     private PersonalizedContentMapper personalizedContentsMapper;
     @Autowired
@@ -39,9 +51,14 @@ public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapp
                    .eq("is_active", true);
         return personalizedContentsMapper.selectOne(queryWrapper);
     }
+
     @Override
-    public PersonalizedContents generateContent(Long userId, Long chapterId) {
+    @Async("taskExecutor")
+    public CompletableFuture<PersonalizedContents> generateContent(Long userId, Long chapterId) {
         try {
+            log.info("开始异步生成个性化内容 - 用户ID: {}, 章节ID: {}, 线程: {}", 
+                     userId, chapterId, Thread.currentThread().getName());
+            
             // 参数验证
             if (userId == null || chapterId == null) {
                 throw new IllegalArgumentException("用户ID和章节ID不能为空");
@@ -50,7 +67,7 @@ public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapp
             // 检查是否已存在内容
             PersonalizedContents existingContent = getByUserAndChapter(userId, chapterId);
             if (existingContent != null && existingContent.getIsActive()) {
-                return existingContent;
+                return CompletableFuture.completedFuture(existingContent);
             }
 
             // 获取章节提示语
@@ -72,7 +89,7 @@ public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapp
                         APIKey
                 )
                 .collectList()
-                .block()  // 等待所有响应
+                .block(Duration.ofSeconds(30))  // 设置30秒超时
                 .stream()
                 .filter(response -> "workflow_finished".equals(response.getEvent()))
                 .findFirst()
@@ -96,16 +113,21 @@ public class PersonalizedContentImpl extends ServiceImpl<PersonalizedContentMapp
 
                 // 保存到数据库
                 personalizedContentsMapper.insert(newContent);
-                return newContent;
+                
+                log.info("完成个性化内容生成 - 用户ID: {}, 章节ID: {}, 线程: {}", 
+                         userId, chapterId, Thread.currentThread().getName());
+                return CompletableFuture.completedFuture(newContent);
 
             } catch (Exception e) {
-                log.error("调用Dify服务失败: ", e);
-                throw new RuntimeException("生成个性化内容失败: " + e.getMessage());
+                log.error("调用Dify服务失败 - 用户ID: {}, 章节ID: {}, 线程: {}, 错误: {}", 
+                         userId, chapterId, Thread.currentThread().getName(), e.getMessage());
+                return CompletableFuture.failedFuture(new RuntimeException("生成个性化内容失败: " + e.getMessage()));
             }
 
         } catch (Exception e) {
-            log.error("生成个性化内容失败: ", e);
-            throw new RuntimeException("生成个性化内容失败: " + e.getMessage());
+            log.error("生成个性化内容失败 - 用户ID: {}, 章节ID: {}, 线程: {}, 错误: {}", 
+                     userId, chapterId, Thread.currentThread().getName(), e.getMessage());
+            return CompletableFuture.failedFuture(new RuntimeException("生成个性化内容失败: " + e.getMessage()));
         }
     }
 }

@@ -14,9 +14,12 @@ import org.sevengod.javabe.entity.resp.StreamResponse;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.PersonalizedService;
 import org.sevengod.javabe.web.service.QuizzesService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.*;
 import org.sevengod.javabe.service.UserRequestLockService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
@@ -117,10 +120,13 @@ public class DifyController {
                 return AjaxResult.error("用户ID和章节ID不能为空");
             }
 
-            PersonalizedContents content = personalizedService.generateContent(userId, chapterId);
+            CompletableFuture<PersonalizedContents> future = personalizedService.generateContent(userId, chapterId);
+            PersonalizedContents content = future.get(30, TimeUnit.SECONDS);
             return AjaxResult.success("生成内容成功", content);
             
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
+            return AjaxResult.error("生成内容超时，请稍后重试");
+        } catch (InterruptedException | ExecutionException e) {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
     }

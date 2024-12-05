@@ -16,13 +16,12 @@ public class ThreadPoolConfig {
     public Executor difyAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         // 核心线程数
-        executor.setCorePoolSize(10);
+        executor.setCorePoolSize(12);
         // 最大线程数
-        executor.setMaxPoolSize(20);
+        executor.setMaxPoolSize(16);
         // 队列容量
         executor.setQueueCapacity(100);
         // 线程名称前缀
-        executor.setThreadNamePrefix("dify-async-");
         // 当线程池达到最大大小时，新任务的处理策略
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         // 等待所有任务完成后再关闭线程池
