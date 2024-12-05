@@ -84,22 +84,24 @@
           <div v-if="selectedAction === 'learn'" class="content-section learn-section">
             <div class="section-content">
               <!-- 显示章节内容 -->
-              <!-- <div v-html="sectionData.content || '请选择一个章节开始学习'"></div> -->
               <div v-html="markdownToHtml"></div>
             </div>
           </div>
-
-          <div v-if="selectedAction === 'test'&& testData.content" class="content-section test-section">
+          <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
-              <!-- 显示测验内容 -->
-              <!-- <div v-html="testData.content || '请选择一个章节开始测验'"></div> -->
-              <!-- 显示测验内容 -->
-              <div v-if="testData.content" v-html="testData.content"></div>
-              <!-- <div v-if="testData.content" v-html=strhtml></div> -->
-              <div v-else>请选择一个章节开始测验</div>
+              <!-- 添加加载状态显示 -->
+              <div v-if="isQuizLoading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>测验内容加载中...</p>
+              </div>
+              <!-- 测验内容 -->
+              <div v-else>
+                <div v-if="testData.content" v-html="testData.content"></div>
+                <div v-else>请选择一个章节开始测验</div>
+              </div>
             </div>
             <!-- 提交按钮 -->
-            <button @click="submitAnswers">提交</button>
+            <button v-if="!isQuizLoading&&testData.content" @click="submitAnswers">提交</button>
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
@@ -115,8 +117,9 @@
                 </div>
               </div>
             </div>
-
+            
           </div>
+          
         </div>
       </div>
     </div>
@@ -154,6 +157,9 @@ import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
 const router = useRouter();
+
+// 添加加载状态
+const isQuizLoading = ref(false);
 
 // 添加跳转方法
 const goToReport = () => {
@@ -331,12 +337,10 @@ const testData = ref({
 const que = ref('')
 const quizId = ref()
 
-// ... existing code ...
-
 // 修改初始化状态
 const selectedAction = ref('learn'); // 默认显示学习界面
 
-// 修改节点点击处理函数
+// 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
   const userId = localStorage.getItem('userid');
@@ -349,7 +353,6 @@ const handleNodeClick = async (nodeData) => {
     console.log("这是根节点")
     return;
   }
-
   try {
     // 获取章节内容
     const sectionResponse = await fetch(`http://localhost:8008/api/test/genContent`, {
@@ -363,7 +366,7 @@ const handleNodeClick = async (nodeData) => {
         chapterId: chapterId
       })
     });
-
+    // ... handle section response ...
     if (sectionResponse.ok) {
       const sectionResult = await sectionResponse.json();
       if (sectionResult && sectionResult.data && sectionResult.data.content) {
@@ -373,33 +376,40 @@ const handleNodeClick = async (nodeData) => {
         sectionData.value = { content: '无法加载内容' };
       }
     }
-
-    // 同时预加载测验内容，但不显示
-    const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        userId: userId,
-        chapterId: chapterId
-      })
-    });
-
-    if (quizResponse.ok) {
-      const quizResult = await quizResponse.json();
-      quizId.value = quizResult.data.quiz_id;
-      que.value = quizResult.data.questions;
-      if (quizResult && quizResult.data && quizResult.data.questions) {
-        testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-      } else {
-        testData.value = { content: '无法加载测验内容' };
+    // 设置测验加载状态
+    isQuizLoading.value = true;
+    try {
+      const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          userId: userId,
+          chapterId: chapterId
+        })
+      });
+      if (quizResponse.ok) {
+        const quizResult = await quizResponse.json();
+        quizId.value = quizResult.data.quiz_id;
+        que.value = quizResult.data.questions;
+        if (quizResult && quizResult.data && quizResult.data.questions) {
+          testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
+        } else {
+          testData.value = { content: '无法加载测验内容' };
+        }
       }
+    } catch (error) {
+      console.error('Error loading quiz:', error);
+      testData.value = { content: '测验加载失败，请重试' };
+    } finally {
+      // 无论成功失败都关闭加载状态
+      isQuizLoading.value = false;
     }
 
   } catch (error) {
-    console.error('Error fetching content or quiz data:', error);
+    console.error('Error:', error);
     sectionData.value = { content: '请求失败，请稍后重试' };
     testData.value = { content: '请求失败，请稍后重试' };
   }
@@ -548,10 +558,6 @@ async function submitQuizScore(quizData) {
     console.error('Error:', error);
   }
 }
-
-
-
-
 
 </script>
 
@@ -1119,5 +1125,34 @@ button:hover {
 
 .report-btn i {
   font-size: 16px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid rgb(236, 198, 236);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
 }
 </style>
