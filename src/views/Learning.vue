@@ -500,14 +500,14 @@ function submitAnswers() {
   quizData.value = {
     "quizId": quizId.value,
     "userId": Number(localStorage.getItem('userid')),
-    "questions": JSON.parse(JSON.stringify(que))._value,
-    "answers": ['a','b','c','d','a','b','c','d','a','b'],
+    "questions": JSON.stringify(que.value),
+    "answers": JSON.stringify(['a','b','c','d','a','b','c','d','a','b']),
     "score": score
   }
   console.log(quizData.value,'这是quizData')
   //将数据返回给后端
   if (que.value !== null && que.value !== undefined) {
-    submitQuizScore(quizData);
+    submitQuizScore(quizData.value);  // Pass .value instead of the ref
   } else {
     console.error('Test data or questions are undefined');
   }
