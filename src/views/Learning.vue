@@ -415,7 +415,6 @@ const handleNodeClick = async (nodeData) => {
 };
 // 响应式变量，用于存储用户答案
 // const userAnswers = ref([]);
-const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
 
@@ -423,13 +422,12 @@ const showResults = ref(false);
 const score = ref(0);
 
  //渲染测验题目的函数
-function renderQuizQuestions(questions) {
-  
+ function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
-      const inputType = index < 7 ? 'radio' : 'checkbox'; // 前七题为单选，后三题为多选
+      const inputType = question.type === 'single' ? 'radio' : 'checkbox';
       questionHtml += `<div class="option">
         <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}">
         <label for="question-${index}-${option}">${option}:${text}</label>
@@ -441,51 +439,58 @@ function renderQuizQuestions(questions) {
 }
 
 const quizData =ref()
+const answers = ref([]);
 
 // 提交答案的方法
 function submitAnswers() {
-  // 收集用户答案并计算得分
-  let score = 0; // 初始化得分
-  console.log(JSON.parse(JSON.stringify(que))._value,'这是计算得分的')
-  let c = JSON.parse(JSON.stringify(que))._value
+  let totalScore = 0;
+  const userAnswers = [];
+  let c = JSON.parse(JSON.stringify(que))._value;
+
   if (c) {
     c.forEach((question, index) => {
-      const inputType = index <= 7 ? 'radio' : 'checkbox';
       const questionId = `question-${index}`;
-      const selectedOptions = Array.from(document.querySelectorAll(`input[name="${questionId}"]:checked`));
+      const selectedInputs = document.querySelectorAll(`input[name="${questionId}"]:checked`);
       
-      // 检查是否有选中的选项
-      if (selectedOptions.length > 0) {
-        const userAnswer = inputType === 'radio' ? selectedOptions[0].value : selectedOptions.map(input => input.value);
-        answers.value.push(userAnswer.value);
-        
-        // 比较用户答案和正确答案
-        if (inputType === 'radio') {
-          // 对于单选题
+      if (selectedInputs.length > 0) {
+        // 根据题目类型处理答案
+        if (question.type === 'single') {
+          // 单选题：只取第一个选中的值
+          const userAnswer = selectedInputs[0].value;
+          userAnswers.push(userAnswer);
+          
+          // 判断答案是否正确
           if (userAnswer === question.answer) {
-            score += 10; // 如果答案正确，增加得分
+            totalScore += 10;
           }
-        } else {
-          // 对于多选题
-          // 假设正确答案是一个数组
-          const correctAnswers = question.answer; // 正确答案应该是一个数组
-          if (userAnswer.length === correctAnswers.length && userAnswer.every(answer => correctAnswers.includes(answer))) {
-            score += 10; // 如果所有选项都正确，增加得分
+        } else if (question.type === 'multiple') {
+          // 多选题：收集所有选中的值
+          const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
+          userAnswers.push(userAnswer);
+          
+          // 判断多选题答案是否完全正确
+          const correctAnswer = Array.isArray(question.answer) ? 
+            question.answer.sort() : 
+            [question.answer].sort();
+            
+          if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
+            totalScore += 10;
           }
         }
       } else {
-        // 如果没有选中任何选项，可以选择不增加得分
-        answers.value.push(inputType === 'radio' ? null : []);
+        // 如果没有选择答案，推入null或空数组
+        userAnswers.push(question.type === 'single' ? null : []);
       }
     });
-  } else {
-    console.error('Test data or questions are undefined');
   }
+
+  // 更新答案数组和分数
+  answers.value = userAnswers;
+  score.value = totalScore;
   
-  // 更新得分
-  updateScore(score);
-  // 可能还需要更新其他状态，比如显示结果
-  updateResultsDisplay(answers);
+  // 显示结果
+  showResults.value = true;
+
   // const userId = localStorage.getItem('userid');
   //修改quizData的内容
   // quizData.value = {
@@ -511,20 +516,19 @@ function submitAnswers() {
   } else {
     console.error('Test data or questions are undefined');
   }
-}
 
-// 假设这是更新得分的函数
-function updateScore(newScore) {
-  score.value = newScore;
-}
+// // 假设这是更新得分的函数
+// function updateScore(newScore) {
+//   score.value = newScore;
+// }
 
-// 假设这是更新结果显示的函数
-function updateResultsDisplay(answers) {
-  // 这里可以设置显示结果的逻辑，比如：
-  showResults.value = true;
-  // 可能还需要将answers赋值给某个响应式变量
-  answers.value = answers
-}
+// // 假设这是更新结果显示的函数
+// function updateResultsDisplay(answers) {
+//   // 这里可以设置显示结果的逻辑，比如：
+//   showResults.value = true;
+//   // 可能还需要将answers赋值给某个响应式变量
+//   answers.value = answers
+// }
 
 async function submitQuizScore(quizData) {
   try {
@@ -546,6 +550,7 @@ async function submitQuizScore(quizData) {
   } catch (error) {
     console.error('Error:', error);
   }
+}
 }
 
 
