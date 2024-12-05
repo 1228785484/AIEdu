@@ -180,8 +180,8 @@ public class CourseController {
         }
     }
 
-    @GetMapping("/completion-status")
-    @Operation(summary = "获取用户完成状态", description = "检查用户是否完成了特定章节的测验和个性化内容(章节完成情况)")
+    @GetMapping("/chapter-completion")
+    @Operation(summary = "获取用户一个章节的完成状态", description = "检查用户是否完成了特定章节的测验和个性化内容(章节完成情况)")
     @Parameters({
         @Parameter(name = "userId", description = "用户ID", required = true,
                 schema = @Schema(type = "integer", format = "int64", example = "1")),
