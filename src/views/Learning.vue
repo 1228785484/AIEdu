@@ -488,14 +488,21 @@ function submitAnswers() {
   updateResultsDisplay(answers);
   // const userId = localStorage.getItem('userid');
   //修改quizData的内容
+  // quizData.value = {
+  //   'quizId':quizId.value,
+  //   'userId':Number(localStorage.getItem('userid')),
+  //   'questions':JSON.parse(JSON.stringify(que))._value,
+  //   // 'questions':'[' + JSON.parse(JSON.stringify(que))._value.map(item => `'${item}'`).join(',') + ']',
+  //   'answers':['a','b','c','d','a','b','c','d','a','b'],
+  //   // 'answers': '[' + ['a','b','c','d','a','b','c','d','a','b'].map(item => `'${item}'`).join(',') + ']',
+  //   'score':score
+  // }
   quizData.value = {
-    'quizId':quizId.value,
-    'useId':Number(localStorage.getItem('userid')),
-    'questions':JSON.parse(JSON.stringify(que))._value,
-    // 'questions':'[' + JSON.parse(JSON.stringify(que))._value.map(item => `'${item}'`).join(',') + ']',
-    'answers':['a','b','c','d','a','b','c','d','a','b'],
-    // 'answers': '[' + ['a','b','c','d','a','b','c','d','a','b'].map(item => `'${item}'`).join(',') + ']',
-    'score':score.toString()
+    "quizId": quizId.value,
+    "userId": Number(localStorage.getItem('userid')),
+    "questions": JSON.parse(JSON.stringify(que))._value,
+    "answers": ['a','b','c','d','a','b','c','d','a','b'],
+    "score": score
   }
   console.log(quizData.value,'这是quizData')
   //将数据返回给后端
