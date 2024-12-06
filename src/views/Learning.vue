@@ -84,38 +84,24 @@
           <div v-if="selectedAction === 'learn'" class="content-section learn-section">
             <div class="section-content">
               <!-- 显示章节内容 -->
-              <!-- <div v-html="sectionData.content || '请选择一个章节开始学习'"></div> -->
               <div v-html="markdownToHtml"></div>
             </div>
           </div>
-
-          <div v-if="selectedAction === 'test'&& testData.content" class="content-section test-section">
+          <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
-              <!-- 显示测验内容 -->
-              <!-- <div v-html="testData.content || '请选择一个章节开始测验'"></div> -->
-              <!-- 显示测验内容 -->
-              <div v-if="testData.content" v-html="testData.content"></div>
-              <!-- <div v-if="testData.content" v-html=strhtml></div> -->
-              <div v-else>请选择一个章节开始测验</div>
+              <!-- 添加加载状态显示 -->
+              <div v-if="isQuizLoading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>测验内容加载中...</p>
+              </div>
+              <!-- 测验内容 -->
+              <div v-else>
+                <div v-if="testData.content" v-html="testData.content"></div>
+                <div v-else>请选择一个章节开始测验</div>
+              </div>
             </div>
             <!-- 提交按钮 -->
-            <button @click="submitAnswers">提交</button>
-            <!-- 显示得分和解析 -->
-            <!-- <div v-if="showResults" class="results-section">
-              <div class="score">得分：{{ score }}分</div>
-              <div class="answers">
-                <div v-for="(question, index) in testData.questions" :key="index" class="question-result">
-                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
-                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
-                    用户答案：{{ userAnswers[index] || '未作答' }}
-                  </div>
-                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
-                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
-                    解析：{{ question.explanation }}
-                  </div>
-                </div>
-              </div>
-            </div> -->
+            <button v-if="!isQuizLoading&&testData.content" @click="submitAnswers">提交</button>
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
@@ -131,8 +117,9 @@
                 </div>
               </div>
             </div>
-
+            
           </div>
+          
         </div>
       </div>
     </div>
@@ -170,6 +157,9 @@ import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
 const router = useRouter();
+
+// 添加加载状态
+const isQuizLoading = ref(false);
 
 // 添加跳转方法
 const goToReport = () => {
@@ -273,7 +263,7 @@ var option = {
   ]
 };
 
-const selectedAction = ref(''); // 用于跟踪当前选中的动作
+// const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
   selectedAction.value = action; // 更新选中的动作
 }
@@ -346,7 +336,11 @@ const testData = ref({
 
 const que = ref('')
 const quizId = ref()
-// 点击节点时的处理函数，发送请求给后端
+
+// 修改初始化状态
+const selectedAction = ref('learn'); // 默认显示学习界面
+
+// 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
   const userId = localStorage.getItem('userid');
@@ -354,6 +348,11 @@ const handleNodeClick = async (nodeData) => {
   console.log('Clicked node ID:', chapterId);
   console.log('User ID:', userId);
 
+  // 如果不是叶子节点，直接返回
+  if (nodeData.children && nodeData.children.length > 0) {
+    console.log("这是根节点")
+    return;
+  }
   try {
     // 获取章节内容
     const sectionResponse = await fetch(`http://localhost:8008/api/test/genContent`, {
@@ -367,164 +366,176 @@ const handleNodeClick = async (nodeData) => {
         chapterId: chapterId
       })
     });
-
+    // ... handle section response ...
     if (sectionResponse.ok) {
       const sectionResult = await sectionResponse.json();
       if (sectionResult && sectionResult.data && sectionResult.data.content) {
         sectionData.value = { content: sectionResult.data.content };
-        console.log(sectionData.value.content)
+        selectedAction.value = 'learn'; // 切换到学习界面
       } else {
         sectionData.value = { content: '无法加载内容' };
       }
     }
-
-    // 获取测验内容
-    const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        userId: userId,
-        chapterId: chapterId
-      })
-    });
-    if (quizResponse.ok) {
-      const quizResult = await quizResponse.json();
-      console.log(quizResult,'这是quizeResult')
-      quizId.value = quizResult.data.quiz_id
-      console.log(quizId.value)
-      que.value = quizResult.data.questions
-      if (quizResult && quizResult.data && quizResult.data.questions) {
-        //testData.value = { content: JSON.stringify(quizResult.data.questions) }; // 这里仅为演示，实际可能需要处理数据渲染
-        testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-        console.log(testData.value.questions)
-        
-
-      } else {
-        testData.value = { content: '无法加载测验内容' };
+    // 设置测验加载状态
+    isQuizLoading.value = true;
+    try {
+      const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          userId: userId,
+          chapterId: chapterId
+        })
+      });
+      if (quizResponse.ok) {
+        const quizResult = await quizResponse.json();
+        quizId.value = quizResult.data.quiz_id;
+        que.value = quizResult.data.questions;
+        if (quizResult && quizResult.data && quizResult.data.questions) {
+          testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
+        } else {
+          testData.value = { content: '无法加载测验内容' };
+        }
       }
+    } catch (error) {
+      console.error('Error loading quiz:', error);
+      testData.value = { content: '测验加载失败，请重试' };
+    } finally {
+      // 无论成功失败都关闭加载状态
+      isQuizLoading.value = false;
     }
 
   } catch (error) {
-    console.error('Error fetching content or quiz data:', error);
+    console.error('Error:', error);
     sectionData.value = { content: '请求失败，请稍后重试' };
     testData.value = { content: '请求失败，请稍后重试' };
   }
 };
+
+
 // 响应式变量，用于存储用户答案
-// const userAnswers = ref([]);
 const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
-
 // 响应式变量，用于存储用户的得分
 const score = ref(0);
 
+ //渲染题目
  //渲染测验题目的函数
-function renderQuizQuestions(questions) {
-  
+ function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
-      const inputType = index < 7 ? 'radio' : 'checkbox'; // 前七题为单选，后三题为多选
+      const inputType = question.type === 'single' ? 'radio' : 'checkbox';
       questionHtml += `<div class="option">
-        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}">
-        <label for="question-${index}-${option}">${option}:${text}</label>
+        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}" style="display:none">
+        <label for="question-${index}-${option}" class="option-box" style="display:flex; align-items:center; border:1px solid rgb(236,201,237); padding:10px; margin:5px 0; cursor:pointer; border-radius:4px; background-color:white; transition: all 0.3s ease">
+          <span style="width:30px; height:30px; border:2px solid rgb(236,201,237); border-radius:50%; display:flex; align-items:center; justify-content:center; background-color:white">${option}</span>
+          <span style="flex:1; text-align:center; margin-left:10px">${text}</span>
+        </label>
       </div>`;
     }
     questionHtml += `</div>`;
+    // 添加横线，除了最后一题
+    if (index < questions.length - 1) {
+      questionHtml += `<div style="height: 1px; background-color: black; margin: 30px 0;"></div>`;
+    }
+    questionHtml += `
+      <style>
+        .option-box:hover {
+          background-color: rgb(245,230,245) !important;
+          transform: translateX(5px);
+        }
+        input[type="radio"]:checked + label.option-box,
+        input[type="checkbox"]:checked + label.option-box {
+          background-color: rgb(236,201,237) !important;
+          border-color: rgb(236,201,237);
+        }
+        input[type="radio"]:checked + label.option-box span:first-child,
+        input[type="checkbox"]:checked + label.option-box span:first-child {
+          background-color: rgb(236,201,237);
+          border-color: black;
+          color: black;
+        }
+      </style>
+    `;
     return questionHtml;
   }).join('');
 }
+
 
 const quizData =ref()
 
 // 提交答案的方法
 function submitAnswers() {
-  // 收集用户答案并计算得分
-  let score = 0; // 初始化得分
-  console.log(JSON.parse(JSON.stringify(que))._value,'这是计算得分的')
-  let c = JSON.parse(JSON.stringify(que))._value
+  let totalScore = 0;
+  const userAnswers = [];
+  let c = JSON.parse(JSON.stringify(que))._value;
+
   if (c) {
     c.forEach((question, index) => {
-      const inputType = index <= 7 ? 'radio' : 'checkbox';
       const questionId = `question-${index}`;
-      const selectedOptions = Array.from(document.querySelectorAll(`input[name="${questionId}"]:checked`));
+      const selectedInputs = document.querySelectorAll(`input[name="${questionId}"]:checked`);
       
-      // 检查是否有选中的选项
-      if (selectedOptions.length > 0) {
-        const userAnswer = inputType === 'radio' ? selectedOptions[0].value : selectedOptions.map(input => input.value);
-        answers.value.push(userAnswer.value);
-        
-        // 比较用户答案和正确答案
-        if (inputType === 'radio') {
-          // 对于单选题
+      if (selectedInputs.length > 0) {
+        // 根据题目类型处理答案
+        if (question.type === 'single') {
+          // 单选题：只取第一个选中的值
+          const userAnswer = selectedInputs[0].value;
+          userAnswers.push(userAnswer);
+          
+          // 判断答案是否正确
           if (userAnswer === question.answer) {
-            score += 10; // 如果答案正确，增加得分
+            totalScore += 10;
           }
-        } else {
-          // 对于多选题
-          // 假设正确答案是一个数组
-          const correctAnswers = question.answer; // 正确答案应该是一个数组
-          if (userAnswer.length === correctAnswers.length && userAnswer.every(answer => correctAnswers.includes(answer))) {
-            score += 10; // 如果所有选项都正确，增加得分
+        } else if (question.type === 'multiple') {
+          // 多选题：收集所有选中的值
+          const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
+          userAnswers.push(userAnswer);
+          
+          // 判断多选题答案是否完全正确
+          const correctAnswer = Array.isArray(question.answer) ? 
+            question.answer.sort() : 
+            [question.answer].sort();
+            
+          if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
+            totalScore += 10;
           }
         }
       } else {
-        // 如果没有选中任何选项，可以选择不增加得分
-        answers.value.push(inputType === 'radio' ? null : []);
+        // 如果没有选择答案，推入null或空数组
+        userAnswers.push(question.type === 'single' ? null : []);
       }
     });
-  } else {
-    console.error('Test data or questions are undefined');
   }
+
+  // 更新答案数组和分数
+  answers.value = userAnswers;
+  score.value = totalScore;
   
-  // 更新得分
-  updateScore(score);
-  // 可能还需要更新其他状态，比如显示结果
-  updateResultsDisplay(answers);
-  // const userId = localStorage.getItem('userid');
-  //修改quizData的内容
-  // quizData.value = {
-  //   'quizId':quizId.value,
-  //   'userId':Number(localStorage.getItem('userid')),
-  //   'questions':JSON.parse(JSON.stringify(que))._value,
-  //   // 'questions':'[' + JSON.parse(JSON.stringify(que))._value.map(item => `'${item}'`).join(',') + ']',
-  //   'answers':['a','b','c','d','a','b','c','d','a','b'],
-  //   // 'answers': '[' + ['a','b','c','d','a','b','c','d','a','b'].map(item => `'${item}'`).join(',') + ']',
-  //   'score':score
-  // }
-  quizData.value = {
-    "quizId": quizId.value,
-    "userId": Number(localStorage.getItem('userid')),
-    "questions": JSON.stringify(que.value),
-    "answers": JSON.stringify(['a','b','c','d','a','b','c','d','a','b']),
-    "score": score
-  }
-  console.log(quizData.value,'这是quizData')
-  //将数据返回给后端
-  if (que.value !== null && que.value !== undefined) {
-    submitQuizScore(quizData.value);  // Pass .value instead of the ref
-  } else {
-    console.error('Test data or questions are undefined');
-  }
-}
-
-// 假设这是更新得分的函数
-function updateScore(newScore) {
-  score.value = newScore;
-}
-
-// 假设这是更新结果显示的函数
-function updateResultsDisplay(answers) {
-  // 这里可以设置显示结果的逻辑，比如：
+  // 显示结果
   showResults.value = true;
-  // 可能还需要将answers赋值给某个响应式变量
-  answers.value = answers
+
+  // 准备提交数据
+  quizData.value = {
+    quizId: quizId.value,
+    userId: Number(localStorage.getItem('userid')),
+    questions: JSON.stringify(que.value),
+    answers: JSON.stringify(userAnswers),
+    score: totalScore
+  };
+  console.log(quizData.value)
+  // 提交到后端
+  if (que.value) {
+    submitQuizScore(quizData.value);
+  }
 }
+
+
 
 async function submitQuizScore(quizData) {
   try {
@@ -547,10 +558,6 @@ async function submitQuizScore(quizData) {
     console.error('Error:', error);
   }
 }
-
-
-
-
 
 </script>
 
@@ -1118,5 +1125,34 @@ button:hover {
 
 .report-btn i {
   font-size: 16px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid rgb(236, 198, 236);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
 }
 </style>
