@@ -8,6 +8,7 @@ import AiLearning from '../views/AiLearning.vue';
 import PersonalInfo from '../views/PersonalInfo.vue';
 import Learning from '../views/Learning.vue';
 import ReportGeneration from '../views/ReportGeneration.vue';
+import WebsocketTest from '../views/WebsocketTest.vue';
 
 // 配置路由
 const routes = [
@@ -45,6 +46,11 @@ const routes = [
     path: '/report-generation', // 报告生成页面路径
     name: 'ReportGeneration',   // 路由名称
     component: ReportGeneration // 映射 ReportGeneration 组件
+  },
+  {
+    path: '/websocket-test',   // WebSocket测试页面路径
+    name: 'WebsocketTest',     // 路由名称
+    component: WebsocketTest   // 映射 WebsocketTest 组件
   }
 ];
 
