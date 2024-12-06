@@ -101,7 +101,10 @@
               </div>
             </div>
             <!-- 提交按钮 -->
-            <button v-if="!isQuizLoading&&testData.content" @click="submitAnswers">提交</button>
+            <button v-if="timeLeft > 0 && !isQuizLoading" @click="submitAnswers">提交</button>
+            <div v-if="timeLeft <= 0" class = "time-message">时间结束，禁止答题</div>
+            <!--倒计时-->
+            <div v-if="!isQuizLoading" class = "countdown">剩余时间：{{ countdownDisplay }}</div>
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
@@ -152,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted ,computed} from 'vue';
+import { ref, onMounted ,onUnmounted, computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
@@ -396,6 +399,7 @@ const handleNodeClick = async (nodeData) => {
         que.value = quizResult.data.questions;
         if (quizResult && quizResult.data && quizResult.data.questions) {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
+          startCountdown();
         } else {
           testData.value = { content: '无法加载测验内容' };
         }
@@ -467,6 +471,30 @@ const score = ref(0);
   }).join('');
 }
 
+const totalMinutes = 10; // 总倒计时时间（分钟）
+const timeLeft = ref(totalMinutes * 60); // 初始化倒计时时间（秒）
+let timerId = null;
+
+// 计算倒计时显示
+const countdownDisplay = computed(() => {
+  const minutes = Math.floor(timeLeft.value / 60);
+  const seconds = timeLeft.value % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+});
+
+// 开始倒计时
+const startCountdown = () => {
+  if (timerId !== null) {
+    clearInterval(timerId); // 如果已有定时器在运行，先清除
+  }
+  timerId = setInterval(() => {
+    if (timeLeft.value > 0) {
+      timeLeft.value--; // 每秒减少1
+    } else {
+      clearInterval(timerId); // 时间到，清除定时器
+    }
+  }, 1000);
+};
 
 const quizData =ref()
 
@@ -559,6 +587,12 @@ async function submitQuizScore(quizData) {
   }
 }
 
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (timerId) {
+    clearInterval(timerId);
+  }
+});
 </script>
 
 
@@ -614,6 +648,24 @@ async function submitQuizScore(quizData) {
     background: linear-gradient(to right, rgb(236, 198, 236), transparent);
     margin-top: 8px;
     border-radius: 2px;
+}
+
+/*倒计时样式*/
+.countdown {
+  background-color:rgb(79, 132, 230);
+  color:#f1f1f1;
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 2px solid rgb(79, 132, 230);
+  padding: 5px; 
+  border-radius: 5px; 
+}
+
+.time-message {
+  color:rgb(79, 132, 230);
+  font-weight: bold;
+  text-align: center;
 }
 
 /* 课程树样式 */
