@@ -192,4 +192,65 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
         
         return result;
     }
+
+    @Override
+    public Map<String, Object> getChapterQuizScores(Long chapterId, Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 1. 获取章节信息
+            Chapter chapter = chapterMapper.selectById(chapterId);
+            if (chapter == null) {
+                result.put("success", false);
+                result.put("message", "章节不存在");
+                return result;
+            }
+
+            // 2. 获取章节对应的测验
+            LambdaQueryWrapper<Quizzes> quizWrapper = new LambdaQueryWrapper<>();
+            quizWrapper.eq(Quizzes::getChapterId, chapterId);
+            Quizzes quiz = this.getOne(quizWrapper);
+
+            if (quiz == null) {
+                result.put("success", true);
+                result.put("chapterId", chapterId);
+                result.put("chapterTitle", chapter.getTitle());
+                result.put("hasQuiz", false);
+                return result;
+            }
+
+            // 3. 获取用户的最新提交记录
+            LambdaQueryWrapper<QuizSubmission> submissionWrapper = new LambdaQueryWrapper<>();
+            submissionWrapper.eq(QuizSubmission::getQuizId, quiz.getQuizId())
+                           .eq(QuizSubmission::getUserId, userId)
+                           .orderByDesc(QuizSubmission::getSubmittedAt);
+            
+            QuizSubmission latestSubmission = quizSubmissionMapper.selectOne(submissionWrapper);
+
+            // 4. 构建返回结果
+            result.put("success", true);
+            result.put("chapterId", chapterId);
+            result.put("chapterTitle", chapter.getTitle());
+            result.put("hasQuiz", true);
+            result.put("quizId", quiz.getQuizId());
+            result.put("quizTitle", quiz.getTitle());
+            
+            if (latestSubmission != null) {
+                result.put("score", latestSubmission.getScore());
+                result.put("submissionTime", latestSubmission.getSubmittedAt());
+                result.put("completed", true);
+            } else {
+                result.put("score", BigDecimal.ZERO);
+                result.put("submissionTime", null);
+                result.put("completed", false);
+            }
+            
+        } catch (Exception e) {
+            log.error("获取章节测验分数失败", e);
+            result.put("success", false);
+            result.put("message", "获取章节测验分数失败：" + e.getMessage());
+        }
+        
+        return result;
+    }
+
 }

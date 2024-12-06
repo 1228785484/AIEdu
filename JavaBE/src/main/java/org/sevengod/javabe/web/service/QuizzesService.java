@@ -15,5 +15,6 @@ public interface QuizzesService extends IService<Quizzes> {
     Map<String, Object> submitAnswerAndScore(Long quizId, Long userId, String questions, String answers, BigDecimal score);
     // 获取用户在指定单元的所有章节测验分数
     Map<String, Object> getUnitQuizScores(Long unitId, Long userId);
+    Map<String, Object> getChapterQuizScores(Long chapterId, Long userId);
 
 }

@@ -73,4 +73,28 @@ public class QuizController {
             return AjaxResult.error("获取失败：" + e.getMessage());
         }
     }
+
+    @PostMapping("/getChapterQuizScores")
+    @Operation(summary = "获取章节测验分数",
+            description = "获取用户在指定章节的测验分数")
+    public AjaxResult getChapterQuizScores(
+            @Parameter(name = "request", description = "获取单元测验分数请求体",
+                    required = true,
+                    schema = @Schema(example = "{\"chapterId\": 123, \"userId\": 456}"))
+            @RequestBody Map<String, Object> request) {
+        try {
+            Long chapterId = Long.parseLong(request.get("chapterId").toString());
+            Long userId = Long.parseLong(request.get("userId").toString());
+
+            if (chapterId == null || userId == null) {
+                return AjaxResult.error("章节ID和用户ID不能为空");
+            }
+
+            Map<String, Object> result = quizzesService.getChapterQuizScores(chapterId, userId);
+            return AjaxResult.success("获取成功", result);
+
+        } catch (Exception e) {
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
 }
