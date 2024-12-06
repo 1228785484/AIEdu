@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket学习时长测试</title>
+    <meta charset="UTF-8">
+    <style>
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .control-panel { margin-bottom: 20px; }
+        .log-panel { 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            height: 300px; 
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+        button { 
+            padding: 8px 15px; 
+            margin: 5px;
+            cursor: pointer;
+        }
+        input {
+            padding: 5px;
+            margin: 5px;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>WebSocket学习时长测试</h2>
+        
+        <div class="control-panel">
+            <div>
+                <label>用户ID：</label>
+                <input type="number" id="userId" value="1">
+                <label>课程ID：</label>
+                <input type="number" id="courseId" value="1">
+            </div>
+            <div>
+                <button onclick="connect()">连接</button>
+                <button onclick="disconnect()">断开</button>
+                <button onclick="sendHeartbeat()">发送心跳</button>
+                <button onclick="clearLog()">清空日志</button>
+            </div>
+        </div>
+
+        <div class="log-panel" id="logPanel"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let heartbeatInterval = null;
+
+        function log(message) {
+            const logPanel = document.getElementById('logPanel');
+            const time = new Date().toLocaleTimeString();
+            logPanel.innerHTML += `<div>[${time}] ${message}</div>`;
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logPanel').innerHTML = '';
+        }
+
+        async function connect() {
+            if (ws) {
+                log('已经存在连接，请先断开');
+                return;
+            }
+
+            const userId = document.getElementById('userId').value;
+            const courseId = document.getElementById('courseId').value;
+
+            try {
+                // 直接建立WebSocket连接到Spring Boot服务器
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//localhost:8008/study-time`;
+                
+                // 添加查询参数
+                const url = new URL(wsUrl);
+                url.searchParams.append('userId', userId);
+                url.searchParams.append('courseId', courseId);
+                
+                log(`正在连接到: ${url.toString()}`);
+                ws = new WebSocket(url.toString());
+
+                ws.onopen = () => {
+                    log('连接成功');
+                    // 自动开始发送心跳
+                    startHeartbeat();
+                };
+
+                ws.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    log(`收到消息: ${JSON.stringify(message)}`);
+                };
+
+                ws.onclose = () => {
+                    log('连接已关闭');
+                    stopHeartbeat();
+                    ws = null;
+                };
+
+                ws.onerror = (error) => {
+                    log(`连接错误: ${error.message || '未知错误'}`);
+                };
+
+            } catch (error) {
+                log('连接失败: ' + error.message);
+                ws = null;
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                stopHeartbeat();
+                ws = null;
+                log('已断开连接');
+            } else {
+                log('没有活动的连接');
+            }
+        }
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatInterval = setInterval(() => {
+                sendHeartbeat();
+            }, 30000); // 每30秒发送一次心跳
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+        }
+
+        function sendHeartbeat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const heartbeat = {
+                    type: 'heartbeat'
+                };
+                ws.send(JSON.stringify(heartbeat));
+                log('发送心跳');
+            } else {
+                log('连接未建立，无法发送心跳');
+            }
+        }
+    </script>
+</body>
+</html>
