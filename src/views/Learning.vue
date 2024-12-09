@@ -190,8 +190,8 @@ const markdownToHtml = computed(() =>
 );
 });
 
-var data1 = 12;
-var data2 = 20;
+var data1 = 0;
+var data2 = 0;
 var data3 = 0;
 var data4 = 0;
 var data5 = 3;
@@ -204,10 +204,10 @@ let note = ref({
 });
 
 //另一种进度图
-var progressValue = 60;
-var option = {
+var progressValue = ref(0);
+var option = ref({
   title: {
-    text: progressValue + '%',
+    text: progressValue.value + '%',
     textStyle: {
       color: '#28BCFE',
       fontSize: '25px'
@@ -243,7 +243,7 @@ var option = {
     {
       type: 'bar',
       z: 2,
-      data: [progressValue * 180 / 100],
+      data: [progressValue.value * 180 / 100],
       showBackground: true,
       backgroundStyle: { color: 'transparent' },
       coordinateSystem: 'polar',
@@ -278,7 +278,7 @@ var option = {
       itemStyle: { opacity: 1, color: '#093368' }
     }
   ]
-};
+});
 
 // const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
@@ -333,6 +333,8 @@ const loadCourseTree = async () => {
 
 onMounted(() => {
   loadCourseTree();
+  updateLearningProgress();
+  updateStudyTimes();
 });
 
 // el-tree 需要的默认属性配置
@@ -360,6 +362,115 @@ const selectedAction = ref('learn'); // 默认显示学习界面
 // 添加一个变量来存储当前选中的章节ID
 const currentChapterId = ref(null);
 
+//更新任务点的函数
+// 添加新的函数用于获取任务点数据
+const updateTaskPoints = async (unitId) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/course/unit-completion?userId=${userId}&unitId=${unitId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch task points');
+    }
+
+    const result = await response.json();
+    console.log(result)
+    // 更新任务点数据
+    note.value.task = result.data.completedChapters;
+    note.value.sumTask = result.data.totalChapters;
+  } catch (error) {
+    console.error('Error fetching task points:', error);
+  }
+};
+
+//更新测验点的函数
+const updateTestPoints = async (unitId) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/course/quiz-completion?userId=${userId}&unitId=${unitId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch test points');
+    }
+
+    const result = await response.json();
+    console.log(result)
+    // 更新任务点数据
+    note.value.test = result.data.completedQuizzes;
+    note.value.sumTest = result.data.totalQuizzes;
+  } catch (error) {
+    console.error('Error fetching test points:', error);
+  }
+};
+
+// 添加获取学习进度的函数
+const updateLearningProgress = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const courseId = localStorage.getItem('selectedCourseId');
+    
+    const response = await fetch(`http://localhost:8008/api/course/course-completion-percentage?userId=${userId}&courseId=${courseId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch learning progress');
+    }
+
+    const result = await response.json();
+    // 更新进度值
+    console.log(result)
+    progressValue.value = parseInt(result.data.completionPercentage);
+    
+    // 更新图表配置
+    option.value.title.text = progressValue.value + '%';
+    option.value.series[0].data = [progressValue.value * 180 / 100];
+  } catch (error) {
+    console.error('Error fetching learning progress:', error);
+  }
+};
+
+// 添加获取学习次数的函数
+const updateStudyTimes = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    
+    const response = await fetch(`http://localhost:8008/api/course/study-times?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch study times');
+    }
+
+    const result = await response.json();
+    console.log(result)
+    // 更新学习次数值
+    note.value.frequency = result.data
+    
+  } catch (error) {
+    console.error('Error fetching study times:', error);
+  }
+};
+
+
+
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
@@ -372,6 +483,8 @@ const handleNodeClick = async (nodeData) => {
   // 如果不是叶子节点，直接返回
   if (nodeData.children && nodeData.children.length > 0) {
     console.log("这是根节点")
+    await updateTaskPoints(chapterId);
+    await updateTestPoints(chapterId);
     return;
   }
   try {
