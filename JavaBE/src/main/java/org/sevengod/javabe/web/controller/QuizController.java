@@ -2,7 +2,9 @@ package org.sevengod.javabe.web.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.common.AjaxResult;
@@ -24,25 +26,80 @@ public class QuizController {
 
 
     @PostMapping("/submitQuiz")
-    @Operation(summary = "提交测验答案",
-            description = "提交用户的测验答案并返回得分结果")
+    @Operation(
+        summary = "提交测验答案",
+        description = "提交用户的测验答案并计算得分，每个测验只能提交一次",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "提交成功",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(
+                        implementation = AjaxResult.class,
+                        example = """
+                            {
+                                "code": 200,
+                                "msg": "提交成功",
+                                "data": {
+                                    "submissionId": 1,
+                                    "score": 85.5,
+                                    "submittedAt": "2024-12-09T14:55:43"
+                                }
+                            }
+                            """
+                    )
+                )
+            ),
+            @ApiResponse(
+                responseCode = "400",
+                description = "提交失败",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(
+                        implementation = AjaxResult.class,
+                        example = """
+                            {
+                                "code": 400,
+                                "msg": "提交失败：您已经提交过这个测验",
+                                "data": null
+                            }
+                            """
+                    )
+                )
+            )
+        }
+    )
     public AjaxResult submitQuiz(
-            @Parameter(name = "request", description = "测验提交请求体",
-                    required = true,
-                    schema = @Schema(example = "{\"quizId\": 123, \"userId\": 456, \"questions\": \"[...]\", \"answers\": \"[...]\", \"score\": 85.5}"))
+            @Parameter(
+                description = "测验提交请求体",
+                required = true,
+                schema = @Schema(
+                    requiredProperties = {"quizId", "userId", "questions", "score", "timeLeft"},
+                    example = """
+                        {
+                            "quizId": 123,
+                            "userId": 456,
+                            "questions": "[{\\\"id\\\": 1, \\\"question\\\": \\\"问题1\\\", \\\"answer\\\": \\\"答案1\\\"}]",
+                            "score": 85.5,
+                            "timeLeft": 300
+                        }
+                        """
+                )
+            )
             @RequestBody Map<String, Object> request) {
         try {
             Long quizId = Long.parseLong(request.get("quizId").toString());
             Long userId = Long.parseLong(request.get("userId").toString());
             String questions = request.get("questions").toString();
-            String answers = request.get("answers").toString();
+            Integer timeLeft = Integer.valueOf(request.get("timeLeft").toString());
             BigDecimal score = new BigDecimal(request.get("score").toString());
 
             if (quizId == null || userId == null) {
                 return AjaxResult.error("测验ID和用户ID不能为空");
             }
 
-            Map<String, Object> result = quizzesService.submitAnswerAndScore(quizId, userId, questions, answers, score);
+            Map<String, Object> result = quizzesService.submitAnswerAndScore(quizId, userId, questions, score,timeLeft);
             return AjaxResult.success("提交成功", result);
 
         } catch (Exception e) {

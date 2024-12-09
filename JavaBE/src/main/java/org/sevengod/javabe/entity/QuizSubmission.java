@@ -13,9 +13,9 @@ public class QuizSubmission {
     private Long submissionId;
     private Long quizId;
     private Long userId;
-    private String answers;  // JSON string
+    private String generatedQuestions;  // JSON string
     private BigDecimal score;
+    private Integer timeLeft;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime submittedAt;
-    private String generatedQuestions;  // JSON string
 }

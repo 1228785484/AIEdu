@@ -107,7 +107,7 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
 
 
     @Override
-    public Map<String, Object> submitAnswerAndScore(Long quizId, Long userId, String questions, String answers, BigDecimal score) {
+    public Map<String, Object> submitAnswerAndScore(Long quizId, Long userId, String questions, BigDecimal score,Integer timeLeft) {
         // 检查是否已经提交过
         LambdaQueryWrapper<QuizSubmission> checkWrapper = new LambdaQueryWrapper<>();
         checkWrapper.eq(QuizSubmission::getQuizId, quizId)
@@ -122,8 +122,8 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
         submission.setQuizId(quizId);
         submission.setUserId(userId);
         submission.setGeneratedQuestions(questions);
-        submission.setAnswers(answers);
         submission.setScore(score);
+        submission.setTimeLeft(timeLeft);
         submission.setSubmittedAt(LocalDateTime.now());
 
         // 2. 保存到数据库
