@@ -142,13 +142,20 @@
             :props="defaultProps"
             :current-node-key="currentChapterId"
             @node-click="handleNodeClick"
+            node-key="id"
           >
             <template #default="{ node }">
-              <div style="display: flex; align-items: center; width: 100%">
+              <div 
+                style="display: flex; align-items: center; width: 100%"
+                :class="{ 'selected-node': currentChapterId === node.data.id }"
+              >
                 <span 
                   v-if="!node.children || node.children.length === 0"
                   class="status-dot"
-                  :class="{ 'completed': completedChapters[node.data.id] }"
+                  :class="{ 
+                    'completed': completedChapters[node.data.id],
+                    'selected': currentChapterId === node.data.id
+                  }"
                 ></span>
                 <span style="margin-left: 8px">{{ node.label }}</span>
               </div>
@@ -1068,19 +1075,6 @@ onUnmounted(() => {
     width: 8px;
     height: 8px;
 }
-
-.content-section::-webkit-scrollbar-track,
-#scrollable-area::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.content-section::-webkit-scrollbar-thumb,
-#scrollable-area::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
-}
-
 .content-section::-webkit-scrollbar-thumb:hover,
 #scrollable-area::-webkit-scrollbar-thumb:hover {
     background: #aaa;
@@ -1304,9 +1298,9 @@ button:hover {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #ff4d4f;
+  background-color: rgb(226, 178, 226);
   border: 1.5px solid white;
-  box-shadow: 0 0 0 1px #ff4d4f;
+  box-shadow: 0 0 0 1px rgb(226, 178, 226);
   flex-shrink: 0;
 
 }
@@ -1316,20 +1310,24 @@ button:hover {
   box-shadow: 0 0 0 1px #52c41a;
 }
 
-:deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: #f0f0f0 !important;  
-  color: #333;  
+:deep(.selected-node) {
+  background-color: rgb(236, 198, 236);
+  border-radius: 4px;
+  padding: 4px;
+  margin: -4px;
+}
 
+:deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background-color: transparent !important;
 }
 
 :deep(.el-tree-node__content:hover) {
-  background-color: #f5f5f5;  
+  background-color: rgb(245, 230, 245);
 }
 
-:deep(.el-tree-node__content) {
-  height: 36px;  
-  border-radius: 4px;  
-  margin: 2px 0;  
-  transition: all 0.3s;  
+.status-dot.selected {
+  background-color: rgb(236, 198, 236);
+  box-shadow: 0 0 0 1px rgb(236, 198, 236);
 }
+
 </style>
