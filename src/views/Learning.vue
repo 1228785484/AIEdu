@@ -157,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted ,onUnmounted, computed} from 'vue';
+import { ref, onMounted , computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
@@ -595,7 +595,8 @@ function submitAnswers() {
          document.getElementById(`answer-icon-${index}`).textContent = '❌';
         document.getElementById(`score-display-${index}`).textContent = '你的得分：0.0';
       }
-
+      clearInterval(timerId);
+      timerId = null;
     });
   }
 
@@ -646,13 +647,6 @@ async function submitQuizScore(quizData) {
     console.error('Error:', error);
   }
 }
-
-// 组件卸载时清除定时器
-onUnmounted(() => {
-  if (timerId) {
-    clearInterval(timerId);
-  }
-});
 
 </script>
 
