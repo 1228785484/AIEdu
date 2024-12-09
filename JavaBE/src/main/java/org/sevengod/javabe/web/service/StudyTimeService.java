@@ -10,4 +10,6 @@ import java.time.LocalDate;
 public interface StudyTimeService extends IService<DailyStudyTime> {
     void updateDailyStudyTime(Long userId, Long courseId, LocalDate date, Long durationSeconds);
     Long getDailyStudyTimeSeconds(Long userId, Long courseId, LocalDate date);
+    Long getStudyTimeByRange(Long userId, Long courseId, LocalDate startDate, LocalDate endDate);
+    Long getCourseStudyTimeSeconds(Long userId, Long courseId);
 }

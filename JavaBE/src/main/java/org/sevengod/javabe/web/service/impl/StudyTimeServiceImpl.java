@@ -55,4 +55,27 @@ public class StudyTimeServiceImpl extends ServiceImpl<DailyStudyTimeMapper, Dail
         DailyStudyTime record = this.getOne(wrapper);
         return record != null ? record.getDurationSeconds() : 0L;
     }
+
+    @Override
+    public Long getStudyTimeByRange(Long userId, Long courseId, LocalDate startDate, LocalDate endDate) {
+        LambdaQueryWrapper<DailyStudyTime> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DailyStudyTime::getUserId, userId)
+                .eq(DailyStudyTime::getCourseId, courseId)
+                .between(DailyStudyTime::getStudyDate, startDate, endDate);
+
+        return this.list(wrapper).stream()
+                .mapToLong(DailyStudyTime::getDurationSeconds)
+                .sum();
+    }
+
+    @Override
+    public Long getCourseStudyTimeSeconds(Long userId, Long courseId) {
+        LambdaQueryWrapper<DailyStudyTime> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DailyStudyTime::getUserId, userId)
+                .eq(DailyStudyTime::getCourseId, courseId);
+
+        return this.list(wrapper).stream()
+                .mapToLong(DailyStudyTime::getDurationSeconds)
+                .sum();
+    }
 }
