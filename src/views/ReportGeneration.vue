@@ -12,7 +12,7 @@
         <div class="tooltip" v-show="showTooltip">全方位的学习数据分析与评估报告系统，提供章节学习情况、学情分析和测评记录等多维度的数据展示。</div>
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'chapter' }" @click="activeNav = 'chapter'">
-        <el-icon class="nav-icon"><Document /></el-icon>
+        <el-icon class="nav-icon"><DocumentIcon /></el-icon>
         章节报告
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'learning' }" @click="activeNav = 'learning'">
@@ -49,50 +49,102 @@
           </el-tabs>
           <div class="report-content">
             <div class="chapter-report" v-if="currentReport">
-              <h3>{{ currentReport.chapterName }} - 章节报告</h3>
-              <div class="report-stats">
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <div class="stat-card">
-                      <div class="stat-title">完成率</div>
-                      <div class="stat-value">{{ currentReport.completionRate }}%</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="8">
-                    <div class="stat-card">
-                      <div class="stat-title">正确率</div>
-                      <div class="stat-value">{{ currentReport.accuracyRate }}%</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="8">
-                    <div class="stat-card">
-                      <div class="stat-title">掌握度</div>
-                      <div class="stat-value">{{ currentReport.masteryLevel }}%</div>
-                    </div>
-                  </el-col>
-                </el-row>
+              <div class="report-header">
+                <h3>{{ currentReport.chapterName }} - 章节报告</h3>
+                <el-button type="primary" @click="downloadReport" class="download-btn">
+                  <el-icon><Download /></el-icon>
+                  导出Word
+                </el-button>
               </div>
-              <div class="report-details">
-                <h4>知识点掌握情况</h4>
-                <div class="knowledge-points">
-                  <el-progress
-                    v-for="point in currentReport.knowledgePoints"
-                    :key="point.name"
-                    :percentage="point.mastery"
-                    :text-inside="true"
-                    :stroke-width="18"
-                    :format="format => `${point.name}: ${format}%`"
-                  />
-                </div>
-              </div>
-              <div class="learning-suggestions" v-if="currentReport.suggestions">
-                <h4>学习建议</h4>
-                <el-card class="suggestion-card">
-                  <div v-for="(suggestion, index) in currentReport.suggestions" :key="index" class="suggestion-item">
-                    <el-icon><InfoFilled /></el-icon>
-                    <span>{{ suggestion }}</span>
+              <div class="report-body">
+                <!-- 1. 学习数据统计 -->
+                <div class="report-section">
+                  <h4>一、学习数据统计</h4>
+                  <div class="stats-grid">
+                    <div class="stat-item">
+                      <div class="stat-label">完成率</div>
+                      <el-progress 
+                        type="dashboard" 
+                        :percentage="currentReport.completionRate"
+                        :color="getProgressColor(currentReport.completionRate)"
+                      />
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">正确率</div>
+                      <el-progress 
+                        type="dashboard" 
+                        :percentage="currentReport.accuracyRate"
+                        :color="getProgressColor(currentReport.accuracyRate)"
+                      />
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">掌握度</div>
+                      <el-progress 
+                        type="dashboard" 
+                        :percentage="currentReport.masteryLevel"
+                        :color="getProgressColor(currentReport.masteryLevel)"
+                      />
+                    </div>
                   </div>
-                </el-card>
+                </div>
+
+                <!-- 2. 知识掌握情况分析 -->
+                <div class="report-section">
+                  <h4>二、知识掌握情况分析</h4>
+                  <el-card v-for="point in currentReport.knowledgePoints" :key="point.name" class="mb-3">
+                    <template #header>
+                      <div class="knowledge-point-header">
+                        <span>{{ point.name }}</span>
+                        <el-progress 
+                          :percentage="point.mastery" 
+                          :format="format => `掌握度：${format}%`"
+                          :color="getProgressColor(point.mastery)"
+                        />
+                      </div>
+                    </template>
+                    <div class="knowledge-point-analysis">
+                      {{ point.analysis || '暂无详细分析' }}
+                    </div>
+                  </el-card>
+                </div>
+
+                <!-- 3. 学习问题诊断 -->
+                <div class="report-section">
+                  <h4>三、学习问题诊断</h4>
+                  <el-card class="problem-card">
+                    <div v-for="(problem, index) in currentReport.problems" :key="index" class="problem-item">
+                      <el-icon class="problem-icon"><Warning /></el-icon>
+                      <span>{{ problem }}</span>
+                    </div>
+                  </el-card>
+                </div>
+
+                <!-- 4. 未来学习计划建议 -->
+                <div class="report-section">
+                  <h4>四、未来学习计划建议</h4>
+                  <div class="plan-container">
+                    <el-collapse>
+                      <el-collapse-item title="学习建议" name="1">
+                        <div v-for="(suggestion, index) in currentReport.suggestions" :key="index" class="suggestion-item">
+                          <el-icon><Star /></el-icon>
+                          <span>{{ suggestion }}</span>
+                        </div>
+                      </el-collapse-item>
+                      <el-collapse-item title="学习计划" name="2">
+                        <div v-for="(plan, index) in currentReport.studyPlan" :key="index" class="plan-item">
+                          <el-icon><Calendar /></el-icon>
+                          <span>{{ plan }}</span>
+                        </div>
+                      </el-collapse-item>
+                      <el-collapse-item title="推荐资源" name="3">
+                        <div v-for="(resource, index) in currentReport.resources" :key="index" class="resource-item">
+                          <el-icon><Link /></el-icon>
+                          <span>{{ resource }}</span>
+                        </div>
+                      </el-collapse-item>
+                    </el-collapse>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="no-report" v-else>
@@ -179,18 +231,29 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Document, DataAnalysis, TrendCharts, InfoFilled, Refresh } from '@element-plus/icons-vue'
+import { 
+  ArrowLeft, 
+  Document as DocumentIcon, 
+  DataAnalysis, 
+  TrendCharts, 
+  Download,
+  Warning,
+  Star,
+  Calendar,
+  Link 
+} from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import VChart from 'vue-echarts'
 import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
   TitleComponent,
-  RadarComponent
+  TooltipComponent,
+  GridComponent,
+  LegendComponent
 } from 'echarts/components'
 import { LineChart, RadarChart } from 'echarts/charts'
 import { use } from 'echarts/core'
+import { saveAs } from 'file-saver'
+import { Document, Packer, Paragraph, HeadingLevel } from 'docx'
 
 // 注册必要的组件
 use([
@@ -199,8 +262,7 @@ use([
   LegendComponent,
   TitleComponent,
   LineChart,
-  RadarChart,
-  RadarComponent
+  RadarChart
 ])
 
 const router = useRouter()
@@ -292,25 +354,46 @@ const handleChapterChange = async (chapterId) => {
         "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
-        query: `请根据以下章节生成一份学习报告：${chapterName}。
+        query: `请根据以下章节生成一份详细的学习报告：${chapterName}。
                报告需要包含以下内容：
-               1. 完成率（百分比）
-               2. 正确率（百分比）
-               3. 掌握度（百分比）
-               4. 知识点掌握情况（列出3-5个关键知识点及其掌握程度）
-               5. 针对性的学习建议（2-3条）
+               1. 学习数据统计
+                  - 完成率（百分比）
+                  - 正确率（百分比）
+                  - 掌握度（百分比）
+               2. 知识掌握情况分析
+                  - 列出本章节的关键知识点（4-5个）及其掌握程度
+                  - 对每个知识点的掌握情况进行详细分析
+               3. 学习问题诊断
+                  - 分析学习过程中存在的主要问题
+                  - 指出需要重点关注的知识点
+               4. 未来学习计划建议
+                  - 针对性的学习建议（3-4条）
+                  - 具体的复习和提高计划
+                  - 推荐的学习资源或方法
                请以JSON格式返回数据，格式如下：
                {
                  "completionRate": 85,
                  "accuracyRate": 90,
                  "masteryLevel": 88,
                  "knowledgePoints": [
-                   {"name": "知识点1", "mastery": 85},
-                   {"name": "知识点2", "mastery": 90}
+                   {"name": "知识点1", "mastery": 85, "analysis": "详细分析..."},
+                   {"name": "知识点2", "mastery": 90, "analysis": "详细分析..."}
+                 ],
+                 "problems": [
+                   "问题1描述",
+                   "问题2描述"
                  ],
                  "suggestions": [
                    "建议1",
                    "建议2"
+                 ],
+                 "studyPlan": [
+                   "计划1",
+                   "计划2"
+                 ],
+                 "resources": [
+                   "推荐资源1",
+                   "推荐资源2"
                  ]
                }`,
         userId: userId
@@ -324,7 +407,6 @@ const handleChapterChange = async (chapterId) => {
     const result = await response.json()
     if (result.code === 200) {
       try {
-        // 尝试解析AI返回的JSON字符串
         const reportData = JSON.parse(result.data.answer.replace(/```json\n?|\n?```/g, ''))
         currentReport.value = {
           chapterName,
@@ -583,6 +665,132 @@ const dataRecordOption = ref({
     }
   ]
 })
+
+const downloadReport = async () => {
+  if (!currentReport.value) {
+    ElMessage.warning('请先选择章节生成报告')
+    return
+  }
+
+  try {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: `${currentReport.value.chapterName} - 学习报告`,
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 }
+          }),
+          
+          // 1. 学习数据统计
+          new Paragraph({
+            text: "一、学习数据统计",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          }),
+          new Paragraph({
+            text: `完成率：${currentReport.value.completionRate}%`
+          }),
+          new Paragraph({
+            text: `正确率：${currentReport.value.accuracyRate}%`
+          }),
+          new Paragraph({
+            text: `掌握度：${currentReport.value.masteryLevel}%`
+          }),
+
+          // 2. 知识掌握情况分析
+          new Paragraph({
+            text: "二、知识掌握情况分析",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          }),
+          ...(currentReport.value.knowledgePoints || []).map(point => [
+            new Paragraph({
+              text: `${point.name}（掌握度：${point.mastery}%）`,
+              heading: HeadingLevel.HEADING_3
+            }),
+            new Paragraph({
+              text: point.analysis || '暂无详细分析'
+            })
+          ]).flat(),
+
+          // 3. 学习问题诊断
+          new Paragraph({
+            text: "三、学习问题诊断",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          }),
+          ...(currentReport.value.problems || []).map(problem => 
+            new Paragraph({
+              text: `• ${problem}`,
+              bullet: {
+                level: 0
+              }
+            })
+          ),
+
+          // 4. 未来学习计划建议
+          new Paragraph({
+            text: "四、未来学习计划建议",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          }),
+          new Paragraph({
+            text: "学习建议：",
+            heading: HeadingLevel.HEADING_3
+          }),
+          ...(currentReport.value.suggestions || []).map(suggestion => 
+            new Paragraph({
+              text: `• ${suggestion}`,
+              bullet: {
+                level: 0
+              }
+            })
+          ),
+          new Paragraph({
+            text: "学习计划：",
+            heading: HeadingLevel.HEADING_3
+          }),
+          ...(currentReport.value.studyPlan || []).map(plan => 
+            new Paragraph({
+              text: `• ${plan}`,
+              bullet: {
+                level: 0
+              }
+            })
+          ),
+          new Paragraph({
+            text: "推荐资源：",
+            heading: HeadingLevel.HEADING_3
+          }),
+          ...(currentReport.value.resources || []).map(resource => 
+            new Paragraph({
+              text: `• ${resource}`,
+              bullet: {
+                level: 0
+              }
+            })
+          )
+        ]
+      }]
+    })
+
+    const blob = await Packer.toBlob(doc)
+    saveAs(blob, `${currentReport.value.chapterName}-学习报告.docx`)
+    ElMessage.success('报告下载成功！')
+  } catch (error) {
+    console.error('生成Word文档时出错:', error)
+    ElMessage.error('报告生成失败，请重试')
+  }
+}
+
+// 获取进度条颜色
+const getProgressColor = (percentage) => {
+  if (percentage < 60) return '#F56C6C'
+  if (percentage < 80) return '#E6A23C'
+  return '#67C23A'
+}
 </script>
 
 <style scoped>
@@ -1080,27 +1288,113 @@ h3 {
   font-size: 18px;
 }
 
-/* 适配移动端 */
+.download-btn {
+  margin-bottom: 20px;
+}
+
+.report-preview {
+  padding: 20px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.preview-note {
+  margin-top: 20px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.report-body {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.report-section {
+  margin-bottom: 30px;
+}
+
+.report-section h4 {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #409EFF;
+  color: #303133;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-label {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #606266;
+}
+
+.knowledge-point-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.knowledge-point-analysis {
+  color: #606266;
+  line-height: 1.6;
+}
+
+.problem-item, .suggestion-item, .plan-item, .resource-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 4px;
+  background: #F8F9FA;
+}
+
+.problem-item .el-icon,
+.suggestion-item .el-icon,
+.plan-item .el-icon,
+.resource-item .el-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.problem-icon {
+  color: #E6A23C;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.plan-container {
+  background: #F8F9FA;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+/* 响应式设计 */
 @media screen and (max-width: 768px) {
-  .report-container {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .knowledge-point-header {
     flex-direction: column;
-    padding: 10px;
-  }
-
-  .nav-menu {
-    width: 100%;
-    height: 70px;
-    flex-direction: row;
-  }
-
-  .nav-item {
-    flex: 1;
-    height: 100%;
-    font-size: 14px;
-  }
-
-  .chart-container {
-    height: 400px;
+    gap: 10px;
   }
 }
 </style>
