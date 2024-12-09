@@ -80,7 +80,7 @@ public class QuizController {
                         {
                             "quizId": 123,
                             "userId": 456,
-                            "questions": "[{\\\"id\\\": 1, \\\"question\\\": \\\"问题1\\\", \\\"answer\\\": \\\"答案1\\\"}]",
+                            "questions": "[]",
                             "score": 85.5,
                             "timeLeft": 300
                         }

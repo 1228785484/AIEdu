@@ -293,4 +293,17 @@ public class CourseController {
             return AjaxResult.error("更新学习次数失败：" + e.getMessage());
         }
     }
+    @GetMapping("/study-times")
+    @Operation(summary = "获取学习次数", description = "获取用户每日学习次数")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "400", description = "获取失败")
+    })
+    public AjaxResult getStudyTimes(@RequestParam Long userId) {
+        try{
+            return AjaxResult.success("获取学习次数成功", infoBoardService.getStudyTimes(userId));
+        }catch (Exception e) {
+            return AjaxResult.error("获取学习次数失败：" + e.getMessage());
+        }
+    }
 }

@@ -9,7 +9,8 @@ import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.mapper.PersonalizedContentMapper;
 import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
-import org.redisson.api.RMap;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,8 @@ public class InfoBoardService {
 
     /**
      * Check if user has completed quiz for a chapter
-     * @param userId user ID
+     *
+     * @param userId    user ID
      * @param chapterId chapter ID
      * @return true if quiz is completed
      */
@@ -48,15 +50,15 @@ public class InfoBoardService {
         LambdaQueryWrapper<Quizzes> quizQuery = new LambdaQueryWrapper<>();
         quizQuery.eq(Quizzes::getChapterId, chapterId);
         List<Long> quizIds = quizzesMapper.selectList(quizQuery)
-                                        .stream()
-                                        .map(Quizzes::getQuizId)
-                                        .toList();
+                .stream()
+                .map(Quizzes::getQuizId)
+                .toList();
 
         // Check quiz submissions for this chapter's quizzes
         if (!quizIds.isEmpty()) {
             LambdaQueryWrapper<QuizSubmission> quizWrapper = new LambdaQueryWrapper<>();
             quizWrapper.eq(QuizSubmission::getUserId, userId)
-                      .in(QuizSubmission::getQuizId, quizIds);
+                    .in(QuizSubmission::getQuizId, quizIds);
             return quizSubmissionMapper.exists(quizWrapper);
         }
         return false;
@@ -64,7 +66,8 @@ public class InfoBoardService {
 
     /**
      * Check if user has completed both quiz and personalized content for a chapter
-     * @param userId user ID
+     *
+     * @param userId    user ID
      * @param chapterId chapter ID
      * @return true if both quiz submission and personalized content exist
      */
@@ -75,8 +78,8 @@ public class InfoBoardService {
         // Check personalized contents for this chapter
         LambdaQueryWrapper<PersonalizedContents> contentWrapper = new LambdaQueryWrapper<>();
         contentWrapper.eq(PersonalizedContents::getUserId, userId)
-                     .eq(PersonalizedContents::getChapterId, chapterId)
-                     .eq(PersonalizedContents::getIsActive, true);
+                .eq(PersonalizedContents::getChapterId, chapterId)
+                .eq(PersonalizedContents::getIsActive, true);
         boolean hasContent = personalizedContentsMapper.exists(contentWrapper);
 
         // Return true only if both exist
@@ -85,18 +88,19 @@ public class InfoBoardService {
 
     /**
      * Get completion statistics for all chapters under a unit
+     *
      * @param userId user ID
      * @param unitId unit ID
      * @return Map containing total chapters and completed chapters count
      */
     public Map<String, Integer> getUnitCompletionStats(Long userId, Long unitId) {
         Map<String, Integer> result = new HashMap<>();
-        
+
         // Get all chapters for this unit
         LambdaQueryWrapper<Chapter> chapterQuery = new LambdaQueryWrapper<>();
         chapterQuery.eq(Chapter::getUnitId, unitId);
         List<Chapter> chapters = chapterMapper.selectList(chapterQuery);
-        
+
         int totalChapters = chapters.size();
         int completedChapters = 0;
 
@@ -115,13 +119,14 @@ public class InfoBoardService {
 
     /**
      * Get quiz completion statistics for all chapters under a unit
+     *
      * @param userId user ID
      * @param unitId unit ID
      * @return Map containing completed quizzes and total quizzes count
      */
     public Map<String, Integer> getQuizCompletionStats(Long userId, Long unitId) {
         Map<String, Integer> result = new HashMap<>();
-        
+
         // Get all chapters for this unit
         LambdaQueryWrapper<Chapter> chapterQuery = new LambdaQueryWrapper<>();
         chapterQuery.eq(Chapter::getUnitId, unitId);
@@ -129,8 +134,8 @@ public class InfoBoardService {
 
         // Get all quizzes for these chapters
         List<Long> chapterIds = chapters.stream()
-                                      .map(Chapter::getChapterId)
-                                      .toList();
+                .map(Chapter::getChapterId)
+                .toList();
 
         int totalQuizzes = 0;
         int completedQuizzes = 0;
@@ -157,18 +162,19 @@ public class InfoBoardService {
 
     /**
      * Get course completion percentage for a user
-     * @param userId user ID
+     *
+     * @param userId   user ID
      * @param courseId course ID
      * @return Map containing completion percentage as a string
      */
     public Map<String, String> getCourseCompletionPercentage(Long userId, Long courseId) {
         Map<String, String> result = new HashMap<>();
-        
+
         // Get all chapters for this course
         LambdaQueryWrapper<Chapter> chapterQuery = new LambdaQueryWrapper<>();
         chapterQuery.eq(Chapter::getCourseId, courseId);
         List<Chapter> chapters = chapterMapper.selectList(chapterQuery);
-        
+
         int totalChapters = chapters.size();
         int completedChapters = 0;
 
@@ -188,7 +194,8 @@ public class InfoBoardService {
 
     /**
      * Update daily study times for a user's chapter completion
-     * @param userId user ID
+     *
+     * @param userId    user ID
      * @param chapterId chapter ID
      * @return true if the study time was incremented, false if chapter not completed
      */
@@ -198,19 +205,33 @@ public class InfoBoardService {
             return false;
         }
 
-        // Key format: u:{userId}:dailylearn
-        String key = String.format("u:%d:dailylearn", userId);
-        RMap<String, Integer> dailyLearnMap = redissonClient.getMap(key);
-        
-        // Set expiration to 24 hours if it's a new map
-        if (dailyLearnMap.remainTimeToLive() == -1) {
-            dailyLearnMap.expire(Duration.ofHours(24));
+        // Key format: study:daily:u:{userId}:count
+        String key = String.format("study:daily:u:%d:count", userId);
+
+        // Use atomic increment operation
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+
+        // Increment and set expiration if it's the first time
+        long currentValue = atomicLong.incrementAndGet();
+        if (currentValue == 1) {
+            // Set expiration to 24 hours from now
+            atomicLong.expire(Duration.ofHours(24));
         }
 
-        // Increment study times for this chapter
-        String chapterKey = String.valueOf(chapterId);
-        dailyLearnMap.merge(chapterKey, 1, Integer::sum);
-        
         return true;
+    }
+
+    /**
+     * Get user's total study times for today
+     *
+     * @param userId user ID
+     * @return number of completed chapters today
+     */
+    public int getStudyTimes(Long userId) {
+        String key = String.format("study:daily:u:%d:count", userId);
+
+        // Get the atomic long, which returns 0 if key doesn't exist
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        return (int) atomicLong.get();
     }
 }
