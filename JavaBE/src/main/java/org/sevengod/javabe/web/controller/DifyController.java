@@ -14,7 +14,7 @@ import org.sevengod.javabe.entity.resp.StreamResponse;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.PersonalizedService;
 import org.sevengod.javabe.web.service.QuizzesService;
-import org.sevengod.javabe.service.UserRequestLockService;
+import org.sevengod.javabe.web.service.UserRequestLockService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
