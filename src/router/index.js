@@ -37,9 +37,14 @@ const routes = [
     component: PersonalInfo    // 映射 PersonalInfo 组件
   },
   {
-    path: '/learning',         // 新增学习页面路径
+    path: '/learning',         // 学习页面路径
     name: 'Learning',          // 路由名称
     component: Learning        // 映射 Learning 组件
+  },
+  {
+    path: '/report-generation', // 报告生成页面路径
+    name: 'ReportGeneration',   // 路由名称
+    component: ReportGeneration // 映射 ReportGeneration 组件
   }
 ];
 
@@ -47,6 +52,25 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),  // 使用 HTML5 History 模式
   routes  // 路由配置
+});
+
+// 添加全局路由守卫
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token');
+  const publicPages = ['/login', '/register']; // 不需要登录就能访问的页面
+  const authRequired = !publicPages.includes(to.path);
+
+  // 如果需要登录且没有token
+  if (authRequired && !token) {
+    // 如果是首页，允许访问但在组件内部处理登录状态
+    if (to.path === '/') {
+      next();
+    } else {
+      next('/');
+    }
+  } else {
+    next();
+  }
 });
 
 export default router;

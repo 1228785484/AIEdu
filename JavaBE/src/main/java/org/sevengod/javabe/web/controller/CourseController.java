@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.sevengod.javabe.common.AjaxResult;
+import org.sevengod.javabe.dto.CourseBasicDTO;
 import org.sevengod.javabe.entity.ChapterProgress;
 import org.sevengod.javabe.entity.CourseEnrollment;
 import org.sevengod.javabe.entity.TreeNode;
@@ -17,6 +18,7 @@ import org.sevengod.javabe.entity.vo.EnrollRequestVo;
 import org.sevengod.javabe.entity.vo.ProgressRequestVo;
 import org.sevengod.javabe.entity.vo.StudyTimesUpdateRequestVo;
 import org.sevengod.javabe.web.service.ChapterProgressService;
+import org.sevengod.javabe.web.service.CourseService;
 import org.sevengod.javabe.web.service.CourseTreeService;
 import org.sevengod.javabe.web.service.EnrollmentService;
 import org.sevengod.javabe.web.service.InfoBoardService;
@@ -43,6 +45,20 @@ public class CourseController {
     private ChapterProgressService chapterProgressService;
     @Autowired
     private InfoBoardService infoBoardService;
+    @Autowired
+    private CourseService courseService;
+
+    @GetMapping("/list")
+    @Operation(summary = "获取所有课程基本信息", description = "获取所有课程的ID、标题和描述信息")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功获取课程列表",
+            content = @Content(mediaType = "application/json",
+            schema = @Schema(implementation = CourseBasicDTO.class)))
+    })
+    public AjaxResult getAllCoursesBasic() {
+        List<CourseBasicDTO> courses = courseService.getAllCoursesBasic();
+        return AjaxResult.success(courses);
+    }
 
     @GetMapping("/findUnits")
     @Operation(summary = "查询课程单元", description = "根据课程ID查询所有单元")
@@ -164,8 +180,8 @@ public class CourseController {
         }
     }
 
-    @GetMapping("/completion-status")
-    @Operation(summary = "获取用户完成状态", description = "检查用户是否完成了特定章节的测验和个性化内容(章节完成情况)")
+    @GetMapping("/chapter-completion")
+    @Operation(summary = "获取用户一个章节的完成状态", description = "检查用户是否完成了特定章节的测验和个性化内容(章节完成情况)")
     @Parameters({
         @Parameter(name = "userId", description = "用户ID", required = true,
                 schema = @Schema(type = "integer", format = "int64", example = "1")),

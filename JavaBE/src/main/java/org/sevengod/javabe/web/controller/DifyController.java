@@ -14,13 +14,20 @@ import org.sevengod.javabe.entity.resp.StreamResponse;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.PersonalizedService;
 import org.sevengod.javabe.web.service.QuizzesService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.*;
 import org.sevengod.javabe.service.UserRequestLockService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 @RequestMapping("/api/test")
@@ -113,10 +120,13 @@ public class DifyController {
                 return AjaxResult.error("用户ID和章节ID不能为空");
             }
 
-            PersonalizedContents content = personalizedService.generateContent(userId, chapterId);
+            CompletableFuture<PersonalizedContents> future = personalizedService.generateContent(userId, chapterId);
+            PersonalizedContents content = future.get(30, TimeUnit.SECONDS);
             return AjaxResult.success("生成内容成功", content);
             
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
+            return AjaxResult.error("生成内容超时，请稍后重试");
+        } catch (InterruptedException | ExecutionException e) {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
     }
@@ -135,10 +145,14 @@ public class DifyController {
                 return AjaxResult.error("用户ID和章节ID不能为空");
             }
 
-            Map<String, Object> res = quizzesService.getQuizWithDifyResponse(chapterId, userId);
-            return AjaxResult.success("生成内容成功", res);
+            CompletableFuture<Map<String, Object>> res = quizzesService.getQuizWithDifyResponse(chapterId, userId);
+            // 等待异步操作完成，设置30秒超时
+            Map<String, Object> result = res.get(30, TimeUnit.SECONDS);
+            return AjaxResult.success("生成内容成功", result);
 
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
+            return AjaxResult.error("生成内容超时，请稍后重试");
+        } catch (InterruptedException | ExecutionException e) {
             return AjaxResult.error("生成内容失败：" + e.getMessage());
         }
     }

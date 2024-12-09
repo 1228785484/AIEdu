@@ -1,4 +1,9 @@
 spring:
+  cache:
+    type: redis
+  web:
+    resources:
+      static-locations: classpath:/static/
   mail:
     host: smtp.yeah.net
     port: 25
@@ -52,6 +57,7 @@ mybatis-plus:
       logic-not-delete-value: 0  # 逻辑未删除值(默认为 0)
   configuration:
     map-underscore-to-camel-case: true  # 开启驼峰命名自动转换
+
 server:
   port: 8008
 

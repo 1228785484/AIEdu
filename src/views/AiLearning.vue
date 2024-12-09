@@ -29,11 +29,11 @@
       <!-- 清空对话确认弹窗 -->
       <div class="modal-overlay" v-if="showClearConfirm" @click="showClearConfirm = false">
         <div class="modal-content" @click.stop>
-          <h3>确认清空对话</h3>
+          <h3>{{ t.confirmClear }}</h3>
           <p>是否确认清空所有对话记录？此操作不可撤销。</p>
           <div class="modal-actions">
-            <button class="modal-btn cancel" @click="showClearConfirm = false">取消</button>
-            <button class="modal-btn confirm" @click="clearChat">确认清空</button>
+            <button class="modal-btn cancel" @click="showClearConfirm = false">{{ t.cancel }}</button>
+            <button class="modal-btn confirm" @click="clearChat">{{ t.clearHistory }}</button>
           </div>
         </div>
       </div>
@@ -41,65 +41,54 @@
       <!-- 设置面板 -->
       <div v-if="showSettings" class="settings-panel">
         <div class="settings-header">
-          <h3>设置</h3>
+          <h3>{{ t.settings }}</h3>
           <button class="close-btn" @click="showSettings = false">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="settings-body">
           <div class="settings-group">
-            <div class="settings-title">界面设置</div>
+            <div class="settings-title">{{ t.fontSize }}</div>
             <div class="settings-item">
-              <span>深色模式</span>
-              <label class="switch">
-                <input type="checkbox" v-model="settings.darkMode">
-                <span class="slider"></span>
-              </label>
+              <label>{{ t.small }}</label>
+              <select v-model="settings.fontSize">
+                <option value="14">小</option>
+                <option value="16">中</option>
+                <option value="18">大</option>
+              </select>
             </div>
             <div class="settings-item">
-              <span>字体大小</span>
-              <div class="size-buttons">
-                <button 
-                  v-for="size in ['小', '中', '大']" 
-                  :key="size"
-                  :class="['size-btn', settings.fontSize === size ? 'active' : '']"
-                  @click="settings.fontSize = size"
-                >
-                  {{ size }}
-                </button>
+              <label>{{ t.darkMode }}</label>
+              <div class="toggle-switch">
+                <input type="checkbox" v-model="settings.darkMode" @change="applySettings">
+                <span class="toggle-slider"></span>
               </div>
             </div>
           </div>
           <div class="settings-group">
-            <div class="settings-title">语言设置</div>
+            <div class="settings-title">{{ t.language }}</div>
             <div class="settings-item">
-              <span>界面语言</span>
-              <div class="language-select">
-                <select v-model="settings.language">
-                  <option value="zh">中文</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
+              <label>{{ t.language }}</label>
+              <select v-model="settings.language">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+              </select>
             </div>
           </div>
           <div class="settings-group">
-            <div class="settings-title">聊天记录</div>
+            <div class="settings-title">{{ t.saveHistory }}</div>
             <div class="settings-item">
-              <span>保存聊天记录</span>
-              <label class="switch">
-                <input type="checkbox" v-model="settings.saveHistory">
-                <span class="slider"></span>
-              </label>
+              <label>{{ t.saveHistory }}</label>
+              <div class="toggle-switch">
+                <input type="checkbox" v-model="settings.saveHistory" @change="applySettings">
+                <span class="toggle-slider"></span>
+              </div>
             </div>
-            <button class="clear-history" @click="clearHistory">
-              {{ settings.language === 'zh' ? '清除聊天记录' : 'Clear History' }}
-              <i class="fas fa-trash-alt"></i>
-            </button>
           </div>
-        </div>
-        <div class="settings-footer">
-          <button class="settings-btn cancel" @click="showSettings = false">取消</button>
-          <button class="settings-btn save" @click="saveSettings">保存</button>
+          <div class="settings-actions">
+            <button class="settings-btn" @click="resetSettings">{{ t.cancel }}</button>
+            <button class="settings-btn primary" @click="saveSettings">{{ t.save }}</button>
+          </div>
         </div>
       </div>
       
@@ -345,31 +334,18 @@ const showClearConfirm = ref(false);
 const showSettings = ref(false);
 
 const settings = ref({
+  fontSize: '16',
   darkMode: false,
-  fontSize: '中',
-  language: 'zh',
-  saveHistory: true
+  messageSound: true,
+  autoScroll: true,
+  aiTone: 'professional',
+  codeHighlight: true,
+  language: 'zh'
 });
 
 const translations = {
-  zh: {
-    settings: '设置',
-    darkMode: '深色模式',
-    fontSize: '字体大小',
-    small: '小',
-    medium: '中',
-    large: '大',
-    language: '语言',
-    saveHistory: '保存聊天记录',
-    clearHistory: '清除聊天记录',
-    cancel: '取消',
-    save: '保存',
-    confirmClear: '确定要清除所有聊天记录吗？此操作不可恢复。'
-  },
   en: {
     settings: 'Settings',
-    darkMode: 'Dark Mode',
-    fontSize: 'Font Size',
     small: 'Small',
     medium: 'Medium',
     large: 'Large',
@@ -379,10 +355,22 @@ const translations = {
     cancel: 'Cancel',
     save: 'Save',
     confirmClear: 'Are you sure you want to clear all chat history? This action cannot be undone.'
+  },
+  zh: {
+    settings: '设置',
+    small: '小',
+    medium: '中',
+    large: '大',
+    language: '语言',
+    saveHistory: '保存聊天记录',
+    clearHistory: '清空记录',
+    cancel: '取消',
+    save: '保存',
+    confirmClear: '确定要清空所有聊天记录吗？此操作无法撤销。'
   }
 };
 
-const t = computed(() => translations[settings.value.language]);
+const t = computed(() => translations[settings.value.language || 'zh']);
 
 const router = useRouter();
 
@@ -521,28 +509,36 @@ const clearChat = () => {
 
 const saveSettings = () => {
   localStorage.setItem('chatSettings', JSON.stringify(settings.value));
+  applySettings();
   showSettings.value = false;
-  // 应用设置
+};
+
+const resetSettings = () => {
+  settings.value = {
+    fontSize: '16',
+    darkMode: false,
+    messageSound: true,
+    autoScroll: true,
+    aiTone: 'professional',
+    codeHighlight: true,
+    language: 'zh'
+  };
   applySettings();
 };
 
 const applySettings = () => {
-  // 应用深色模式
-  document.body.classList.toggle('dark-mode', settings.value.darkMode);
   // 应用字体大小
-  document.documentElement.style.setProperty('--font-size-base', 
-    settings.value.fontSize === '小' ? '14px' : 
-    settings.value.fontSize === '大' ? '18px' : '16px'
-  );
-  // 应用语言
-  document.documentElement.setAttribute('lang', settings.value.language);
-};
-
-const clearHistory = () => {
-  if (confirm(t.value.confirmClear)) {
-    messages.value = [];
-    localStorage.removeItem('chatHistory');
+  document.documentElement.style.setProperty('--font-size-base', `${settings.value.fontSize}px`);
+  
+  // 应用深色模式
+  if (settings.value.darkMode) {
+    document.documentElement.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
   }
+  
+  // 保存到本地存储
+  localStorage.setItem('chatSettings', JSON.stringify(settings.value));
 };
 
 // 在组件挂载时加载设置
@@ -1235,43 +1231,34 @@ onMounted(() => {
 .settings-panel {
   position: absolute;
   top: 60px;
-  right: 20px;
+  right: 10px;
   width: 320px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  overflow: hidden;
 }
 
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: #f8f9fa;
+  padding: 15px 20px;
   border-bottom: 1px solid #eee;
 }
 
 .settings-header h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  color: #333;
 }
 
 .close-btn {
   background: none;
   border: none;
-  padding: 4px;
   cursor: pointer;
   color: #666;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.close-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #333;
+  font-size: 16px;
 }
 
 .settings-body {
@@ -1279,43 +1266,49 @@ onMounted(() => {
 }
 
 .settings-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .settings-title {
   font-size: 14px;
-  font-weight: 600;
   color: #666;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .settings-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
 }
 
-.settings-item span {
+.settings-item label {
   font-size: 14px;
   color: #333;
 }
 
-/* 开关样式 */
-.switch {
+.settings-item select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+}
+
+.toggle-switch {
   position: relative;
-  display: inline-block;
   width: 40px;
   height: 20px;
 }
 
-.switch input {
+.toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.slider {
+.toggle-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -1327,7 +1320,7 @@ onMounted(() => {
   border-radius: 20px;
 }
 
-.slider:before {
+.toggle-slider:before {
   position: absolute;
   content: "";
   height: 16px;
@@ -1339,111 +1332,46 @@ onMounted(() => {
   border-radius: 50%;
 }
 
-input:checked + .slider {
-  background-color: #2196F3;
+input:checked + .toggle-slider {
+  background-color: #3f51b5;
 }
 
-input:checked + .slider:before {
+input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
 
-/* 字体大小按钮组 */
-.size-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.size-btn {
-  padding: 4px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.size-btn.active {
-  background: #2196F3;
-  color: white;
-  border-color: #2196F3;
-}
-
-/* 清除历史按钮 */
-.clear-history {
-  width: 100%;
-  padding: 8px;
-  margin-top: 8px;
-  border: 1px solid #ff4d4f;
-  border-radius: 4px;
-  background: white;
-  color: #ff4d4f;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.clear-history:hover {
-  background: #fff1f0;
-}
-
-.settings-footer {
+.settings-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  background: #f8f9fa;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
   border-top: 1px solid #eee;
 }
 
 .settings-btn {
-  padding: 6px 16px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.settings-btn.save {
-  background: #2196F3;
-  color: white;
-}
-
-.settings-btn.save:hover {
-  background: #1976D2;
-}
-
-.settings-btn.cancel {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.settings-btn.cancel:hover {
-  background: #e0e0e0;
-}
-
-/* 语言选择下拉框样式 */
-.language-select select {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
+  color: #666;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
-  width: 100px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  padding-right: 28px;
+  transition: all 0.3s;
 }
 
-.language-select select:focus {
-  outline: none;
-  border-color: #2196F3;
+.settings-btn:hover {
+  background: #f5f5f5;
+}
+
+.settings-btn.primary {
+  background: #3f51b5;
+  color: white;
+  border-color: #3f51b5;
+}
+
+.settings-btn.primary:hover {
+  background: #2c387e;
 }
 
 /* 深色模式样式 */
