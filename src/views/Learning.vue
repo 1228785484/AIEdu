@@ -503,6 +503,7 @@ const countdownDisplay = computed(() => {
 
 // 开始倒计时
 const startCountdown = () => {
+  timeLeft.value = totalMinutes * 60;
   if (timerId !== null) {
     clearInterval(timerId); // 如果已有定时器在运行，先清除
   }
