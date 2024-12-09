@@ -29,11 +29,11 @@
       <!-- 清空对话确认弹窗 -->
       <div class="modal-overlay" v-if="showClearConfirm" @click="showClearConfirm = false">
         <div class="modal-content" @click.stop>
-          <h3>{{ t.confirmClear }}</h3>
+          <h3>确认清空对话</h3>
           <p>是否确认清空所有对话记录？此操作不可撤销。</p>
           <div class="modal-actions">
-            <button class="modal-btn cancel" @click="showClearConfirm = false">{{ t.cancel }}</button>
-            <button class="modal-btn confirm" @click="clearChat">{{ t.clearHistory }}</button>
+            <button class="modal-btn cancel" @click="showClearConfirm = false">取消</button>
+            <button class="modal-btn confirm" @click="clearChat">确认清空</button>
           </div>
         </div>
       </div>
@@ -41,54 +41,47 @@
       <!-- 设置面板 -->
       <div v-if="showSettings" class="settings-panel">
         <div class="settings-header">
-          <h3>{{ t.settings }}</h3>
+          <h3>设置</h3>
           <button class="close-btn" @click="showSettings = false">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="settings-body">
           <div class="settings-group">
-            <div class="settings-title">{{ t.fontSize }}</div>
-            <div class="settings-item">
-              <label>{{ t.small }}</label>
-              <select v-model="settings.fontSize">
-                <option value="14">小</option>
-                <option value="16">中</option>
-                <option value="18">大</option>
-              </select>
+            <div class="settings-title">界面设置</div>
+            <div class="settings-item card">
+              <i class="fas fa-adjust icon"></i>
+              <span>深色模式</span>
+              <label class="switch">
+                <input type="checkbox" v-model="isDarkMode" @change="toggleDarkMode">
+                <span class="slider"></span>
+              </label>
             </div>
-            <div class="settings-item">
-              <label>{{ t.darkMode }}</label>
-              <div class="toggle-switch">
-                <input type="checkbox" v-model="settings.darkMode" @change="applySettings">
-                <span class="toggle-slider"></span>
+            <div class="settings-item card">
+              <i class="fas fa-font icon"></i>
+              <span>字体大小</span>
+              <div class="size-buttons">
+                <button 
+                  v-for="size in ['小', '中', '大']" 
+                  :key="size"
+                  :class="['size-btn', settings.fontSize === size ? 'active' : '']"
+                  @click="changeFontSize(size)"
+                >
+                  {{ size }}
+                </button>
               </div>
             </div>
           </div>
           <div class="settings-group">
-            <div class="settings-title">{{ t.language }}</div>
-            <div class="settings-item">
-              <label>{{ t.language }}</label>
-              <select v-model="settings.language">
-                <option value="zh">中文</option>
-                <option value="en">English</option>
-              </select>
+            <div class="settings-item card">
+              <i class="fas fa-undo icon"></i>
+              <button class="reset-btn" @click="resetSettings">重置设置</button>
             </div>
           </div>
-          <div class="settings-group">
-            <div class="settings-title">{{ t.saveHistory }}</div>
-            <div class="settings-item">
-              <label>{{ t.saveHistory }}</label>
-              <div class="toggle-switch">
-                <input type="checkbox" v-model="settings.saveHistory" @change="applySettings">
-                <span class="toggle-slider"></span>
-              </div>
-            </div>
-          </div>
-          <div class="settings-actions">
-            <button class="settings-btn" @click="resetSettings">{{ t.cancel }}</button>
-            <button class="settings-btn primary" @click="saveSettings">{{ t.save }}</button>
-          </div>
+        </div>
+        <div class="settings-footer">
+          <button class="settings-btn cancel" @click="showSettings = false">取消</button>
+          <button class="settings-btn save" @click="saveSettings">保存</button>
         </div>
       </div>
       
@@ -315,11 +308,10 @@
     </div>
   </div>
 </template>
-
 <script setup>
-import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { marked } from "marked";
+import { ref, onMounted, watch } from 'vue';
 
 const messages = ref([
   { text: "你好！我是AI助手，很高兴为您服务。请问有什么我可以帮您的吗？", isUser: false },
@@ -334,43 +326,13 @@ const showClearConfirm = ref(false);
 const showSettings = ref(false);
 
 const settings = ref({
-  fontSize: '16',
   darkMode: false,
-  messageSound: true,
-  autoScroll: true,
-  aiTone: 'professional',
-  codeHighlight: true,
-  language: 'zh'
+  fontSize: '中',
+  language: 'zh',
+  saveHistory: true
 });
 
-const translations = {
-  en: {
-    settings: 'Settings',
-    small: 'Small',
-    medium: 'Medium',
-    large: 'Large',
-    language: 'Language',
-    saveHistory: 'Save Chat History',
-    clearHistory: 'Clear History',
-    cancel: 'Cancel',
-    save: 'Save',
-    confirmClear: 'Are you sure you want to clear all chat history? This action cannot be undone.'
-  },
-  zh: {
-    settings: '设置',
-    small: '小',
-    medium: '中',
-    large: '大',
-    language: '语言',
-    saveHistory: '保存聊天记录',
-    clearHistory: '清空记录',
-    cancel: '取消',
-    save: '保存',
-    confirmClear: '确定要清空所有聊天记录吗？此操作无法撤销。'
-  }
-};
-
-const t = computed(() => translations[settings.value.language || 'zh']);
+const isDarkMode = ref(false); // 深色模式状态
 
 const router = useRouter();
 
@@ -509,47 +471,38 @@ const clearChat = () => {
 
 const saveSettings = () => {
   localStorage.setItem('chatSettings', JSON.stringify(settings.value));
-  applySettings();
   showSettings.value = false;
+
 };
 
+// 改变字体大小的方法
+const changeFontSize = (size) => {
+  console.log(`Font size button clicked: ${size}`); // 调试信息
+  settings.value.fontSize = size;
+  document.body.style.fontSize = size === '小' ? '12px' : size === '中' ? '16px' : '20px'; // 根据选择设置字体大小
+};
+
+// 重置设置的方法
 const resetSettings = () => {
-  settings.value = {
-    fontSize: '16',
-    darkMode: false,
-    messageSound: true,
-    autoScroll: true,
-    aiTone: 'professional',
-    codeHighlight: true,
-    language: 'zh'
-  };
-  applySettings();
+  isDarkMode.value = false; // 重置深色模式
+  settings.value.fontSize = '中'; // 重置字体大小
+  document.body.style.fontSize = '16px'; // 重置全局字体大小
+  localStorage.removeItem('darkMode'); // 清除 localStorage 中的深色模式设置
+  localStorage.removeItem('fontSize'); // 清除 localStorage 中的字体大小设置
 };
 
-const applySettings = () => {
-  // 应用字体大小
-  document.documentElement.style.setProperty('--font-size-base', `${settings.value.fontSize}px`);
-  
-  // 应用深色模式
-  if (settings.value.darkMode) {
-    document.documentElement.classList.add('dark-mode');
-  } else {
-    document.documentElement.classList.remove('dark-mode');
-  }
-  
-  // 保存到本地存储
-  localStorage.setItem('chatSettings', JSON.stringify(settings.value));
-};
-
-// 在组件挂载时加载设置
-import { onMounted } from 'vue';
-onMounted(() => {
-  const savedSettings = localStorage.getItem('chatSettings');
-  if (savedSettings) {
-    settings.value = JSON.parse(savedSettings);
-    applySettings();
-  }
+// 监听深色模式状态变化，保存到 localStorage
+watch(isDarkMode, (newValue) => {
+  localStorage.setItem('darkMode', newValue);
 });
+
+// 在组件挂载时读取 localStorage 中的深色模式设置
+onMounted(() => {
+  const savedMode = localStorage.getItem('darkMode') === 'true';
+  isDarkMode.value = savedMode;
+  document.body.classList.toggle('dark-mode', savedMode);
+});
+
 </script>
 
 <style scoped>
@@ -1229,86 +1182,67 @@ onMounted(() => {
 
 /* 设置面板样式 */
 .settings-panel {
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  width: 320px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  max-width: 400px;
+  margin: auto;
 }
 
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.settings-header h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  font-size: 16px;
-}
-
-.settings-body {
-  padding: 20px;
-}
-
-.settings-group {
   margin-bottom: 20px;
 }
 
 .settings-title {
-  font-size: 14px;
-  color: #666;
+  font-size: 18px;
+  font-weight: bold;
   margin-bottom: 10px;
+}
+
+.settings-group {
+  margin-bottom: 20px; /* 增加组之间的间距 */
 }
 
 .settings-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s, transform 0.3s;
 }
 
-.settings-item label {
-  font-size: 14px;
-  color: #333;
+.settings-item:hover {
+  background-color: #f1f1f1;
+  transform: translateY(-2px);
 }
 
-.settings-item select {
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #333;
-  background: white;
+.icon {
+  margin-right: 10px;
+  color: #2196F3;
 }
 
-.toggle-switch {
+.switch {
   position: relative;
+  display: inline-block;
   width: 40px;
   height: 20px;
 }
 
-.toggle-switch input {
+.switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.toggle-slider {
+.slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -1320,7 +1254,7 @@ onMounted(() => {
   border-radius: 20px;
 }
 
-.toggle-slider:before {
+.slider:before {
   position: absolute;
   content: "";
   height: 16px;
@@ -1332,111 +1266,79 @@ onMounted(() => {
   border-radius: 50%;
 }
 
-input:checked + .toggle-slider {
-  background-color: #3f51b5;
+input:checked + .slider {
+  background-color: #2196F3;
 }
 
-input:checked + .toggle-slider:before {
+input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-.settings-actions {
+.size-buttons {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
+}
+
+.size-btn {
+  padding: 5px 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #e0e0e0;
+  transition: background-color 0.3s;
+}
+
+.size-btn.active {
+  background-color: #2196F3;
+  color: white;
+}
+
+.size-btn:hover {
+  background-color: #bdbdbd;
+}
+
+.reset-btn {
+  margin-top: 10px;
+  background-color: #f44336; /* 红色背景 */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.reset-btn:hover {
+  background-color: #d32f2f;
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: space-between;
   margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
 }
 
 .settings-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  color: #666;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: #2196F3;
+  color: white;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
+  transition: background-color 0.3s;
 }
 
 .settings-btn:hover {
-  background: #f5f5f5;
+  background-color: #1976d2;
 }
 
-.settings-btn.primary {
-  background: #3f51b5;
-  color: white;
-  border-color: #3f51b5;
+.cancel {
+  background-color: #e0e0e0;
+  color: black;
 }
 
-.settings-btn.primary:hover {
-  background: #2c387e;
-}
-
-/* 深色模式样式 */
-:root {
-  --font-size-base: 16px;
-}
-
-.dark-mode {
-  background: #1a1a1a;
-  color: #fff;
-}
-
-.dark-mode .settings-panel {
-  background: #2d2d2d;
-}
-
-.dark-mode .settings-header,
-.dark-mode .settings-footer {
-  background: #252525;
-  border-color: #333;
-}
-
-.dark-mode .settings-title {
-  color: #aaa;
-}
-
-.dark-mode .settings-item span {
-  color: #fff;
-}
-
-.dark-mode .size-btn {
-  background: #333;
-  border-color: #444;
-  color: #fff;
-}
-
-.dark-mode .size-btn.active {
-  background: #2196F3;
-  border-color: #2196F3;
-}
-
-.dark-mode .clear-history {
-  background: #333;
-  border-color: #ff4d4f;
-}
-
-.dark-mode .clear-history:hover {
-  background: #3a2829;
-}
-
-.dark-mode .settings-btn.cancel {
-  background: #333;
-  color: #fff;
-}
-
-.dark-mode .settings-btn.cancel:hover {
-  background: #404040;
-}
-
-.dark-mode .close-btn {
-  color: #aaa;
-}
-
-.dark-mode .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.cancel:hover {
+  background-color: #bdbdbd;
 }
 </style>
+

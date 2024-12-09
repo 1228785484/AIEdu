@@ -61,6 +61,8 @@ mybatis-plus:
 server:
   port: 8008
 
+
+
 logging:
   pattern:
     console: "%m%n"

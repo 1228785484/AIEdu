@@ -39,9 +39,9 @@
             </div>
             <div class="form-group">
               <label>邮箱:</label>
-              <input 
-                v-model="registerForm.email" 
-                type="email" 
+              <input
+                v-model="registerForm.email"
+                type="email"
                 required
                 @input="validateEmail"
                 :class="{ error: emailError }"
@@ -52,9 +52,9 @@
               <label>验证码:</label>
               <div class="code-input-group">
                 <input v-model="registerForm.verificationCode" type="text" required>
-                <button type="button" 
-                        @click="sendVerificationCode" 
-                        :disabled="cooldown > 0" 
+                <button type="button"
+                        @click="sendVerificationCode"
+                        :disabled="cooldown > 0"
                         class="send-code-btn">
                   {{ cooldown > 0 ? `${cooldown}秒后重试` : '发送验证码' }}
                 </button>
@@ -62,18 +62,18 @@
             </div>
             <div class="form-group">
               <label>密码:</label>
-              <input 
-                v-model="registerForm.password" 
-                type="password" 
+              <input
+                v-model="registerForm.password"
+                type="password"
                 required
                 @input="validatePassword"
               >
             </div>
             <div class="form-group">
               <label>确认密码:</label>
-              <input 
-                v-model="registerForm.confirmPassword" 
-                type="password" 
+              <input
+                v-model="registerForm.confirmPassword"
+                type="password"
                 required
                 @input="validatePassword"
               >
