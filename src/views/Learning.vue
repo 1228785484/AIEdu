@@ -140,8 +140,20 @@
             style="max-width: 600px"
             :data="treeData"
             :props="defaultProps"
+            :current-node-key="currentChapterId"
             @node-click="handleNodeClick"
-          />
+          >
+            <template #default="{ node }">
+              <div style="display: flex; align-items: center; width: 100%">
+                <span 
+                  v-if="!node.children || node.children.length === 0"
+                  class="status-dot"
+                  :class="{ 'completed': completedChapters[node.data.id] }"
+                ></span>
+                <span style="margin-left: 8px">{{ node.label }}</span>
+              </div>
+            </template>
+          </el-tree>
 
            <!-- 添加生成报告按钮 -->
            <div class="report-btn-container">
@@ -157,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted , computed} from 'vue';
+import { ref, onMounted , onUnmounted, computed} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
@@ -345,9 +357,13 @@ const quizId = ref()
 // 修改初始化状态
 const selectedAction = ref('learn'); // 默认显示学习界面
 
+// 添加一个变量来存储当前选中的章节ID
+const currentChapterId = ref(null);
+
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
+  currentChapterId.value = chapterId; // 保存当前选中的章节ID
   const userId = localStorage.getItem('userid');
 
   console.log('Clicked node ID:', chapterId);
@@ -471,6 +487,7 @@ const score = ref(0);
     questionHtml += `
       <style>
         .option-box:hover {
+          background-color: rgb(245,230,245) !important;
           transform: translateX(5px);
         }
         input[type="radio"]:checked + label.option-box,
@@ -518,6 +535,9 @@ const startCountdown = () => {
 
 
 const quizData =ref()
+
+// 添加完成状态追踪
+const completedChapters = ref({});
 
 // 提交答案的方法
 function submitAnswers() {
@@ -614,9 +634,16 @@ function submitAnswers() {
     userId: Number(localStorage.getItem('userid')),
     questions: JSON.stringify(que.value),
     answers: JSON.stringify(userAnswers),
-    score: totalScore
+    score: totalScore,
+    chapterId: currentChapterId.value
   };
-  console.log(quizData.value)
+
+  // 更新章节完成状态
+  if (currentChapterId.value) {
+    completedChapters.value[currentChapterId.value] = true;
+  }
+
+  console.log(quizData.value);
   // 提交到后端
   if (que.value) {
     submitQuizScore(quizData.value);
@@ -648,6 +675,14 @@ async function submitQuizScore(quizData) {
     console.error('Error:', error);
   }
 }
+
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (timerId) {
+    clearInterval(timerId);
+  }
+});
 
 </script>
 
@@ -1262,5 +1297,39 @@ button:hover {
   color: #666;
   font-size: 14px;
   margin: 0;
+}
+
+/* 添加状态点样式 */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff4d4f;
+  border: 1.5px solid white;
+  box-shadow: 0 0 0 1px #ff4d4f;
+  flex-shrink: 0;
+
+}
+
+.status-dot.completed {
+  background-color: #52c41a;
+  box-shadow: 0 0 0 1px #52c41a;
+}
+
+:deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background-color: #f0f0f0 !important;  
+  color: #333;  
+
+}
+
+:deep(.el-tree-node__content:hover) {
+  background-color: #f5f5f5;  
+}
+
+:deep(.el-tree-node__content) {
+  height: 36px;  
+  border-radius: 4px;  
+  margin: 2px 0;  
+  transition: all 0.3s;  
 }
 </style>
