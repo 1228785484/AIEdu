@@ -8,6 +8,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import ECharts from 'vue-echarts';
 import 'echarts';
 
+
 // 创建 Vue 应用并使用 Vue Router
 const app = createApp(App)
 
@@ -19,4 +20,5 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(router)  // 启用 Vue Router
 app.use(ElementPlus)
 app.component('ECharts',ECharts)
+
 app.mount('#app');  // 挂载 Vue 应用到页面上的 #app 元素
