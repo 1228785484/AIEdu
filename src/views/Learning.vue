@@ -105,6 +105,8 @@
             <div v-if="timeLeft <= 0" class = "time-message">时间结束，禁止答题</div>
             <!--倒计时-->
             <div v-if="!isQuizLoading" class = "countdown">剩余时间：{{ countdownDisplay }}</div>
+            <div v-if="showResults" class="results-section"></div>
+            <!-- <button v-if="!isQuizLoading&&testData.content" @click="submitAnswers">提交</button> -->
             <div v-if="showResults" class="results-section">
               <div class="score">得分：{{ score }}分</div>
               <div class="answers">
@@ -400,6 +402,7 @@ const handleNodeClick = async (nodeData) => {
         if (quizResult && quizResult.data && quizResult.data.questions) {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
           startCountdown();
+          console.log(que.value)
         } else {
           testData.value = { content: '无法加载测验内容' };
         }
@@ -444,6 +447,23 @@ const score = ref(0);
       </div>`;
     }
     questionHtml += `</div>`;
+
+    // 添加答案显示区域（初始隐藏）
+    questionHtml += `
+      <div id="answer-display-${index}" style="display:none; margin: 15px 0;">
+        <div class="user-answer" style="color: #666; margin-bottom: 5px; display: flex; align-items: center;">
+          你的答案：<span id="user-answer-${index}"></span>
+          <span id="answer-icon-${index}" style="margin-left: 20px;"></span>
+        </div>
+        <div class="correct-answer" style="color: #28a745; margin-bottom: 5px; display: flex; align-items: center;">
+          正确答案：<span id="correct-answer-${index}"></span>
+          <span id="score-display-${index}" style="margin-left: 40px; color: #666;"></span>
+        </div>
+        <div class="explanation" style="color: #666; margin-top: 5px;">
+          解析：<span id="explanation-${index}"></span>
+        </div>
+      </div>
+    `;
     // 添加横线，除了最后一题
     if (index < questions.length - 1) {
       questionHtml += `<div style="height: 1px; background-color: black; margin: 30px 0;"></div>`;
@@ -451,7 +471,6 @@ const score = ref(0);
     questionHtml += `
       <style>
         .option-box:hover {
-          background-color: rgb(245,230,245) !important;
           transform: translateX(5px);
         }
         input[type="radio"]:checked + label.option-box,
@@ -496,6 +515,7 @@ const startCountdown = () => {
   }, 1000);
 };
 
+
 const quizData =ref()
 
 // 提交答案的方法
@@ -503,6 +523,14 @@ function submitAnswers() {
   let totalScore = 0;
   const userAnswers = [];
   let c = JSON.parse(JSON.stringify(que))._value;
+
+  // 禁用所有输入框
+  function disableInputs() {
+    const allInputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+    allInputs.forEach(input => {
+      input.disabled = true;
+    });
+  }
 
   if (c) {
     c.forEach((question, index) => {
@@ -520,11 +548,20 @@ function submitAnswers() {
           if (userAnswer === question.answer) {
             totalScore += 10;
           }
+          // 显示答案和解析
+          document.getElementById(`user-answer-${index}`).textContent = userAnswer;
+          document.getElementById(`correct-answer-${index}`).textContent = question.answer;
+          document.getElementById(`explanation-${index}`).textContent = question.explanations;
+          document.getElementById(`answer-display-${index}`).style.display = 'block';
+
+          // 判断答案是否正确并显示对应图标和得分
+          const isCorrect = userAnswer === question.answer;
+          document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
+          document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
         } else if (question.type === 'multiple') {
           // 多选题：收集所有选中的值
           const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
           userAnswers.push(userAnswer);
-          
           // 判断多选题答案是否完全正确
           const correctAnswer = Array.isArray(question.answer) ? 
             question.answer.sort() : 
@@ -533,11 +570,32 @@ function submitAnswers() {
           if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
             totalScore += 10;
           }
+         // 显示答案和解析
+         document.getElementById(`user-answer-${index}`).textContent = userAnswer.join(', ');
+          document.getElementById(`correct-answer-${index}`).textContent = 
+            Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
+          document.getElementById(`explanation-${index}`).textContent = question.explanations;
+          document.getElementById(`answer-display-${index}`).style.display = 'block';
+          
+          // 判断答案是否正确并显示对应图标和得分
+          const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
+          document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
+          document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
         }
       } else {
         // 如果没有选择答案，推入null或空数组
         userAnswers.push(question.type === 'single' ? null : []);
+        document.getElementById(`user-answer-${index}`).textContent = '未作答';
+        document.getElementById(`correct-answer-${index}`).textContent = 
+          Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
+        document.getElementById(`explanation-${index}`).textContent = question.explanations;
+        document.getElementById(`answer-display-${index}`).style.display = 'block';
+
+         // 未作答显示错误图标和0分
+         document.getElementById(`answer-icon-${index}`).textContent = '❌';
+        document.getElementById(`score-display-${index}`).textContent = '你的得分：0.0';
       }
+
     });
   }
 
@@ -561,6 +619,8 @@ function submitAnswers() {
   if (que.value) {
     submitQuizScore(quizData.value);
   }
+  // 禁用输入框
+  disableInputs();
 }
 
 
@@ -593,6 +653,7 @@ onUnmounted(() => {
     clearInterval(timerId);
   }
 });
+
 </script>
 
 
