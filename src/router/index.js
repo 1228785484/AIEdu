@@ -10,6 +10,8 @@ import Learning from '../views/Learning.vue';
 import ReportGeneration from '../views/ReportGeneration.vue';
 import DatePicker from '../views/TestPages/DatePicker.vue';
 import WebsocketTest from '../views/TestPages/WebsocketTest.vue';
+import FileUploader from '../views/TestPages/FileUploader.vue';  // 导入 FileUploader 组件
+
 
 // 配置路由
 const routes = [
@@ -58,6 +60,12 @@ const routes = [
     path: '/websocket-test',
     name: 'websocket-test',
     component: WebsocketTest,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/file-uploader',
+    name: 'file-uploader',
+    component: FileUploader,
     meta: { requiresAuth: true }
   }
 ];

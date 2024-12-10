@@ -31,6 +31,10 @@ spring:
       password:
       database: 2 # 方便我调试
       timeout: 3000ms
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
 #  kafka:
 #    bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
 #    producer:
@@ -78,3 +82,8 @@ dify:
 springdoc:
   swagger-ui:
     path: /swagger-ui
+minio:
+  endpoint: http://localhost:9000  # MinIO服务地址
+  accessKey: admin           # 访问密钥
+  secretKey: password           # 密码
+  defaultBucketName: notes       # 默认存储桶名称
