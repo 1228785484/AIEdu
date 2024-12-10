@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.sevengod.javabe.common.AjaxResult;
+import org.sevengod.javabe.entity.po.StudyNotePo;
 import org.sevengod.javabe.entity.vo.StudyNoteVo;
 import org.sevengod.javabe.web.service.StudyNoteService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +22,10 @@ public class StudyNoteController {
     @Operation(summary = "创建笔记")
     public AjaxResult createNote(
             @Parameter(description = "用户ID") @RequestParam Long userId,
-            @RequestBody StudyNoteVo noteVo) {
+            @RequestBody StudyNotePo notePo) {
         try {
             return AjaxResult.success("创建笔记成功", 
-                    studyNoteService.createNote(userId, noteVo));
+                    studyNoteService.createNote(userId, notePo));
         } catch (Exception e) {
             return AjaxResult.error("创建笔记失败" + e.getMessage());
         }

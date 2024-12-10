@@ -2,6 +2,7 @@ package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.sevengod.javabe.entity.StudyNote;
+import org.sevengod.javabe.entity.po.StudyNotePo;
 import org.sevengod.javabe.entity.vo.StudyNoteVo;
 import org.sevengod.javabe.entity.dto.StudyNoteDto;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.List;
 public interface StudyNoteService extends IService<StudyNote> {
     
     // 创建笔记
-    StudyNoteDto createNote(Long userId, StudyNoteVo noteVo);
+    StudyNoteDto createNote(Long userId, StudyNotePo notePo);
     
     // 更新笔记
     StudyNoteDto updateNote(Long userId, StudyNoteVo noteVo);

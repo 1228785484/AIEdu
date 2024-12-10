@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.sevengod.javabe.entity.StudyNote;
+import org.sevengod.javabe.entity.po.StudyNotePo;
 import org.sevengod.javabe.entity.vo.StudyNoteVo;
 import org.sevengod.javabe.entity.dto.StudyNoteDto;
 import org.sevengod.javabe.web.mapper.StudyNoteMapper;
@@ -20,8 +21,8 @@ public class StudyNoteServiceImpl extends ServiceImpl<StudyNoteMapper, StudyNote
 
     @Override
     @Transactional
-    public StudyNoteDto createNote(Long userId, StudyNoteVo noteVo) {
-        StudyNote note = convertToEntity(noteVo);
+    public StudyNoteDto createNote(Long userId, StudyNotePo notePo) {
+        StudyNote note = convertToEntity(notePo);
         note.setUserId(userId);
         note.setIsActive(true);
         save(note);
@@ -87,6 +88,11 @@ public class StudyNoteServiceImpl extends ServiceImpl<StudyNoteMapper, StudyNote
     private StudyNote convertToEntity(StudyNoteVo noteVo) {
         StudyNote note = new StudyNote();
         BeanUtils.copyProperties(noteVo, note);
+        return note;
+    }
+    private StudyNote convertToEntity(StudyNotePo notePo) {
+        StudyNote note = new StudyNote();
+        BeanUtils.copyProperties(notePo, note);
         return note;
     }
 
