@@ -638,6 +638,7 @@ const score = ref(0);
 const totalMinutes = 10; // 总倒计时时间（分钟）
 const timeLeft = ref(totalMinutes * 60); // 初始化倒计时时间（秒）
 let timerId = null;
+let startTime = null;
 
 // 计算倒计时显示
 const countdownDisplay = computed(() => {
@@ -648,6 +649,7 @@ const countdownDisplay = computed(() => {
 
 // 开始倒计时
 const startCountdown = () => {
+  startTime = Date.now();
   timeLeft.value = totalMinutes * 60;
   if (timerId !== null) {
     clearInterval(timerId); // 如果已有定时器在运行，先清除
@@ -756,6 +758,9 @@ function submitAnswers() {
   // 显示结果
   showResults.value = true;
 
+  //计算测验时长
+  const duration = Math.floor((Date.now() - startTime) / 1000);
+  
   // 准备提交数据
   quizData.value = {
     quizId: quizId.value,
@@ -763,7 +768,7 @@ function submitAnswers() {
     questions: JSON.stringify(que.value),
     score: totalScore,
     chapterId: currentChapterId.value,
-    remainingTime: timeLeft.value
+    remainingTime: duration
   };
 
   // 更新章节完成状态
