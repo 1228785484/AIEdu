@@ -3,6 +3,10 @@ package org.sevengod.javabe.handler;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+
+import org.sevengod.javabe.config.properties.WebSocketProperties;
+
+import org.sevengod.javabe.manager.WebSocketConnectionManager;
 import org.sevengod.javabe.web.service.StudyTimeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,6 +30,12 @@ public class StudyTimeHandler extends TextWebSocketHandler {
 
     @Autowired
     private StudyTimeService studyTimeService;
+
+    @Autowired
+    private WebSocketProperties webSocketProperties;
+
+    @Autowired
+    private WebSocketConnectionManager connectionManager;
 
     private static class StudySession {
         Long userId;
@@ -64,9 +74,17 @@ public class StudyTimeHandler extends TextWebSocketHandler {
             Long userId = Long.parseLong(params.get("userId"));
             Long courseId = Long.parseLong(params.get("courseId"));
             
+            if (connectionManager.incrementConnections() > webSocketProperties.getMaxConnections()) {
+                log.error("达到最大连接数，拒绝新的WebSocket连接");
+                session.close();
+                connectionManager.decrementConnections();
+                return;
+            }
+            
             sessions.put(sessionId, session);
             studySessions.put(sessionId, new StudySession(userId, courseId));
             log.info("用户 {} 开始学习课程 {}", userId, courseId);
+            log.info("新的WebSocket连接已建立。当前连接数：{}", connectionManager.getCurrentConnections());
             
             // 发送连接成功消息
             JSONObject response = new JSONObject();
@@ -141,6 +159,8 @@ public class StudyTimeHandler extends TextWebSocketHandler {
         // 清理会话数据
         sessions.remove(sessionId);
         studySessions.remove(sessionId);
+        connectionManager.decrementConnections();
+        log.info("WebSocket连接已关闭。当前连接数：{}", connectionManager.getCurrentConnections());
     }
 
     private void handleHeartbeat(String sessionId, StudySession studySession) {
