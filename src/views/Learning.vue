@@ -89,40 +89,51 @@
           </div>
           <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
-              <!-- 添加加载状态显示 -->
+              <!-- 加载状态显示 -->
               <div v-if="isQuizLoading" class="loading-container">
                 <div class="loading-spinner"></div>
                 <p>测验内容加载中...</p>
               </div>
               <!-- 测验内容 -->
               <div v-else>
-                <div v-if="testData.content" v-html="testData.content"></div>
-                <div v-else>请选择一个章节开始测验</div>
-              </div>
-            </div>
-            <!-- 提交按钮 -->
-            <button v-if="timeLeft > 0 && !isQuizLoading" @click="submitAnswers">提交</button>
-            <div v-if="timeLeft <= 0" class = "time-message">时间结束，禁止答题</div>
-            <!--倒计时-->
-            <div v-if="!isQuizLoading" class = "countdown">剩余时间：{{ countdownDisplay }}</div>
-            <div v-if="showResults" class="results-section"></div>
-            <!-- <button v-if="!isQuizLoading&&testData.content" @click="submitAnswers">提交</button> -->
-            <div v-if="showResults" class="results-section">
-              <div class="score">得分：{{ score }}分</div>
-              <div class="answers">
-                <div v-for="(question, index) in testData.questions" :key="index">
-                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
-                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
-                    用户答案：{{ userAnswers[index] || '未作答' }}
-                  </div>
-                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
-                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
-                    解析：{{ question.explanation }}
+                <!-- 测验加载失败或未选择章节 -->
+                <div v-if="!testData.content || !que.value" class="no-content-message">
+                  <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
+                </div>
+                
+                <!-- 只有在成功加载测验内容后才显示测验界面 -->
+                <div v-else>
+                  <!-- 题目内容 -->
+                  <div v-html="testData.content"></div>
+                  
+                  <!-- 倒计时 -->
+                  <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
+                  
+                  <!-- 提交按钮 -->
+                  <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
+                    提交答案
+                  </button>
+                  <div v-else class="time-message">时间结束，禁止答题</div>
+                  
+                  <!-- 测验结果 -->
+                  <div v-if="showResults" class="results-section">
+                    <div class="score">得分：{{ score }}分</div>
+                    <div class="answers">
+                      <div v-for="(question, index) in testData.questions" :key="index">
+                        <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                        <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                          用户答案：{{ userAnswers[index] || '未作答' }}
+                        </div>
+                        <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                        <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                          解析：{{ question.explanation }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            
           </div>
           
         </div>
@@ -142,9 +153,13 @@
             :props="defaultProps"
             :current-node-key="currentChapterId"
             @node-click="handleNodeClick"
+            :highlight-current="false"
           >
             <template #default="{ node }">
-              <div style="display: flex; align-items: center; width: 100%">
+              <div 
+                style="display: flex; align-items: center; width: 100%"
+                :class="{ 'selected-node': currentChapterId === node.data.id }"
+              >
                 <span 
                   v-if="!node.children || node.children.length === 0"
                   class="status-dot"
@@ -190,8 +205,8 @@ const markdownToHtml = computed(() =>
 );
 });
 
-var data1 = 0;
-var data2 = 0;
+var data1 = 12;
+var data2 = 20;
 var data3 = 0;
 var data4 = 0;
 var data5 = 3;
@@ -203,6 +218,7 @@ let note = ref({
   frequency: data5
 });
 
+//另一种进度图
 //另一种进度图
 var progressValue = ref(0);
 var option = ref({
@@ -470,7 +486,6 @@ const updateStudyTimes = async () => {
 };
 
 
-
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
   const chapterId = nodeData.id;
@@ -623,6 +638,7 @@ const score = ref(0);
 const totalMinutes = 10; // 总倒计时时间（分钟）
 const timeLeft = ref(totalMinutes * 60); // 初始化倒计时时间（秒）
 let timerId = null;
+let startTime = null;
 
 // 计算倒计时显示
 const countdownDisplay = computed(() => {
@@ -633,6 +649,7 @@ const countdownDisplay = computed(() => {
 
 // 开始倒计时
 const startCountdown = () => {
+  startTime = Date.now();
   timeLeft.value = totalMinutes * 60;
   if (timerId !== null) {
     clearInterval(timerId); // 如果已有定时器在运行，先清除
@@ -741,14 +758,17 @@ function submitAnswers() {
   // 显示结果
   showResults.value = true;
 
+  //计算测验时长
+  const duration = Math.floor((Date.now() - startTime) / 1000);
+  
   // 准备提交数据
   quizData.value = {
     quizId: quizId.value,
     userId: Number(localStorage.getItem('userid')),
     questions: JSON.stringify(que.value),
-    answers: JSON.stringify(userAnswers),
     score: totalScore,
-    chapterId: currentChapterId.value
+    chapterId: currentChapterId.value,
+    remainingTime: duration
   };
 
   // 更新章节完成状态
@@ -1181,19 +1201,6 @@ onUnmounted(() => {
     width: 8px;
     height: 8px;
 }
-
-.content-section::-webkit-scrollbar-track,
-#scrollable-area::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.content-section::-webkit-scrollbar-thumb,
-#scrollable-area::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
-}
-
 .content-section::-webkit-scrollbar-thumb:hover,
 #scrollable-area::-webkit-scrollbar-thumb:hover {
     background: #aaa;
@@ -1417,9 +1424,9 @@ button:hover {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #ff4d4f;
+  background-color: rgb(226, 178, 226);
   border: 1.5px solid white;
-  box-shadow: 0 0 0 1px #ff4d4f;
+  box-shadow: 0 0 0 1px rgb(226, 178, 226);
   flex-shrink: 0;
 
 }
@@ -1429,20 +1436,72 @@ button:hover {
   box-shadow: 0 0 0 1px #52c41a;
 }
 
-:deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: #f0f0f0 !important;  
-  color: #333;  
-
+/* 添加选中节点的样式 */
+.selected-node {
+  background-color: rgb(236, 198, 236) !important;
+  border-radius: 4px;
+  padding: 4px;
 }
 
-:deep(.el-tree-node__content:hover) {
-  background-color: #f5f5f5;  
+.no-content-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #666;
+  font-size: 16px;
+  text-align: center;
 }
 
-:deep(.el-tree-node__content) {
-  height: 36px;  
-  border-radius: 4px;  
-  margin: 2px 0;  
-  transition: all 0.3s;  
+.submit-btn {
+  display: block;
+  margin: 20px auto;
+  padding: 12px 30px;
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
 }
+
+.submit-btn:hover {
+  background-color: rgb(226, 178, 226);
+  transform: translateY(-2px);
+}
+
+.submit-btn:active {
+  transform: translateY(1px);
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid rgb(236, 198, 236);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 </style>
