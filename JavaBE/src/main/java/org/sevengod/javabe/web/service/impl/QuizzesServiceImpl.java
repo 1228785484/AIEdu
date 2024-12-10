@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.sevengod.javabe.entity.Chapter;
 import org.sevengod.javabe.entity.QuizSubmission;
 import org.sevengod.javabe.entity.Quizzes;
+import org.sevengod.javabe.web.exception.DifyException;
 import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> implements QuizzesService {
@@ -88,8 +90,12 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
                     result.putAll(quizData);
                     
                 } catch (Exception e) {
-                    result.put("error", "生成测验失败: " + e.getMessage());
-                    throw new RuntimeException("生成测验失败", e);
+                    String errorDetails = "生成测验失败: " + e.getMessage();
+                    result.put("error", errorDetails);
+                    if (e instanceof TimeoutException) {
+                        throw DifyException.timeout();
+                    }
+                    throw new DifyException(errorDetails, e);
                 }
             }
             

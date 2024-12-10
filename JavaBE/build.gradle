@@ -65,6 +65,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // Spring AOP
     implementation 'org.springframework.boot:spring-boot-starter-aop'
+    //Minio
+    implementation 'io.minio:minio:8.5.14'
 }
 
 dependencyManagement {
