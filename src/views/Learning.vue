@@ -89,6 +89,34 @@
           </div>
           <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
+              <!-- 提交确认弹窗 -->
+              <div v-if="showSubmitModal" class="submit-modal">
+                <div class="modal-content">
+                  <img src="@/assets/thinking-character.gif" alt="思考的小人" class="thinking-character">
+                  <div class="modal-text">是否确认提交答案？</div>
+                  <div class="modal-buttons">
+                    <button class="modal-btn yes-btn" @click="confirmSubmit">Yes</button>
+                    <button class="modal-btn no-btn" @click="cancelSubmit">No</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 提示消息 -->
+              <div v-if="showMessage" class="message-popup">
+                {{ messageText }}
+              </div>
+
+              <!-- 测验内容加载完成后显示的弹窗 -->
+              <div v-if="showQuizModal && testData.content && !isQuizLoading" class="quiz-modal">
+                <div class="modal-content">
+                  <img src="@/assets/cute-character.gif" alt="可爱的小人" class="cute-character">
+                  <div class="modal-buttons">
+                    <button class="modal-btn start-btn" @click="startQuiz">开始测验</button>
+                    <button class="modal-btn cancel-btn" @click="cancelQuiz">取消</button>
+                  </div>
+                </div>
+              </div>
+              
               <!-- 加载状态显示 -->
               <div v-if="isQuizLoading" class="loading-container">
                 <div class="loading-spinner"></div>
@@ -97,7 +125,7 @@
               <!-- 测验内容 -->
               <div v-else>
                 <!-- 测验加载失败或未选择章节 -->
-                <div v-if="!testData.content || !que.value" class="no-content-message">
+                <div v-if="!testData.content" class="no-content-message">
                   <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
                 </div>
                 
@@ -106,20 +134,20 @@
                   <!-- 题目内容 -->
                   <div v-html="testData.content"></div>
                   
-                  <!-- 倒计时 -->
-                  <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
+                  <!-- 只在测验内容加载后且未提交答案时显示倒计时和提交按钮 -->
+                  <template v-if="!showResults">
+                    <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
+                    <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
+                      提交答案
+                    </button>
+                    <div v-else class="time-message">时间结束，禁止答题</div>
+                  </template>
                   
-                  <!-- 提交按钮 -->
-                  <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
-                    提交答案
-                  </button>
-                  <div v-else class="time-message">时间结束，禁止答题</div>
-                  
-                  <!-- 测验结果 -->
+                  <!-- 只在提交答案后显示测验结果 -->
                   <div v-if="showResults" class="results-section">
                     <div class="score">得分：{{ score }}分</div>
                     <div class="answers">
-                      <div v-for="(question, index) in testData.questions" :key="index">
+                      <div v-for="(question, index) in que.value" :key="index">
                         <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
                         <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
                           用户答案：{{ userAnswers[index] || '未作答' }}
@@ -545,8 +573,14 @@ const handleNodeClick = async (nodeData) => {
         que.value = quizResult.data.questions;
         if (quizResult && quizResult.data && quizResult.data.questions) {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-          startCountdown();
-          console.log(que.value)
+          showQuizModal.value = true; // 显示弹窗
+          quizStarted.value = false; // 重置测验状态
+          showResults.value = false; // 重置结果显示状态
+          timeLeft.value = totalMinutes * 60; // 重置倒计时时间
+          if (timerId) {
+            clearInterval(timerId); // 清除之前的定时器
+            timerId = null;
+          }
         } else {
           testData.value = { content: '无法加载测验内容' };
         }
@@ -571,14 +605,14 @@ const handleNodeClick = async (nodeData) => {
 const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
-// 响应式变量，用于存储用户的得分
+// 响应式变量，用于存��用户的得分
 const score = ref(0);
 
  //渲染题目
  //渲染测验题目的函数
  function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选��)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
       const inputType = question.type === 'single' ? 'radio' : 'checkbox';
@@ -638,7 +672,6 @@ const score = ref(0);
 const totalMinutes = 10; // 总倒计时时间（分钟）
 const timeLeft = ref(totalMinutes * 60); // 初始化倒计时时间（秒）
 let timerId = null;
-let startTime = null;
 
 // 计算倒计时显示
 const countdownDisplay = computed(() => {
@@ -649,28 +682,65 @@ const countdownDisplay = computed(() => {
 
 // 开始倒计时
 const startCountdown = () => {
-  startTime = Date.now();
+  if (!quizStarted.value) return; // 如果测验未开始，不启动倒计时
+  
   timeLeft.value = totalMinutes * 60;
   if (timerId !== null) {
-    clearInterval(timerId); // 如果已有定时器在运行，先清除
+    clearInterval(timerId);
   }
   timerId = setInterval(() => {
     if (timeLeft.value > 0) {
-      timeLeft.value--; // 每秒减少1
+      timeLeft.value--;
     } else {
-      clearInterval(timerId); // 时间到，清除定时器
+      clearInterval(timerId);
     }
   }, 1000);
 };
 
+// 添加开始测验方法
+const startQuiz = () => {
+  showQuizModal.value = false;
+  quizStarted.value = true;
+  showResults.value = false; // 确保结果不显示
+  timeLeft.value = totalMinutes * 60; // 重置倒计时时间
+  startCountdown(); // 开始倒计时
+};
+
+// 添加取消测验方法
+const cancelQuiz = () => {
+  showQuizModal.value = false;
+  selectedAction.value = 'learn'; // 返回学习界面
+};
 
 const quizData =ref()
 
 // 添加完成状态追踪
 const completedChapters = ref({});
 
-// 提交答案的方法
+// 新增响应式变量
+const showSubmitModal = ref(false);
+const showMessage = ref(false);
+const messageText = ref('');
+
+// 修改原有的 submitAnswers 方法
 function submitAnswers() {
+  if (!quizStarted.value || timeLeft.value <= 0) return;
+  showSubmitModal.value = true; // 显示确认弹窗
+}
+
+// 显示临时消息的方法
+const showTemporaryMessage = (message) => {
+  messageText.value = message;
+  showMessage.value = true;
+  setTimeout(() => {
+    showMessage.value = false;
+  }, 1000);
+};
+
+// 确认提交方法
+const confirmSubmit = () => {
+  showSubmitModal.value = false;
+  
   let totalScore = 0;
   const userAnswers = [];
   let c = JSON.parse(JSON.stringify(que))._value;
@@ -758,9 +828,6 @@ function submitAnswers() {
   // 显示结果
   showResults.value = true;
 
-  //计算测验时长
-  const duration = Math.floor((Date.now() - startTime) / 1000);
-  
   // 准备提交数据
   quizData.value = {
     quizId: quizId.value,
@@ -768,7 +835,7 @@ function submitAnswers() {
     questions: JSON.stringify(que.value),
     score: totalScore,
     chapterId: currentChapterId.value,
-    remainingTime: duration
+    remainingTime: timeLeft.value
   };
 
   // 更新章节完成状态
@@ -783,6 +850,19 @@ function submitAnswers() {
   }
   // 禁用输入框
   disableInputs();
+
+  // 停止倒计时
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  // 显示结果
+  showResults.value = true;
+  quizStarted.value = false; // 重置测验状态
+
+  // 显示提交成功消息
+  showTemporaryMessage('提交成功！');
 }
 
 
@@ -804,6 +884,7 @@ async function submitQuizScore(quizData) {
 
     const data = await response.json();
     console.log('Success:', data);
+    console.log('Time:',timeLeft.value)
   } catch (error) {
     console.error('Error:', error);
   }
@@ -814,8 +895,13 @@ async function submitQuizScore(quizData) {
 onUnmounted(() => {
   if (timerId) {
     clearInterval(timerId);
+    timerId = null;
   }
 });
+
+// 在 script setup 中添加新的响应式变量和方法
+const showQuizModal = ref(true); // 控制弹窗显示
+const quizStarted = ref(false); // 控制测验是否已开始
 
 </script>
 
@@ -1502,6 +1588,159 @@ button:hover {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.quiz-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease;
+}
+
+.cute-character {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn {
+  background-color: rgb(236, 198, 236);
+  color: white;
+}
+
+.start-btn:hover {
+  background-color: rgb(226, 178, 226);
+  transform: translateY(-2px);
+}
+
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background-color: #e8e8e8;
+  transform: translateY(-2px);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.submit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.thinking-character {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+.modal-text {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.yes-btn {
+  background-color: rgb(236, 198, 236);
+  color: white;
+}
+
+.yes-btn:hover {
+  background-color: rgb(226, 178, 226);
+}
+
+.no-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.no-btn:hover {
+  background-color: #e8e8e8;
+}
+
+.message-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  z-index: 1001;
+  animation: fadeInOut 1s ease;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
 }
 
 </style>
