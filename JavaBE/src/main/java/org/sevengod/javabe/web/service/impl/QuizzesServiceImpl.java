@@ -12,6 +12,7 @@ import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.QuizzesService;
+import org.sevengod.javabe.util.DifyResponseUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,39 +63,19 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
                 result.put("quiz_prompt", quiz.getQuizPrompt());
                 
                 try {
-                    String aiResponse = Objects.requireNonNull(difyService.streamWorkflow(
-                                            Map.of("Content", quiz.getQuizPrompt(),
-                                                    "Type", "小测"
-                                            ),
-                                            userId.toString(),
-                                            APIKey
-                                    )
-                                    .collectList()
-                                    .block(Duration.ofSeconds(30)))  // 设置30秒超时
-                            .stream()
-                            .filter(response -> "workflow_finished".equals(response.getEvent()))
-                            .findFirst()
-                            .<String>map(response -> {
-                                return (String) response.getData().getOutputs().get("answer");
-                            })
-                            .orElseThrow(() -> new RuntimeException("未能获取到有效的生成内容"));
-
-                    // 清理JSON字符串
-                    aiResponse = aiResponse.replaceAll("```json\\n", "")
-                                      .replaceAll("```", "")
-                                      .trim();
-
-                    // 解析JSON数据并添加到结果中
-                    Map<String, Object> quizData = JSON.parseObject(aiResponse);
+                    Map<String, Object> quizData = DifyResponseUtil.getAIResponse(
+                        difyService,
+                        quiz.getQuizPrompt(),
+                        userId.toString(),
+                        APIKey,
+                        "小测"
+                    );
                     result.putAll(quizData);
                     
-                } catch (Exception e) {
+                } catch (DifyException e) {
                     String errorDetails = "生成测验失败: " + e.getMessage();
                     result.put("error", errorDetails);
-                    if (e instanceof TimeoutException) {
-                        throw DifyException.timeout();
-                    }
-                    throw new DifyException(errorDetails, e);
+                    throw e;
                 }
             }
             
