@@ -78,6 +78,7 @@ dify:
   url: https://dify.aipfuture.com/v1
   key:
     ask-ai: app-oGCLThhvLjBwqnhzLbNnOure
+    quiz-key: app-RjU3aR6XQ5Dd91QmeGF8UMoK
 
 springdoc:
   swagger-ui:

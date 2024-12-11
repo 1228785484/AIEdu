@@ -15,16 +15,14 @@ import org.sevengod.javabe.web.service.QuizzesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
@@ -42,7 +40,8 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
     @Autowired
     private ChapterMapper chapterMapper;
 
-    private final String APIKey = "app-RjU3aR6XQ5Dd91QmeGF8UMoK";
+    @Value("${dify.key.quiz-key}")
+    private String APIKey;
 
     @Override
     @Async("taskExecutor")
@@ -63,15 +62,15 @@ public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> impl
                 result.put("quiz_prompt", quiz.getQuizPrompt());
                 
                 try {
-                    String aiResponse = difyService.streamWorkflow(
-                            Map.of("Content", quiz.getQuizPrompt(),
-                                    "Type", "小测"
-                            ),
-                            userId.toString(),
-                            APIKey
-                    )
-                            .collectList()
-                            .block(Duration.ofSeconds(30))  // 设置30秒超时
+                    String aiResponse = Objects.requireNonNull(difyService.streamWorkflow(
+                                            Map.of("Content", quiz.getQuizPrompt(),
+                                                    "Type", "小测"
+                                            ),
+                                            userId.toString(),
+                                            APIKey
+                                    )
+                                    .collectList()
+                                    .block(Duration.ofSeconds(30)))  // 设置30秒超时
                             .stream()
                             .filter(response -> "workflow_finished".equals(response.getEvent()))
                             .findFirst()
