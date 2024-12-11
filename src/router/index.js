@@ -43,7 +43,10 @@ const routes = [
   {
     path: '/learning',         // 学习页面路径
     name: 'Learning',          // 路由名称
-    component: Learning        // 映射 Learning 组件
+    component: Learning,        // 映射 Learning 组件
+    meta: {
+      keepAlive: true // 确保组件不被缓存
+    }
   },
   {
     path: '/report-generation', // 报告生成页面路径
