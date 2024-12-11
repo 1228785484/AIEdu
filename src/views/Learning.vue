@@ -212,10 +212,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted , onUnmounted, computed} from 'vue';
+import { ref, onMounted, onUnmounted, computed, defineExpose} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
+import { tryOnUnmounted } from '@vueuse/core';
+import { onActivated, onDeactivated } from 'vue';
+
 const router = useRouter();
 
 // 添加加载状态
@@ -929,6 +933,163 @@ const cancelSubmit = () => {
   pendingAction.value = null;
   pendingNode.value = null;
 };
+
+
+//建立webSocket连接
+// 在组件挂载时添加页面可见性监听器
+// 在组件卸载时移除监听器
+// 在组件激活和停用时也相应地添加和移除监听器
+// 这样，当用户：
+// 最小化浏览器窗口
+// 切换到其他标签页
+// 切换到其他应用程序
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重新建立连接。这样可以更准确地记录用户的实际学习时长。
+
+let ws = null;
+let reconnectTimer = null;
+let isHandle = false;
+
+// 添加页面可见性变化的处理函数
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    // 页面被隐藏（最小化或切换到其他标签）
+    console.log('页面被隐藏，关闭 WebSocket');
+    closeWs();
+  } else {
+    // 页面重新可见
+    console.log('页面重新可见，重新连接 WebSocket');
+    initWebSocket();
+  }
+};
+
+// 添加初始化 WebSocket 的函数
+const initWebSocket = () => {
+  // 先清理现有连接
+  closeWs();
+  
+  const userId = localStorage.getItem('userid');
+  const courseId = localStorage.getItem('selectedCourseId');
+  
+  if (!userId || !courseId) {
+    console.warn('缺少必要的连接参数');
+    return;
+  }
+
+  console.log('正在初始化 WebSocket 连接...');
+  const wsUrl = `ws://localhost:8008/study-time?userId=${userId}&courseId=${courseId}`;
+  
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.addEventListener('open', openHandle);
+    ws.addEventListener('close', closeHandle);
+    ws.addEventListener('message', messageHandle);
+    ws.addEventListener('error', errorHandle);
+  } catch (error) {
+    console.error('WebSocket 初始化失败:', error);
+  }
+};
+
+const openHandle = () => {
+  console.log('WebSocket 连接成功建立');
+  isHandle = false;
+};
+
+const closeHandle = () => {
+  console.log('WebSocket 连接已关闭');
+  if (!isHandle) {
+    scheduleReconnect();
+  }
+};
+
+const messageHandle = ({ data }) => {
+  console.log('收到消息:', data);
+};
+
+const errorHandle = (error) => {
+  console.error('WebSocket 错误:', error);
+};
+
+const scheduleReconnect = () => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+  }
+  reconnectTimer = setTimeout(() => {
+    console.log('尝试重新连接...');
+    initWebSocket();
+  }, 1000);
+};
+
+const closeWs = () => {
+  isHandle = true;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (ws) {
+    ws.removeEventListener('open', openHandle);
+    ws.removeEventListener('close', closeHandle);
+    ws.removeEventListener('message', messageHandle);
+    ws.removeEventListener('error', errorHandle);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+    ws = null;
+  }
+  console.log('WebSocket 连接已清理');
+};
+
+// 组件挂载时
+onMounted(() => {
+  console.log('组件挂载，初始化 WebSocket');
+  // 添加页面可见性变化监听器
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  setTimeout(() => {
+    initWebSocket();
+  }, 100);
+});
+
+// 路由离开时
+onBeforeRouteLeave((to, from, next) => {
+  console.log('路由离开，关闭 WebSocket');
+  closeWs();
+  next();
+});
+
+// 路由更新时
+onBeforeRouteUpdate((to, from, next) => {
+  console.log('路由更新，重新初始化 WebSocket');
+  initWebSocket();
+  next();
+});
+
+// 组件卸载时
+tryOnUnmounted(() => {
+  console.log('组件卸载，关闭 WebSocket');
+  // 移除页面可见性变化监听器
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  closeWs();
+});
+
+// 组件激活时（从缓存中被重新激活）
+onActivated(() => {
+  console.log('组件激活，初始化 WebSocket');
+  // 重新添加页面可见性变化监听器
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  initWebSocket();
+});
+
+// 组件停用时（被缓存）
+onDeactivated(() => {
+  console.log('组件停用，关闭 WebSocket');
+  // 移除页面可见性变化监听器
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  closeWs();
+});
+
+defineExpose({
+  initWebSocket,
+  closeWs
+});
 
 </script>
 
