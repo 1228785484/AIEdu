@@ -612,7 +612,7 @@ const score = ref(0);
  //渲染测验题目的函数
  function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选��)'}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
       const inputType = question.type === 'single' ? 'radio' : 'checkbox';
@@ -834,8 +834,7 @@ const confirmSubmit = () => {
     userId: Number(localStorage.getItem('userid')),
     questions: JSON.stringify(que.value),
     score: totalScore,
-    chapterId: currentChapterId.value,
-    remainingTime: timeLeft.value
+    timeLeft: timeLeft.value
   };
 
   // 更新章节完成状态

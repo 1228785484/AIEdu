@@ -481,9 +481,10 @@ const generateLearningReport = async () => {
 
 const fetchUnitQuizScores = async () => {
   try {
-    // 从本地存储获取用户ID
+    // 从本地存储获取用户信息
     const userId = localStorage.getItem('userid')
-    if (!userId) {
+    const token = localStorage.getItem('token')
+    if (!userId || !token) {
       ElMessage.error('未找到用户信息')
       return
     }
@@ -491,10 +492,11 @@ const fetchUnitQuizScores = async () => {
     // 获取所有单元的测验分数
     const allUnitScores = {}
     for (const unit of courseTree.value) {
-      const response = await fetch('http://0.0.0.0:8008/quiz/getUnitQuizScores', {
+      const response = await fetch('http://localhost:8008/quiz/getUnitQuizScores', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           unitId: unit.id,
@@ -511,7 +513,7 @@ const fetchUnitQuizScores = async () => {
     updateQuizChart()
   } catch (error) {
     console.error('获取单元测验分数失败:', error)
-    ElMessage.error('获取单元测验分数失败')
+    ElMessage.error('获取单元测验分数失败: ' + error.message)
   }
 }
 
