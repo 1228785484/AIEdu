@@ -326,7 +326,14 @@ var option = ref({
 
 // const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
-  selectedAction.value = action; // 更新选中的动作
+  if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
+    // 如果正在测验中且未显示结果，显示确认弹窗
+    showSubmitModal.value = true;
+    // 保存用户想要切换到的动作
+    pendingAction.value = action;
+  } else {
+    selectedAction.value = action;
+  }
 }
 
 // 目录树数据改为响应式
@@ -516,8 +523,17 @@ const updateStudyTimes = async () => {
 
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
+  // 如果正在测验中且未显示结果，显示确认弹窗
+  if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
+    showSubmitModal.value = true;
+    // 保存用户想要切换到的节点
+    pendingNode.value = nodeData;
+    return;
+  }
+
+  // 原有的处理逻辑
   const chapterId = nodeData.id;
-  currentChapterId.value = chapterId; // 保存当前选中的章节ID
+  currentChapterId.value = chapterId;
   const userId = localStorage.getItem('userid');
 
   console.log('Clicked node ID:', chapterId);
@@ -605,14 +621,14 @@ const handleNodeClick = async (nodeData) => {
 const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
-// 响应式变量，用于存��用户的得分
+// 响应式变量，用于存储用户的得分
 const score = ref(0);
 
  //渲染题目
  //渲染测验题目的函数
  function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
       const inputType = question.type === 'single' ? 'radio' : 'checkbox';
@@ -835,6 +851,7 @@ const confirmSubmit = () => {
     questions: JSON.stringify(que.value),
     score: totalScore,
     timeLeft: timeLeft.value
+
   };
 
   // 更新章节完成状态
@@ -901,6 +918,17 @@ onUnmounted(() => {
 // 在 script setup 中添加新的响应式变量和方法
 const showQuizModal = ref(true); // 控制弹窗显示
 const quizStarted = ref(false); // 控制测验是否已开始
+
+// 在 script setup 中添加新的响应式变量
+const pendingAction = ref(null);
+const pendingNode = ref(null);
+
+// 修改 cancelSubmit 函数
+const cancelSubmit = () => {
+  showSubmitModal.value = false;
+  pendingAction.value = null;
+  pendingNode.value = null;
+};
 
 </script>
 
