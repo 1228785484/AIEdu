@@ -89,40 +89,79 @@
           </div>
           <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
-              <!-- 添加加载状态显示 -->
+              <!-- 提交确认弹窗 -->
+              <div v-if="showSubmitModal" class="submit-modal">
+                <div class="modal-content">
+                  <img src="@/assets/thinking-character.gif" alt="思考的小人" class="thinking-character">
+                  <div class="modal-text">是否确认提交答案？</div>
+                  <div class="modal-buttons">
+                    <button class="modal-btn yes-btn" @click="confirmSubmit">Yes</button>
+                    <button class="modal-btn no-btn" @click="cancelSubmit">No</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 提示消息 -->
+              <div v-if="showMessage" class="message-popup">
+                {{ messageText }}
+              </div>
+
+              <!-- 测验内容加载完成后显示的弹窗 -->
+              <div v-if="showQuizModal && testData.content && !isQuizLoading" class="quiz-modal">
+                <div class="modal-content">
+                  <img src="@/assets/cute-character.gif" alt="可爱的小人" class="cute-character">
+                  <div class="modal-buttons">
+                    <button class="modal-btn start-btn" @click="startQuiz">开始测验</button>
+                    <button class="modal-btn cancel-btn" @click="cancelQuiz">取消</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 加载状态显示 -->
               <div v-if="isQuizLoading" class="loading-container">
                 <div class="loading-spinner"></div>
                 <p>测验内容加载中...</p>
               </div>
               <!-- 测验内容 -->
               <div v-else>
-                <div v-if="testData.content" v-html="testData.content"></div>
-                <div v-else>请选择一个章节开始测验</div>
-              </div>
-            </div>
-            <!-- 提交按钮 -->
-            <button v-if="timeLeft > 0 && !isQuizLoading" @click="submitAnswers">提交</button>
-            <div v-if="timeLeft <= 0" class = "time-message">时间结束，禁止答题</div>
-            <!--倒计时-->
-            <div v-if="!isQuizLoading" class = "countdown">剩余时间：{{ countdownDisplay }}</div>
-            <div v-if="showResults" class="results-section"></div>
-            <!-- <button v-if="!isQuizLoading&&testData.content" @click="submitAnswers">提交</button> -->
-            <div v-if="showResults" class="results-section">
-              <div class="score">得分：{{ score }}分</div>
-              <div class="answers">
-                <div v-for="(question, index) in testData.questions" :key="index">
-                  <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
-                  <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
-                    用户答案：{{ userAnswers[index] || '未作答' }}
-                  </div>
-                  <div class="correct-answer">正确答案：{{ question.answer }}</div>
-                  <div v-if="userAnswers[index] !== question.answer" class="explanation">
-                    解析：{{ question.explanation }}
+                <!-- 测验加载失败或未选择章节 -->
+                <div v-if="!testData.content" class="no-content-message">
+                  <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
+                </div>
+                
+                <!-- 只有在成功加载测验内容后才显示测验界面 -->
+                <div v-else>
+                  <!-- 题目内容 -->
+                  <div v-html="testData.content"></div>
+                  
+                  <!-- 只在测验内容加载后且未提交答案时显示倒计时和提交按钮 -->
+                  <template v-if="!showResults">
+                    <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
+                    <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
+                      提交答案
+                    </button>
+                    <div v-else class="time-message">时间结束，禁止答题</div>
+                  </template>
+                  
+                  <!-- 只在提交答案后显示测验结果 -->
+                  <div v-if="showResults" class="results-section">
+                    <div class="score">得分：{{ score }}分</div>
+                    <div class="answers">
+                      <div v-for="(question, index) in que.value" :key="index">
+                        <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                        <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                          用户答案：{{ userAnswers[index] || '未作答' }}
+                        </div>
+                        <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                        <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                          解析：{{ question.explanation }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            
           </div>
           
         </div>
@@ -142,9 +181,13 @@
             :props="defaultProps"
             :current-node-key="currentChapterId"
             @node-click="handleNodeClick"
+            :highlight-current="false"
           >
             <template #default="{ node }">
-              <div style="display: flex; align-items: center; width: 100%">
+              <div 
+                style="display: flex; align-items: center; width: 100%"
+                :class="{ 'selected-node': currentChapterId === node.data.id }"
+              >
                 <span 
                   v-if="!node.children || node.children.length === 0"
                   class="status-dot"
@@ -169,10 +212,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted , onUnmounted, computed} from 'vue';
+import { ref, onMounted, onUnmounted, computed, defineExpose} from 'vue';
 import { ElTree } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
+import { tryOnUnmounted } from '@vueuse/core';
+import { onActivated, onDeactivated } from 'vue';
+
 const router = useRouter();
 
 // 添加加载状态
@@ -204,10 +251,11 @@ let note = ref({
 });
 
 //另一种进度图
-var progressValue = 60;
-var option = {
+//另一种进度图
+var progressValue = ref(0);
+var option = ref({
   title: {
-    text: progressValue + '%',
+    text: progressValue.value + '%',
     textStyle: {
       color: '#28BCFE',
       fontSize: '25px'
@@ -243,7 +291,7 @@ var option = {
     {
       type: 'bar',
       z: 2,
-      data: [progressValue * 180 / 100],
+      data: [progressValue.value * 180 / 100],
       showBackground: true,
       backgroundStyle: { color: 'transparent' },
       coordinateSystem: 'polar',
@@ -278,11 +326,18 @@ var option = {
       itemStyle: { opacity: 1, color: '#093368' }
     }
   ]
-};
+});
 
 // const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
-  selectedAction.value = action; // 更新选中的动作
+  if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
+    // 如果正在测验中且未显示结果，显示确认弹窗
+    showSubmitModal.value = true;
+    // 保存用户想要切换到的动作
+    pendingAction.value = action;
+  } else {
+    selectedAction.value = action;
+  }
 }
 
 // 目录树数据改为响应式
@@ -333,6 +388,8 @@ const loadCourseTree = async () => {
 
 onMounted(() => {
   loadCourseTree();
+  updateLearningProgress();
+  updateStudyTimes();
 });
 
 // el-tree 需要的默认属性配置
@@ -360,10 +417,127 @@ const selectedAction = ref('learn'); // 默认显示学习界面
 // 添加一个变量来存储当前选中的章节ID
 const currentChapterId = ref(null);
 
+//更新任务点的函数
+// 添加新的函数用于获取任务点数据
+const updateTaskPoints = async (unitId) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/course/unit-completion?userId=${userId}&unitId=${unitId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch task points');
+    }
+
+    const result = await response.json();
+    console.log(result)
+    // 更新任务点数据
+    note.value.task = result.data.completedChapters;
+    note.value.sumTask = result.data.totalChapters;
+  } catch (error) {
+    console.error('Error fetching task points:', error);
+  }
+};
+
+//更新测验点的函数
+const updateTestPoints = async (unitId) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/course/quiz-completion?userId=${userId}&unitId=${unitId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch test points');
+    }
+
+    const result = await response.json();
+    console.log(result)
+    // 更新任务点数据
+    note.value.test = result.data.completedQuizzes;
+    note.value.sumTest = result.data.totalQuizzes;
+  } catch (error) {
+    console.error('Error fetching test points:', error);
+  }
+};
+
+// 添加获取学习进度的函数
+const updateLearningProgress = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const courseId = localStorage.getItem('selectedCourseId');
+    
+    const response = await fetch(`http://localhost:8008/api/course/course-completion-percentage?userId=${userId}&courseId=${courseId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch learning progress');
+    }
+
+    const result = await response.json();
+    // 更新进度值
+    console.log(result)
+    progressValue.value = parseInt(result.data.completionPercentage);
+    
+    // 更新图表配置
+    option.value.title.text = progressValue.value + '%';
+    option.value.series[0].data = [progressValue.value * 180 / 100];
+  } catch (error) {
+    console.error('Error fetching learning progress:', error);
+  }
+};
+
+// 添加获取学习次数的函数
+const updateStudyTimes = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    
+    const response = await fetch(`http://localhost:8008/api/course/study-times?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch study times');
+    }
+
+    const result = await response.json();
+    console.log(result)
+    // 更新学习次数值
+    note.value.frequency = result.data
+    
+  } catch (error) {
+    console.error('Error fetching study times:', error);
+  }
+};
+
+
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
+  // 如果正在测验中且未显示结果，显示确认弹窗
+  if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
+    showSubmitModal.value = true;
+    // 保存用户想要切换到的节点
+    pendingNode.value = nodeData;
+    return;
+  }
+
+  // 原有的处理逻辑
   const chapterId = nodeData.id;
-  currentChapterId.value = chapterId; // 保存当前选中的章节ID
+  currentChapterId.value = chapterId;
   const userId = localStorage.getItem('userid');
 
   console.log('Clicked node ID:', chapterId);
@@ -372,6 +546,8 @@ const handleNodeClick = async (nodeData) => {
   // 如果不是叶子节点，直接返回
   if (nodeData.children && nodeData.children.length > 0) {
     console.log("这是根节点")
+    await updateTaskPoints(chapterId);
+    await updateTestPoints(chapterId);
     return;
   }
   try {
@@ -417,8 +593,14 @@ const handleNodeClick = async (nodeData) => {
         que.value = quizResult.data.questions;
         if (quizResult && quizResult.data && quizResult.data.questions) {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-          startCountdown();
-          console.log(que.value)
+          showQuizModal.value = true; // 显示弹窗
+          quizStarted.value = false; // 重置测验状态
+          showResults.value = false; // 重置结果显示状态
+          timeLeft.value = totalMinutes * 60; // 重置倒计时时间
+          if (timerId) {
+            clearInterval(timerId); // 清除之前的定时器
+            timerId = null;
+          }
         } else {
           testData.value = { content: '无法加载测验内容' };
         }
@@ -450,7 +632,7 @@ const score = ref(0);
  //渲染测验题目的函数
  function renderQuizQuestions(questions) {
   return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选题)'}</div>`;
+    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选)'}</div>`;
     questionHtml += `<div class="options">`;
     for (const [option, text] of Object.entries(question.options)) {
       const inputType = question.type === 'single' ? 'radio' : 'checkbox';
@@ -520,27 +702,65 @@ const countdownDisplay = computed(() => {
 
 // 开始倒计时
 const startCountdown = () => {
+  if (!quizStarted.value) return; // 如果测验未开始，不启动倒计时
+  
   timeLeft.value = totalMinutes * 60;
   if (timerId !== null) {
-    clearInterval(timerId); // 如果已有定时器在运行，先清除
+    clearInterval(timerId);
   }
   timerId = setInterval(() => {
     if (timeLeft.value > 0) {
-      timeLeft.value--; // 每秒减少1
+      timeLeft.value--;
     } else {
-      clearInterval(timerId); // 时间到，清除定时器
+      clearInterval(timerId);
     }
   }, 1000);
 };
 
+// 添加开始测验方法
+const startQuiz = () => {
+  showQuizModal.value = false;
+  quizStarted.value = true;
+  showResults.value = false; // 确保结果不显示
+  timeLeft.value = totalMinutes * 60; // 重置倒计时时间
+  startCountdown(); // 开始倒计时
+};
+
+// 添加取消测验方法
+const cancelQuiz = () => {
+  showQuizModal.value = false;
+  selectedAction.value = 'learn'; // 返回学习界面
+};
 
 const quizData =ref()
 
 // 添加完成状态追踪
 const completedChapters = ref({});
 
-// 提交答案的方法
+// 新增响应式变量
+const showSubmitModal = ref(false);
+const showMessage = ref(false);
+const messageText = ref('');
+
+// 修改原有的 submitAnswers 方法
 function submitAnswers() {
+  if (!quizStarted.value || timeLeft.value <= 0) return;
+  showSubmitModal.value = true; // 显示确认弹窗
+}
+
+// 显示临时消息的方法
+const showTemporaryMessage = (message) => {
+  messageText.value = message;
+  showMessage.value = true;
+  setTimeout(() => {
+    showMessage.value = false;
+  }, 1000);
+};
+
+// 确认提交方法
+const confirmSubmit = () => {
+  showSubmitModal.value = false;
+  
   let totalScore = 0;
   const userAnswers = [];
   let c = JSON.parse(JSON.stringify(que))._value;
@@ -633,9 +853,9 @@ function submitAnswers() {
     quizId: quizId.value,
     userId: Number(localStorage.getItem('userid')),
     questions: JSON.stringify(que.value),
-    answers: JSON.stringify(userAnswers),
     score: totalScore,
-    chapterId: currentChapterId.value
+    timeLeft: timeLeft.value
+
   };
 
   // 更新章节完成状态
@@ -650,6 +870,19 @@ function submitAnswers() {
   }
   // 禁用输入框
   disableInputs();
+
+  // 停止倒计时
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  // 显示结果
+  showResults.value = true;
+  quizStarted.value = false; // 重置测验状态
+
+  // 显示提交成功消息
+  showTemporaryMessage('提交成功！');
 }
 
 
@@ -671,6 +904,7 @@ async function submitQuizScore(quizData) {
 
     const data = await response.json();
     console.log('Success:', data);
+    console.log('Time:',timeLeft.value)
   } catch (error) {
     console.error('Error:', error);
   }
@@ -681,7 +915,180 @@ async function submitQuizScore(quizData) {
 onUnmounted(() => {
   if (timerId) {
     clearInterval(timerId);
+    timerId = null;
   }
+});
+
+// 在 script setup 中添加新的响应式变量和方法
+const showQuizModal = ref(true); // 控制弹窗显示
+const quizStarted = ref(false); // 控制测验是否已开始
+
+// 在 script setup 中添加新的响应式变量
+const pendingAction = ref(null);
+const pendingNode = ref(null);
+
+// 修改 cancelSubmit 函数
+const cancelSubmit = () => {
+  showSubmitModal.value = false;
+  pendingAction.value = null;
+  pendingNode.value = null;
+};
+
+
+//建立webSocket连接
+// 在组件挂载时添加页面可见性监听器
+// 在组件卸载时移除监听器
+// 在组件激活和停用时也相应地添加和移除监听器
+// 这样，当用户：
+// 最小化浏览器窗口
+// 切换到其他标签页
+// 切换到其他应用程序
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重新建立连接。这样可以更准确地记录用户的实际学习时长。
+
+let ws = null;
+let reconnectTimer = null;
+let isHandle = false;
+
+// 添加页面可见性变化的处理函数
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    // 页面被隐藏（最小化或切换到其他标签）
+    console.log('页面被隐藏，关闭 WebSocket');
+    closeWs();
+  } else {
+    // 页面重新可见
+    console.log('页面重新可见，重新连接 WebSocket');
+    initWebSocket();
+  }
+};
+
+// 添加初始化 WebSocket 的函数
+const initWebSocket = () => {
+  // 先清理现有连接
+  closeWs();
+  
+  const userId = localStorage.getItem('userid');
+  const courseId = localStorage.getItem('selectedCourseId');
+  
+  if (!userId || !courseId) {
+    console.warn('缺少必要的连接参数');
+    return;
+  }
+
+  console.log('正在初始化 WebSocket 连接...');
+  const wsUrl = `ws://localhost:8008/study-time?userId=${userId}&courseId=${courseId}`;
+  
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.addEventListener('open', openHandle);
+    ws.addEventListener('close', closeHandle);
+    ws.addEventListener('message', messageHandle);
+    ws.addEventListener('error', errorHandle);
+  } catch (error) {
+    console.error('WebSocket 初始化失败:', error);
+  }
+};
+
+const openHandle = () => {
+  console.log('WebSocket 连接成功建立');
+  isHandle = false;
+};
+
+const closeHandle = () => {
+  console.log('WebSocket 连接已关闭');
+  if (!isHandle) {
+    scheduleReconnect();
+  }
+};
+
+const messageHandle = ({ data }) => {
+  console.log('收到消息:', data);
+};
+
+const errorHandle = (error) => {
+  console.error('WebSocket 错误:', error);
+};
+
+const scheduleReconnect = () => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+  }
+  reconnectTimer = setTimeout(() => {
+    console.log('尝试重新连接...');
+    initWebSocket();
+  }, 1000);
+};
+
+const closeWs = () => {
+  isHandle = true;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (ws) {
+    ws.removeEventListener('open', openHandle);
+    ws.removeEventListener('close', closeHandle);
+    ws.removeEventListener('message', messageHandle);
+    ws.removeEventListener('error', errorHandle);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+    ws = null;
+  }
+  console.log('WebSocket 连接已清理');
+};
+
+// 组件挂载时
+onMounted(() => {
+  console.log('组件挂载，初始化 WebSocket');
+  // 添加页面可见性变化监听器
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  setTimeout(() => {
+    initWebSocket();
+  }, 100);
+});
+
+// 路由离开时
+onBeforeRouteLeave((to, from, next) => {
+  console.log('路由离开，关闭 WebSocket');
+  closeWs();
+  next();
+});
+
+// 路由更新时
+onBeforeRouteUpdate((to, from, next) => {
+  console.log('路由更新，重新初始化 WebSocket');
+  initWebSocket();
+  next();
+});
+
+// 组件卸载时
+tryOnUnmounted(() => {
+  console.log('组件卸载，关闭 WebSocket');
+  // 移除页面可见性变化监听器
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  closeWs();
+});
+
+// 组件激活时（从缓存中被重新激活）
+onActivated(() => {
+  console.log('组件激活，初始化 WebSocket');
+  // 重新添加页面可见性变化监听器
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  initWebSocket();
+});
+
+// 组件停用时（被缓存）
+onDeactivated(() => {
+  console.log('组件停用，关闭 WebSocket');
+  // 移除页面可见性变化监听器
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  closeWs();
+});
+
+defineExpose({
+  initWebSocket,
+  closeWs
 });
 
 </script>
@@ -1068,19 +1475,6 @@ onUnmounted(() => {
     width: 8px;
     height: 8px;
 }
-
-.content-section::-webkit-scrollbar-track,
-#scrollable-area::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.content-section::-webkit-scrollbar-thumb,
-#scrollable-area::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
-}
-
 .content-section::-webkit-scrollbar-thumb:hover,
 #scrollable-area::-webkit-scrollbar-thumb:hover {
     background: #aaa;
@@ -1304,9 +1698,9 @@ button:hover {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #ff4d4f;
+  background-color: rgb(226, 178, 226);
   border: 1.5px solid white;
-  box-shadow: 0 0 0 1px #ff4d4f;
+  box-shadow: 0 0 0 1px rgb(226, 178, 226);
   flex-shrink: 0;
 
 }
@@ -1316,20 +1710,225 @@ button:hover {
   box-shadow: 0 0 0 1px #52c41a;
 }
 
-:deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: #f0f0f0 !important;  
-  color: #333;  
-
+/* 添加选中节点的样式 */
+.selected-node {
+  background-color: rgb(236, 198, 236) !important;
+  border-radius: 4px;
+  padding: 4px;
 }
 
-:deep(.el-tree-node__content:hover) {
-  background-color: #f5f5f5;  
+.no-content-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #666;
+  font-size: 16px;
+  text-align: center;
 }
 
-:deep(.el-tree-node__content) {
-  height: 36px;  
-  border-radius: 4px;  
-  margin: 2px 0;  
-  transition: all 0.3s;  
+.submit-btn {
+  display: block;
+  margin: 20px auto;
+  padding: 12px 30px;
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
 }
+
+.submit-btn:hover {
+  background-color: rgb(226, 178, 226);
+  transform: translateY(-2px);
+}
+
+.submit-btn:active {
+  transform: translateY(1px);
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid rgb(236, 198, 236);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.quiz-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease;
+}
+
+.cute-character {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn {
+  background-color: rgb(236, 198, 236);
+  color: white;
+}
+
+.start-btn:hover {
+  background-color: rgb(226, 178, 226);
+  transform: translateY(-2px);
+}
+
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background-color: #e8e8e8;
+  transform: translateY(-2px);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.submit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.thinking-character {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+.modal-text {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.yes-btn {
+  background-color: rgb(236, 198, 236);
+  color: white;
+}
+
+.yes-btn:hover {
+  background-color: rgb(226, 178, 226);
+}
+
+.no-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.no-btn:hover {
+  background-color: #e8e8e8;
+}
+
+.message-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  z-index: 1001;
+  animation: fadeInOut 1s ease;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
+
 </style>

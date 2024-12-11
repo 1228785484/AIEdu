@@ -12,7 +12,7 @@
         <div class="tooltip" v-show="showTooltip">全方位的学习数据分析与评估报告系统，提供章节学习情况、学情分析和测评记录等多维度的数据展示。</div>
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'chapter' }" @click="activeNav = 'chapter'">
-        <el-icon class="nav-icon"><Document /></el-icon>
+        <el-icon class="nav-icon"><DocumentIcon /></el-icon>
         章节报告
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'learning' }" @click="activeNav = 'learning'">
@@ -39,7 +39,9 @@
                   v-for="subChapter in chapter.children"
                   :key="subChapter.id"
                   class="sub-chapter-item"
-                  :class="{ active: activeUnit === subChapter.id }"
+                  :class="{ 
+                    active: activeUnit === subChapter.id || selectedChapter === subChapter.id 
+                  }"
                   @click="selectUnit(subChapter)"
                 >
                   {{ subChapter.label }}
@@ -48,101 +50,119 @@
             </el-tab-pane>
           </el-tabs>
           <div class="report-content">
-            <div class="chapter-report" v-if="currentReport">
-              <h3>{{ currentReport.chapterName }} - 章节报告</h3>
-              <div class="report-stats">
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                    <div class="stat-card">
-                      <div class="stat-title">完成率</div>
-                      <div class="stat-value">{{ currentReport.completionRate }}%</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="8">
-                    <div class="stat-card">
-                      <div class="stat-title">正确率</div>
-                      <div class="stat-value">{{ currentReport.accuracyRate }}%</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="8">
-                    <div class="stat-card">
-                      <div class="stat-title">掌握度</div>
-                      <div class="stat-value">{{ currentReport.masteryLevel }}%</div>
-                    </div>
-                  </el-col>
-                </el-row>
+            <!-- 加载状态 -->
+            <div v-if="isLoading" class="loading-state">
+              <div class="loading-effect">
+                <div class="loading-circle"></div>
+                <div class="loading-circle"></div>
+                <div class="loading-circle"></div>
               </div>
-              <div class="report-details">
-                <h4>知识点掌握情况</h4>
-                <div class="knowledge-points">
-                  <el-progress
-                    v-for="point in currentReport.knowledgePoints"
-                    :key="point.name"
-                    :percentage="point.mastery"
-                    :text-inside="true"
-                    :stroke-width="18"
-                    :format="format => `${point.name}: ${format}%`"
-                  />
-                </div>
-              </div>
-              <div class="learning-suggestions" v-if="currentReport.suggestions">
-                <h4>学习建议</h4>
-                <el-card class="suggestion-card">
-                  <div v-for="(suggestion, index) in currentReport.suggestions" :key="index" class="suggestion-item">
-                    <el-icon><InfoFilled /></el-icon>
-                    <span>{{ suggestion }}</span>
-                  </div>
-                </el-card>
+              <div class="loading-content">
+                <h3>正在生成章节报告</h3>
+                <p>请稍候，AI正在分析学习数据...</p>
               </div>
             </div>
-            <div class="no-report" v-else>
-              <el-empty description="请选择章节查看报告" />
+            
+            <!-- 报告内容 -->
+            <div v-else-if="currentReport" class="chapter-report">
+              <div class="report-header">
+                <h3>{{ currentReport.chapterName }} - 章节报告</h3>
+                <el-button type="primary" @click="downloadReport" class="download-btn">
+                  <el-icon><Download /></el-icon>
+                  导出Word
+                </el-button>
+              </div>
+              <div class="report-body">
+                <div class="report-content">
+                  <div 
+                    v-for="(paragraph, index) in currentReport.content" 
+                    :key="index" 
+                    class="report-paragraph"
+                  >
+                    {{ paragraph }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 空状态 -->
+            <div v-else class="no-report">
+              <el-empty description="请选择具体章节查看报告" />
             </div>
           </div>
         </div>
         <div v-if="activeNav === 'learning'" class="learning-report-container">
           <!-- 整体学习情况报告 -->
           <div class="overall-report-section">
-            <div class="section-header">
-              <h3 class="section-title">整体学习情况报告</h3>
-              <el-button 
-                type="primary" 
-                :icon="Refresh"
-                size="small"
-                :loading="isReportLoading"
-                @click="generateLearningReport"
-              >
+            <div class="report-header">
+              <h3>整体学习情况报告</h3>
+              <el-button type="primary" @click="generateLearningReport" :loading="isReportLoading">
+                <el-icon><Refresh /></el-icon>
                 更新报告
               </el-button>
             </div>
-            <div class="report-content" v-if="learningReport">
-              <div class="report-item">
-                <h4>学习进度</h4>
-                <p>{{ learningReport.progress }}</p>
+            
+            <!-- 加载状态 -->
+            <div v-if="isReportLoading" class="loading-state">
+              <div class="loading-effect">
+                <div class="loading-circle"></div>
+                <div class="loading-circle"></div>
+                <div class="loading-circle"></div>
               </div>
-              <div class="report-item">
-                <h4>知识掌握情况</h4>
-                <p>{{ learningReport.mastery }}</p>
-              </div>
-              <div class="report-item">
-                <h4>学习建议</h4>
-                <ul class="suggestion-list">
-                  <li v-for="(suggestion, index) in learningReport.suggestions" :key="index">
-                    {{ suggestion }}
-                  </li>
-                </ul>
+              <div class="loading-content">
+                <h3>正在生成学情报告</h3>
+                <p>请稍候，AI正在分析学习数据...</p>
               </div>
             </div>
-            <div v-else class="loading-text">
-              正在生成学习报告...
+            
+            <!-- 报告内容 -->
+            <div v-else-if="learningReport" class="report-body">
+              <div class="report-content">
+                <div class="report-section">
+                  <h4>学习进度</h4>
+                  <p class="report-text">{{ learningReport.progress }}</p>
+                </div>
+                <div class="report-section">
+                  <h4>知识掌握情况</h4>
+                  <p class="report-text">{{ learningReport.mastery }}</p>
+                </div>
+                <div class="report-section">
+                  <h4>学习建议</h4>
+                  <ul class="suggestion-list">
+                    <li v-for="(suggestion, index) in learningReport.suggestions" :key="index">
+                      {{ suggestion }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 空状态 -->
+            <div v-else class="no-report">
+              <el-empty description="暂无学情报告" />
             </div>
           </div>
 
           <!-- 单元测验平均分图表 -->
           <div class="score-chart-section">
-            <h3 class="section-title">单元测验平均分</h3>
+            <div class="section-header">
+              <h3 class="section-title">单元测验平均分</h3>
+              <el-tooltip content="刷新数据" placement="top">
+                <el-button 
+                  type="primary" 
+                  :icon="Refresh"
+                  circle
+                  size="small"
+                  :loading="isLoading"
+                  @click="fetchUnitQuizScores"
+                />
+              </el-tooltip>
+            </div>
             <div class="score-chart">
-              <VChart class="chart" :option="quizChartOption" />
+              <div v-if="isLoading" class="chart-loading">
+                <el-skeleton :rows="5" animated />
+              </div>
+              <VChart v-else class="chart" :option="quizChartOption" />
             </div>
           </div>
         </div>
@@ -179,18 +199,25 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Document, DataAnalysis, TrendCharts, InfoFilled, Refresh } from '@element-plus/icons-vue'
+import { 
+  ArrowLeft, 
+  Document as DocumentIcon, 
+  DataAnalysis, 
+  TrendCharts, 
+  Download
+} from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import VChart from 'vue-echarts'
 import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
   TitleComponent,
-  RadarComponent
+  TooltipComponent,
+  GridComponent,
+  LegendComponent
 } from 'echarts/components'
 import { LineChart, RadarChart } from 'echarts/charts'
 import { use } from 'echarts/core'
+import { saveAs } from 'file-saver'
+import { Document, Packer, Paragraph, HeadingLevel } from 'docx'
 
 // 注册必要的组件
 use([
@@ -199,8 +226,7 @@ use([
   LegendComponent,
   TitleComponent,
   LineChart,
-  RadarChart,
-  RadarComponent
+  RadarChart
 ])
 
 const router = useRouter()
@@ -213,7 +239,7 @@ const learningReport = ref(null)
 const selectedChart = ref('realtime')
 const isReportLoading = ref(false)
 const activeUnit = ref(null)
-const unitQuizScores = ref(null)
+
 const quizChartOption = ref({
   grid: {
     top: 100,
@@ -250,6 +276,8 @@ const quizChartOption = ref({
   series: []
 })
 
+const isLoading = ref(false)
+
 const loadCourseTree = async () => {
   try {
     const courseId = localStorage.getItem('selectedCourseId')
@@ -280,41 +308,56 @@ const loadCourseTree = async () => {
 
 const handleChapterChange = async (chapterId) => {
   selectedChapter.value = chapterId
-  const chapterName = courseTree.value.find(chapter => chapter.id === chapterId)?.label || '未知章节'
+  
+  // 查找当前章节
+  const findChapter = (chapters, targetId) => {
+    for (const chapter of chapters) {
+      if (chapter.id === targetId) {
+        return chapter
+      }
+      if (chapter.children && chapter.children.length > 0) {
+        const found = findChapter(chapter.children, targetId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const currentChapter = findChapter(courseTree.value, chapterId)
+  
+  // 如果不是叶子节点（还有子章节），不发送请求但保持选中状态
+  if (currentChapter?.children?.length > 0) {
+    console.log('请选择具体的小章节')
+    ElMessage.warning('请选择具体的小章节')
+    currentReport.value = null
+    return
+  }
   
   try {
+    isLoading.value = true
+    
+    // 保持当前选中的章节状态
+    const parentChapter = courseTree.value.find(chapter => 
+      chapter.children?.some(child => child.id === chapterId)
+    )
+    if (parentChapter) {
+      selectedChapter.value = parentChapter.id
+      activeUnit.value = chapterId
+    }
+    
     const token = localStorage.getItem('token')
     const userId = localStorage.getItem('userid')
-    const response = await fetch("http://localhost:8008/api/test/askAi", {
+    
+    const response = await fetch("http://localhost:8008/rating/getChapterRating", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
-        query: `请根据以下章节生成一份学习报告：${chapterName}。
-               报告需要包含以下内容：
-               1. 完成率（百分比）
-               2. 正确率（百分比）
-               3. 掌握度（百分比）
-               4. 知识点掌握情况（列出3-5个关键知识点及其掌握程度）
-               5. 针对性的学习建议（2-3条）
-               请以JSON格式返回数据，格式如下：
-               {
-                 "completionRate": 85,
-                 "accuracyRate": 90,
-                 "masteryLevel": 88,
-                 "knowledgePoints": [
-                   {"name": "知识点1", "mastery": 85},
-                   {"name": "知识点2", "mastery": 90}
-                 ],
-                 "suggestions": [
-                   "建议1",
-                   "建议2"
-                 ]
-               }`,
-        userId: userId
-      }),
+        userId: userId,
+        chapterId: chapterId
+      })
     })
 
     if (!response.ok) {
@@ -322,33 +365,29 @@ const handleChapterChange = async (chapterId) => {
     }
 
     const result = await response.json()
+    
     if (result.code === 200) {
-      try {
-        // 尝试解析AI返回的JSON字符串
-        const reportData = JSON.parse(result.data.answer.replace(/```json\n?|\n?```/g, ''))
-        currentReport.value = {
-          chapterName,
-          ...reportData
-        }
-      } catch (parseError) {
-        console.error('解析AI响应失败:', parseError)
-        ElMessage.error('生成报告失败，请重试')
-        currentReport.value = null
+      const paragraphs = result.data.reply.split('\n\n')
+      currentReport.value = {
+        chapterName: currentChapter.label,
+        content: paragraphs
       }
     } else {
-      ElMessage.error(result.msg || '生成报告失败')
-      currentReport.value = null
+      throw new Error(result.msg || '生成报告失败')
     }
   } catch (error) {
-    console.error('Error generating report:', error)
-    ElMessage.error('生成报告失败')
+    console.error('获取章节报告失败:', error)
+    ElMessage.error(error.message || '获取章节报告失败')
     currentReport.value = null
+  } finally {
+    isLoading.value = false
   }
 }
 
 const selectUnit = (unit) => {
   activeUnit.value = unit.id
-  // 加载该单元的具体报告数据
+  // 直接调用 handleChapterChange 获取报告
+  handleChapterChange(unit.id)
 }
 
 const goBack = () => {
@@ -385,7 +424,7 @@ const generateLearningReport = async () => {
     learningReport.value = {
       progress: result.data.progress || '暂无进度数据',
       mastery: result.data.mastery || '暂无掌握度数据',
-      suggestions: result.data.suggestions || ['暂无学习建议']
+      suggestions: result.data.suggestions || ['无学习建议']
     }
     
     ElMessage.success('报告更新成功')
@@ -399,84 +438,165 @@ const generateLearningReport = async () => {
 
 const fetchUnitQuizScores = async () => {
   try {
-    // 从本地存储获取用户ID
     const userId = localStorage.getItem('userid')
-    if (!userId) {
+    const token = localStorage.getItem('token')
+    if (!userId || !token) {
       ElMessage.error('未找到用户信息')
       return
     }
 
-    // 获取所有单元的测验分数
-    const allUnitScores = {}
-    for (const unit of courseTree.value) {
-      const response = await fetch('http://0.0.0.0:8008/quiz/getUnitQuizScores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          unitId: unit.id,
-          userId: userId
+    // 显示加载状态
+    isLoading.value = true
+
+    // 存储所有单元的分数
+    const allScores = []
+
+    // 遍历课程树获取每个单元的ID
+    for (const chapter of courseTree.value) {
+      try {
+        const response = await fetch('http://localhost:8008/quiz/getUnitQuizScores', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: userId,
+            unitId: chapter.id
+          })
         })
-      })
-      const data = await response.json()
-      if (data.success) {
-        allUnitScores[unit.label] = data.scores || {}
+
+        const result = await response.json()
+        if (result.code === 200) {
+          // 计算单元平均分
+          const chapterScores = result.data.chapter_scores
+          if (chapterScores && chapterScores.length > 0) {
+            const totalScore = chapterScores.reduce((sum, chapter) => sum + chapter.score, 0)
+            const averageScore = totalScore / chapterScores.length
+            
+            // 将单元分数添加到数组中
+            allScores.push({
+              unitId: result.data.unit_id,
+              unitName: chapter.label,
+              averageScore: parseFloat(averageScore.toFixed(2)) // 保留两位小数
+            })
+          }
+        }
+      } catch (error) {
+        console.error(`获取单元 ${chapter.id} 的测验分数失败:`, error)
       }
     }
-    
-    unitQuizScores.value = allUnitScores
-    updateQuizChart()
+
+    // 按单元ID排序
+    allScores.sort((a, b) => a.unitId - b.unitId)
+
+    // 更新图表数据
+    updateQuizChart(allScores)
   } catch (error) {
     console.error('获取单元测验分数失败:', error)
-    ElMessage.error('获取单元测验分数失败')
+    ElMessage.error('获取测验分数失败')
+  } finally {
+    isLoading.value = false
   }
 }
 
-const updateQuizChart = () => {
-  if (!unitQuizScores.value) return
-  
-  // 处理数据
-  const units = Object.keys(unitQuizScores.value)
-  const series = units.map(unit => {
-    const chapters = unitQuizScores.value[unit]
-    return {
-      name: unit,
-      type: 'line',
-      data: Object.values(chapters).map(score => parseFloat(score))
-    }
-  })
-
+// 更新图表数据的函数
+const updateQuizChart = (data) => {
   quizChartOption.value = {
     title: {
       text: '单元测验平均分',
-      left: 'center'
+      left: 'center',
+      top: 20,
+      textStyle: {
+        color: '#303133',
+        fontSize: 16,
+        fontWeight: 500
+      }
     },
     tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: units,
-      top: 30
+      trigger: 'axis',
+      formatter: (params) => {
+        const data = params[0]
+        return `${data.name}<br/>${data.seriesName}: ${data.value}分`
+      }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      top: 80,
+      left: '5%',
+      right: '5%',
+      bottom: '10%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
-      data: Object.keys(unitQuizScores.value[units[0]] || {}),
-      name: '章节'
+      data: data.map(item => item.unitName),
+      axisLine: {
+        lineStyle: {
+          color: '#909399'
+        }
+      },
+      axisLabel: {
+        color: '#606266',
+        interval: 0
+      }
     },
     yAxis: {
       type: 'value',
       min: 0,
       max: 100,
-      name: '分数'
+      name: '分数',
+      nameTextStyle: {
+        color: '#606266'
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#909399'
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          type: 'dashed',
+          color: '#E4E7ED'
+        }
+      }
     },
-    series: series
+    series: [{
+      name: '平均分',
+      type: 'line',
+      data: data.map(item => item.averageScore),
+      smooth: true,
+      symbolSize: 8,
+      itemStyle: {
+        color: '#409EFF'
+      },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [{
+            offset: 0,
+            color: 'rgba(64,158,255,0.2)'
+          }, {
+            offset: 1,
+            color: 'rgba(64,158,255,0)'
+          }]
+        }
+      },
+      markPoint: {
+        data: [
+          { type: 'max', name: '最高分' },
+          { type: 'min', name: '最低分' }
+        ]
+      },
+      markLine: {
+        data: [
+          { type: 'average', name: '平均分' }
+        ]
+      }
+    }]
   }
 }
 
@@ -583,16 +703,62 @@ const dataRecordOption = ref({
     }
   ]
 })
+
+const downloadReport = async () => {
+  if (!currentReport.value) {
+    ElMessage.warning('请先选择章节生成报告')
+    return
+  }
+
+  try {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          // 标题
+          new Paragraph({
+            text: `${currentReport.value.chapterName} - 学习报告`,
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 }
+          }),
+          
+          // 正文内容 - 将每个段落转换为 Word 段落
+          ...currentReport.value.content.map(paragraph => 
+            new Paragraph({
+              text: paragraph,
+              spacing: { after: 200 },
+              style: {
+                paragraph: {
+                  indent: {
+                    firstLine: 480 // 首行缩进2字符
+                  }
+                }
+              }
+            })
+          )
+        ]
+      }]
+    })
+
+    const blob = await Packer.toBlob(doc)
+    saveAs(blob, `${currentReport.value.chapterName}-学习报告.docx`)
+    ElMessage.success('报告下载成功！')
+  } catch (error) {
+    console.error('生成Word文档时出错:', error)
+    ElMessage.error('报告生成失败，请重试')
+  }
+}
 </script>
 
 <style scoped>
 .report-container {
   position: relative;
   display: flex;
-  min-height: calc(100vh - 40px);
+  height: calc(100vh - 120px);
   background-color: #f5f5f5;
   padding: 20px;
   gap: 15px;
+  overflow: hidden;
 }
 
 .back-button {
@@ -665,7 +831,7 @@ const dataRecordOption = ref({
 }
 
 .nav-menu {
-  width: 80px;
+  width: 200px;
   flex-shrink: 0;
   background: white;
   border-radius: 4px;
@@ -676,7 +842,7 @@ const dataRecordOption = ref({
 
 .page-title {
   text-align: center;
-  padding: 20px 0;
+  padding: 24px 20px;
   font-size: 18px;
   font-weight: 600;
   color: #303133;
@@ -697,7 +863,7 @@ const dataRecordOption = ref({
   font-size: 14px;
   font-weight: normal;
   white-space: normal;
-  width: 240px;
+  width: 300px;
   line-height: 1.6;
   z-index: 10;
 }
@@ -721,10 +887,10 @@ const dataRecordOption = ref({
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 14px;
+  font-size: 15px;
   color: #666;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 12px 0;
 }
 
 .nav-item:hover {
@@ -750,71 +916,66 @@ const dataRecordOption = ref({
 
 .main-content {
   flex: 4;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
 .content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: white;
   border-radius: 4px;
-  height: 100%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.unit-tabs {
-  display: flex;
-  padding: 8px 16px;
-  gap: 8px;
-  border-bottom: 1px solid #eee;
-  overflow-x: auto;
-  background: #fff;
-}
-
-.tab {
-  padding: 6px 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 13px;
-  color: #666;
-  border-radius: 16px;
-  white-space: nowrap;
-}
-
-.tab:hover {
-  color: #3f51b5;
-  background: #f8f9fa;
-}
-
-.tab.active {
-  color: #3f51b5;
-  background: #e8eaf6;
-}
-
-.report-content {
-  padding: 20px;
-}
-
-.score-chart {
-  margin-bottom: 20px;
-}
-
-.chart-container {
-  height: calc(100vh - 240px);
-  min-height: 400px;
-}
-
-h3 {
-  margin: 0 0 16px 0;
-  color: #333;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.chapter-tabs {
-  margin-bottom: 20px;
+  overflow: hidden;
 }
 
 .chapter-content {
-  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chapter-tabs {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
+
+.report-content {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.chapter-report {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.chapter-report.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.report-header {
+  flex-shrink: 0;
+  padding: 15px 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.report-body {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .sub-chapters {
@@ -833,176 +994,198 @@ h3 {
   font-size: 14px;
 }
 
-.sub-chapter-item:hover {
-  background: #ecf5ff;
-  color: #409EFF;
+.report-paragraph {
+  margin-bottom: 16px;
+  line-height: 1.8;
+  color: #333;
+  text-align: justify;
+  text-indent: 2em;
+  font-size: 15px;
 }
 
-.sub-chapter-item.active {
-  background: #409EFF;
-  color: white;
-}
-
-:deep(.el-tabs__header) {
+.report-paragraph:last-child {
   margin-bottom: 0;
 }
 
-:deep(.el-tabs__nav-wrap::after) {
-  height: 1px;
+@media screen and (max-width: 768px) {
+  .report-container {
+    flex-direction: column;
+    padding: 10px;
+    height: calc(100vh - 100px);
+  }
+
+  .nav-menu {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 10px;
+  }
+
+  .main-content {
+    height: calc(100vh - 160px);
+  }
 }
 
-:deep(.el-tabs__item) {
-  font-size: 15px;
-  height: 40px;
-  line-height: 40px;
-}
-
-:deep(.el-tabs__item.is-active) {
-  font-weight: 600;
-}
-
-.chapter-report {
-  padding: 20px;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.report-stats {
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  padding: 16px;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  text-align: center;
-}
-
-.stat-title {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-}
-
-.report-details {
-  margin-bottom: 20px;
-}
-
-.knowledge-points {
-  padding: 16px;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.learning-suggestions {
-  padding: 16px;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.suggestion-card {
-  padding: 16px;
-}
-
-.suggestion-item {
-  padding: 8px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.no-report {
-  padding: 20px;
-  text-align: center;
-}
-
-.overall-report {
-  padding: 20px;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.report-section {
-  margin-bottom: 20px;
-}
-
-.report-section h4 {
-  margin-top: 0;
-}
-
-.loading-text {
-  padding: 20px;
-  text-align: center;
-}
-
-.learning-report-container {
+/* 加载状态样式 */
+.loading-state {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  justify-content: center;
   height: 100%;
-  padding: 20px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.9);
 }
 
-.overall-report-section {
-  flex: 2;
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+.loading-effect {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.loading-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #409EFF;
+  animation: bounce 0.5s ease-in-out infinite;
+}
+
+.loading-circle:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.loading-circle:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-content h3 {
+  color: #303133;
+  font-size: 18px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.loading-content p {
+  color: #909399;
+  font-size: 14px;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 确保报告内容区域有相对定位，这样加载状态可以覆盖在上面 */
+.report-content {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* 添加淡入淡出效果 */
+.loading-state, .chapter-report {
+  transition: opacity 0.3s ease;
 }
 
 .score-chart-section {
-  flex: 1;
   background: white;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  min-height: 300px;
+  margin-top: 64px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .section-title {
-  margin: 0 0 20px 0;
-  color: #333;
-  font-size: 18px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 10px;
-}
-
-.report-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.report-item {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-}
-
-.report-item h4 {
-  margin: 0 0 10px 0;
-  color: #666;
-  font-size: 16px;
-}
-
-.report-item p {
   margin: 0;
-  color: #333;
-  line-height: 1.6;
+  color: #303133;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.score-chart {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+.chart {
+  height: 100%;
+  width: 100%;
+}
+
+.chart-loading {
+  padding: 20px;
+}
+
+/* 学情报告样式 */
+.learning-report-container {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.overall-report-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.report-header h3 {
+  margin: 0;
+  color: #303133;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.report-body {
+  padding: 20px;
+}
+
+.report-section {
+  margin-bottom: 24px;
+}
+
+.report-section:last-child {
+  margin-bottom: 0;
+}
+
+.report-section h4 {
+  color: #303133;
+  font-size: 16px;
+  margin: 0 0 12px 0;
+  font-weight: 500;
+}
+
+.report-text {
+  color: #606266;
+  line-height: 1.8;
+  margin: 0;
+  text-align: justify;
+  font-size: 14px;
 }
 
 .suggestion-list {
@@ -1011,96 +1194,13 @@ h3 {
 }
 
 .suggestion-list li {
+  color: #606266;
+  line-height: 1.8;
   margin-bottom: 8px;
-  color: #333;
-  line-height: 1.6;
+  font-size: 14px;
 }
 
-.loading-text {
-  text-align: center;
-  color: #666;
-  padding: 20px;
-}
-
-.score-chart {
-  height: 100%;
-  width: 100%;
-}
-
-.chart {
-  height: 250px;
-  width: 100%;
-}
-
-.assessment-container {
-  padding: 20px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.chart-switch {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.chart-section {
-  flex: 1;
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.data-chart,
-.radar-chart {
-  height: 100%;
-  min-height: 400px;
-}
-
-.chart {
-  height: 100%;
-  width: 100%;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.section-title {
-  margin: 0;
-  color: #333;
-  font-size: 18px;
-}
-
-/* 适配移动端 */
-@media screen and (max-width: 768px) {
-  .report-container {
-    flex-direction: column;
-    padding: 10px;
-  }
-
-  .nav-menu {
-    width: 100%;
-    height: 70px;
-    flex-direction: row;
-  }
-
-  .nav-item {
-    flex: 1;
-    height: 100%;
-    font-size: 14px;
-  }
-
-  .chart-container {
-    height: 400px;
-  }
+.suggestion-list li:last-child {
+  margin-bottom: 0;
 }
 </style>

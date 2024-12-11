@@ -148,12 +148,12 @@ public class DifyController {
             CompletableFuture<Map<String, Object>> res = quizzesService.getQuizWithDifyResponse(chapterId, userId);
             // 等待异步操作完成，设置30秒超时
             Map<String, Object> result = res.get(30, TimeUnit.SECONDS);
-            return AjaxResult.success("生成内容成功", result);
+            return AjaxResult.success("生成测验成功", result);
 
         } catch (TimeoutException e) {
-            return AjaxResult.error("生成内容超时，请稍后重试");
+            return AjaxResult.error("生成测验超时，请稍后重试");
         } catch (InterruptedException | ExecutionException e) {
-            return AjaxResult.error("生成内容失败：" + e.getMessage());
+            return AjaxResult.error("生成测验失败：" + e.getMessage());
         }
     }
 

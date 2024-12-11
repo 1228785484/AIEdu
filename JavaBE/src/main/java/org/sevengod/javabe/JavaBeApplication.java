@@ -18,6 +18,12 @@ public class JavaBeApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(JavaBeApplication.class, args);
+        System.out.println("   _____                       _____           _ ");
+        System.out.println("  / ____|                     / ____|         | |");
+        System.out.println(" | (___   _____   _____ _ __ | |  __  ___   __| |");
+        System.out.println("  \\___ \\ / _ \\ \\ / / _ \\ '_ \\| | |_ |/ _ \\ / _` |");
+        System.out.println("  ____) |  __/\\ V /  __/ | | | |__| | (_) | (_| |");
+        System.out.println(" |_____/ \\___| \\_/ \\___|_| |_|\\_____|\\___/ \\__,_|");
         System.out.println("——————————启动成功——————————");
     }
 

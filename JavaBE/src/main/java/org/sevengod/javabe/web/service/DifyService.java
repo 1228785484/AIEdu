@@ -4,6 +4,8 @@ import com.alibaba.fastjson2.JSON;
 
 import java.util.HashMap;
 import java.util.List;
+
+import com.esotericsoftware.minlog.Log;
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.entity.req.DifyRequestBody;
 import org.sevengod.javabe.entity.resp.BlockResponse;
@@ -136,7 +138,7 @@ public class DifyService {
         requestBody.put("inputs", inputs);
         requestBody.put("response_mode", "streaming");
         requestBody.put("user", userId);
-
+        Log.info(requestBody.toString());
         return webClient.post()
             .uri(url + "/workflows/run")
             .headers(httpHeaders -> {

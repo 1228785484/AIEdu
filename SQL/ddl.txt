@@ -1,0 +1,260 @@
+create table courses
+(
+    course_id   bigint unsigned auto_increment comment '课程ID'
+        primary key,
+    title       varchar(200)                         not null comment '课程标题',
+    description text                                 null comment '课程描述',
+    category_id bigint unsigned                      not null comment '分类ID',
+    created_at  datetime   default CURRENT_TIMESTAMP not null comment '创建时间',
+    is_active   tinyint(1) default 1                 not null comment '是否激活'
+)
+    comment '课程表' collate = utf8mb4_unicode_ci
+                     row_format = DYNAMIC;
+
+create index idx_category_id
+    on courses (category_id);
+
+create index idx_created_at
+    on courses (created_at);
+
+create table sorted_units
+(
+    unit_id  bigint unsigned default '0' not null comment '单元ID',
+    sequence bigint                      null
+)
+    row_format = DYNAMIC;
+
+create table units
+(
+    unit_id         bigint unsigned auto_increment comment '单元ID'
+        primary key,
+    course_id       bigint unsigned not null comment '课程ID',
+    title           varchar(200)    not null comment '单元标题',
+    description     text            null comment '单元描述',
+    sequence_number int             not null comment '单元序号',
+    constraint fk_units_course_id
+        foreign key (course_id) references courses (course_id)
+            on delete cascade
+)
+    comment '课程单元表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create table course_chapters
+(
+    chapter_id           bigint unsigned auto_increment comment '章节ID'
+        primary key,
+    course_id            bigint unsigned not null comment '课程ID',
+    title                varchar(200)    not null comment '章节标题',
+    sequence_number      int             not null comment '章节序号',
+    unit_id              bigint unsigned not null comment '单元ID',
+    content_prompt       text            null comment '章节内容提示词',
+    total_mission_points tinyint         not null comment '总任务点
+',
+    constraint fk_course_chapters_course_id
+        foreign key (course_id) references courses (course_id)
+            on delete cascade,
+    constraint fk_course_chapters_unit_id
+        foreign key (unit_id) references units (unit_id)
+            on delete cascade
+)
+    comment '课程章节表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create index idx_course_id
+    on course_chapters (course_id);
+
+create index idx_sequence_number
+    on course_chapters (sequence_number);
+
+create index idx_unit_id
+    on course_chapters (unit_id);
+
+create table quizzes
+(
+    quiz_id     bigint unsigned auto_increment comment '测验ID'
+        primary key,
+    chapter_id  bigint unsigned not null comment '章节ID',
+    title       varchar(200)    not null comment '测验标题',
+    quiz_prompt text            null comment '出题提示词',
+    constraint fk_quizzes_chapter_id
+        foreign key (chapter_id) references course_chapters (chapter_id)
+            on delete cascade
+)
+    comment '测验表' collate = utf8mb4_unicode_ci
+                     row_format = DYNAMIC;
+
+create index idx_chapter_id
+    on quizzes (chapter_id);
+
+create index idx_units_course_id
+    on units (course_id);
+
+create index idx_units_sequence_number
+    on units (sequence_number);
+
+create table users
+(
+    user_id       bigint unsigned auto_increment comment '用户ID'
+        primary key,
+    username      varchar(50)                          not null comment '用户名',
+    password_hash varchar(255)                         not null comment '密码哈希值',
+    email         varchar(100)                         not null comment '电子邮箱',
+    created_at    datetime   default CURRENT_TIMESTAMP not null comment '创建时间',
+    last_login    datetime                             null comment '最后登录时间',
+    is_active     tinyint(1) default 1                 not null comment '是否激活(1:激活,0:未激活)',
+    constraint idx_email
+        unique (email),
+    constraint idx_username
+        unique (username)
+)
+    comment '用户表' collate = utf8mb4_unicode_ci
+                     row_format = DYNAMIC;
+
+create table course_enrollments
+(
+    enrollment_id bigint unsigned auto_increment comment '报名ID'
+        primary key,
+    user_id       bigint unsigned                       not null comment '用户ID',
+    course_id     bigint unsigned                       not null comment '课程ID',
+    enrolled_at   datetime    default CURRENT_TIMESTAMP not null comment '报名时间',
+    completed_at  datetime                              null comment '完成时间',
+    status        varchar(20) default 'ongoing'         not null comment '状态(ongoing:进行中,completed:已完成,dropped:已退出)',
+    constraint idx_user_course
+        unique (user_id, course_id),
+    constraint fk_course_enrollments_course_id
+        foreign key (course_id) references courses (course_id),
+    constraint fk_course_enrollments_user_id
+        foreign key (user_id) references users (user_id)
+)
+    comment '课程报名表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create table chapter_progress
+(
+    progress_id           bigint unsigned auto_increment comment '进度ID'
+        primary key,
+    enrollment_id         bigint unsigned                     not null comment '报名ID',
+    chapter_id            bigint unsigned                     not null comment '章节ID',
+    completion_percentage decimal(5, 2) default 0.00          not null comment '完成百分比',
+    status                varchar(20)   default 'not_started' not null comment '状态(not_started:未开始,in_progress:进行中,completed:已完成)',
+    last_accessed         datetime                            null comment '最后访问时间',
+    constraint idx_enrollment_chapter
+        unique (enrollment_id, chapter_id),
+    constraint fk_chapter_progress_chapter_id
+        foreign key (chapter_id) references course_chapters (chapter_id),
+    constraint fk_chapter_progress_enrollment_id
+        foreign key (enrollment_id) references course_enrollments (enrollment_id)
+            on delete cascade
+)
+    comment '章节进度表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create index idx_chapter_id
+    on chapter_progress (chapter_id);
+
+create index idx_enrolled_at
+    on course_enrollments (enrolled_at);
+
+create table daily_study_time
+(
+    id               bigint auto_increment comment '主键ID'
+        primary key,
+    user_id          bigint unsigned                    not null comment '用户ID',
+    course_id        bigint                             not null comment '课程ID',
+    study_date       date                               not null comment '学习日期',
+    duration_seconds bigint   default 0                 not null comment '学习时长(秒)',
+    create_time      datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    update_time      datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    constraint uk_user_course_date
+        unique (user_id, course_id, study_date) comment '用户课程日期唯一索引',
+    constraint fk_daily_study_time_user_id
+        foreign key (user_id) references users (user_id)
+            on delete cascade
+)
+    comment '每日学习时长记录表';
+
+create table personalized_contents
+(
+    id         bigint unsigned auto_increment comment 'ID'
+        primary key,
+    user_id    bigint unsigned                      not null comment '用户ID',
+    chapter_id bigint unsigned                      not null comment '章节ID',
+    content    text                                 null comment '个性化内容',
+    created_at datetime   default CURRENT_TIMESTAMP not null comment '创建时间',
+    is_active  tinyint(1) default 1                 not null comment '是否激活',
+    constraint idx_user_chapter
+        unique (user_id, chapter_id),
+    constraint fk_pers_content_chapter_id
+        foreign key (chapter_id) references course_chapters (chapter_id)
+            on delete cascade,
+    constraint fk_pers_content_user_id
+        foreign key (user_id) references users (user_id)
+            on delete cascade
+)
+    comment '个性化章节内容表' collate = utf8mb4_unicode_ci
+                               row_format = DYNAMIC;
+
+create table quiz_submissions
+(
+    submission_id       bigint unsigned auto_increment comment '提交ID'
+        primary key,
+    quiz_id             bigint unsigned                    not null comment '测验ID',
+    user_id             bigint unsigned                    not null comment '用户ID',
+    generated_questions json                               not null comment '实际生成的题目',
+    score               decimal(5, 2)                      null comment '得分',
+    time_left           int                                null comment '剩余时长(秒)',
+    submitted_at        datetime default CURRENT_TIMESTAMP not null comment '提交时间',
+    constraint fk_quiz_submissions_quiz_id
+        foreign key (quiz_id) references quizzes (quiz_id)
+            on delete cascade,
+    constraint fk_quiz_submissions_user_id
+        foreign key (user_id) references users (user_id)
+)
+    comment '测验提交表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create index idx_quiz_id
+    on quiz_submissions (quiz_id);
+
+create index idx_submitted_at
+    on quiz_submissions (submitted_at);
+
+create index idx_user_id
+    on quiz_submissions (user_id);
+
+create table student_profiles
+(
+    profile_id      bigint unsigned auto_increment comment '档案ID'
+        primary key,
+    user_id         bigint unsigned not null comment '用户ID',
+    education_level varchar(50)     null comment '教育水平',
+    preferences     json            null comment '学习偏好配置(JSON格式)',
+    constraint idx_user_id
+        unique (user_id),
+    constraint fk_student_profiles_user_id
+        foreign key (user_id) references users (user_id)
+            on delete cascade
+)
+    comment '学生档案表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create table user_roles
+(
+    role_id     bigint unsigned auto_increment comment '角色ID'
+        primary key,
+    user_id     bigint unsigned                    not null comment '用户ID',
+    role_name   varchar(20)                        not null comment '角色名称(student:学生,teacher:教师,admin:管理员)',
+    assigned_at datetime default CURRENT_TIMESTAMP not null comment '角色分配时间',
+    constraint fk_user_roles_user_id
+        foreign key (user_id) references users (user_id)
+            on delete cascade
+)
+    comment '用户角色表' collate = utf8mb4_unicode_ci
+                         row_format = DYNAMIC;
+
+create index idx_user_id
+    on user_roles (user_id);
+
+create index idx_created_at
+    on users (created_at);
+
