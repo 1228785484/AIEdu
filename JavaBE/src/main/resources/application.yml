@@ -79,6 +79,7 @@ dify:
   key:
     ask-ai: app-oGCLThhvLjBwqnhzLbNnOure
     quiz-key: app-RjU3aR6XQ5Dd91QmeGF8UMoK
+    rating-key: app-r3XrfEpRMPqh9Tvtxhe0FzPw
 
 springdoc:
   swagger-ui:

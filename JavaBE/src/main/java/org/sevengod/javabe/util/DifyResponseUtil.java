@@ -18,19 +18,16 @@ public class DifyResponseUtil {
      * 获取Dify AI的响应并处理
      *
      * @param difyService Dify服务实例
-     * @param prompt     提示内容
+     * @param params     请求参数Map，需要包含Content和Type
      * @param userId     用户ID
      * @param apiKey     API密钥
-     * @param type       请求类型
      * @return 处理后的AI响应Map
      * @throws DifyException 如果处理过程中出现错误
      */
-    public static Map<String, Object> getAIResponse(DifyService difyService, String prompt, String userId, String apiKey, String type) throws DifyException {
+    public static Map<String, Object> getAIResponse(DifyService difyService, Map<String, String> params, String userId, String apiKey) throws DifyException {
         try {
             String aiResponse = Objects.requireNonNull(difyService.streamWorkflow(
-                            Map.of("Content", prompt,
-                                    "Type", type
-                            ),
+                            params,
                             userId,
                             apiKey
                     )
@@ -50,6 +47,10 @@ public class DifyResponseUtil {
                     .trim();
 
             // 解析JSON数据并返回
+            if(!JSON.isValidObject(aiResponse)){
+                Map<String,Object> defaultResponse = Map.of("reply", aiResponse);
+                return defaultResponse;
+            }
             return JSON.parseObject(aiResponse);
 
         } catch (Exception e) {
