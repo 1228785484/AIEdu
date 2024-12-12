@@ -225,6 +225,9 @@ const router = useRouter();
 // 添加加载状态
 const isQuizLoading = ref(false);
 
+// 定义当前选中的节点
+const currentNode = ref(null);
+
 // 添加跳转方法
 const goToReport = () => {
   router.push('/report-generation');
@@ -524,9 +527,36 @@ const updateStudyTimes = async () => {
   }
 };
 
+// 添加更新学习次数的函数
+const updateLearningCount = async (chapterId) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch('http://localhost:8008/api/course/study-times-update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: parseInt(userId),
+        chapterId: parseInt(chapterId)
+      })
+    });
+    
+    if (response.ok) {
+      console.log('学习次数更新成功');
+    } else {
+      console.error('更新学习次数失败:', response.statusText);
+    }
+  } catch (error) {
+    console.error('更新学习次数失败:', error);
+  }
+};
+
 
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
+  currentNode.value = nodeData;
   // 如果正在测验中且未显示结果，显示确认弹窗
   if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
     showSubmitModal.value = true;
@@ -887,7 +917,32 @@ const confirmSubmit = () => {
 
 
 
-async function submitQuizScore(quizData) {
+// async function submitQuizScore(quizData) {
+//   try {
+//     const response = await fetch('http://localhost:8008/quiz/submitQuiz', {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${localStorage.getItem('token')}`
+//       },
+//       body: JSON.stringify(quizData)
+//     });
+
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+
+//     const data = await response.json();
+//     console.log('Success:', data);
+//     console.log('Time:',timeLeft.value)
+//   } catch (error) {
+//     console.error('Error:', error);
+//   }
+// }
+
+
+// 修改提交测验分数的函数
+const submitQuizScore = async (quizData) => {
   try {
     const response = await fetch('http://localhost:8008/quiz/submitQuiz', {
       method: 'POST',
@@ -898,18 +953,19 @@ async function submitQuizScore(quizData) {
       body: JSON.stringify(quizData)
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (response.ok) {
+      // 测验分数提交成功后，更新学习次数
+      await updateLearningCount(currentNode.value.id);
+      console.log('提交测验成功')
+      showSubmitModal.value = false;
+      // ... 其他成功后的操作
+    } else {
+      throw new Error('提交测验失败');
     }
-
-    const data = await response.json();
-    console.log('Success:', data);
-    console.log('Time:',timeLeft.value)
   } catch (error) {
-    console.error('Error:', error);
+    console.error('提交测验失败:', error);
   }
-}
-
+};
 
 // 组件卸载时清除定时器
 onUnmounted(() => {
