@@ -11,6 +11,7 @@ import ReportGeneration from '../views/ReportGeneration.vue';
 import DatePicker from '../views/TestPages/DatePicker.vue';
 import WebsocketTest from '../views/TestPages/WebsocketTest.vue';
 import FileUploader from '../views/TestPages/FileUploader.vue';  // 导入 FileUploader 组件
+import CourseDetail from '@/views/CourseDetail.vue'
 
 
 // 配置路由
@@ -70,6 +71,12 @@ const routes = [
     name: 'file-uploader',
     component: FileUploader,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/course/:courseId',
+    name: 'CourseDetail',
+    component: CourseDetail,
+    props: true
   }
 ];
 

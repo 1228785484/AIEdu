@@ -48,7 +48,7 @@
           <thead>
             <tr>
               <th style="width: 15%">课程编号</th>
-              <th style="width: 25%">课程名称</th>
+              <th style="width: 25%">课程</th>
               <th style="width: 35%">课程描述</th>
               <th style="width: 25%">选课人数</th>
             </tr>
@@ -59,7 +59,7 @@
               <td>
                 <span 
                   class="course-name-link" 
-                  @click="showCourseUsers(course.courseId)"
+                  @click="navigateToCourse(course)"
                 >
                   {{ course?.courseName || '-' }}
                 </span>
@@ -141,7 +141,7 @@
               <td>
                 <span 
                   class="course-name-link" 
-                  @click="navigateToCourse(course.courseId)"
+                  @click="navigateToCourse(course)"
                 >
                   {{ course?.courseName || '-' }}
                 </span>
@@ -279,7 +279,7 @@ export default {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          this.$message.error('未  录或登录已过期，请重新登录');
+          this.$message.error('未登录或登录已过期，请重新登录');
           this.$router.push('/login');
           return;
         }
@@ -533,13 +533,21 @@ export default {
       }).catch(() => {
         this.$message({
           type: 'info',
-          message: '已取消删除'
+          message: '取消删除'
         });
       });
     },
-    navigateToCourse(courseId) {
-      if (!courseId) return;
-      this.$router.push(`/course/${courseId}/units`);
+    navigateToCourse(course) {
+      if (!course) return;
+      
+      this.$router.push({ 
+        name: 'CourseDetail', 
+        params: {
+          courseId: course.courseId,
+          courseName: course.courseName,
+          courseDescription: course.description
+        }
+      });
     }
   },
   created() {
