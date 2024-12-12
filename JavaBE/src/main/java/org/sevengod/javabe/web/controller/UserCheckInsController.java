@@ -28,6 +28,8 @@ public class UserCheckInsController {
     /**
      * User check in
      */
+    @Operation(summary = "用户签到", description = "用户进行每日签到，每天只能签到一次")
+    @Parameter(name = "userId", description = "用户ID", required = true)
     @PostMapping("/checkIn")
     public AjaxResult checkIn(@RequestParam("userId") Long userId) {
         if (userCheckInsService.checkIn(userId)) {
