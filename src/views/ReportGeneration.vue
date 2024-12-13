@@ -17,11 +17,11 @@
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'learning' }" @click="activeNav = 'learning'">
         <el-icon class="nav-icon"><DataAnalysis /></el-icon>
-        学情报告
+        整体报告
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'assessment' }" @click="activeNav = 'assessment'">
         <el-icon class="nav-icon"><TrendCharts /></el-icon>
-        测评轨迹
+        学习轨迹
       </div>
     </div>
     <div class="main-content">
@@ -78,8 +78,8 @@
                     v-for="(paragraph, index) in currentReport.content" 
                     :key="index" 
                     class="report-paragraph"
+                    v-html="paragraph"
                   >
-                    {{ paragraph }}
                   </div>
                 </div>
               </div>
@@ -218,6 +218,7 @@ import { LineChart, RadarChart } from 'echarts/charts'
 import { use } from 'echarts/core'
 import { saveAs } from 'file-saver'
 import { Document, Packer, Paragraph, HeadingLevel } from 'docx'
+import { marked } from 'marked'
 
 // 注册必要的组件
 use([
@@ -306,6 +307,10 @@ const loadCourseTree = async () => {
   }
 }
 
+const renderMarkdown = (text) => {
+  return marked.parse(text)
+}
+
 const handleChapterChange = async (chapterId) => {
   selectedChapter.value = chapterId
   
@@ -370,7 +375,7 @@ const handleChapterChange = async (chapterId) => {
       const paragraphs = result.data.reply.split('\n\n')
       currentReport.value = {
         chapterName: currentChapter.label,
-        content: paragraphs
+        content: paragraphs.map(p => renderMarkdown(p))
       }
     } else {
       throw new Error(result.msg || '生成报告失败')
@@ -1202,5 +1207,58 @@ const downloadReport = async () => {
 
 .suggestion-list li:last-child {
   margin-bottom: 0;
+}
+
+/* Markdown 样式 */
+.report-paragraph :deep(p) {
+  margin: 0;
+  line-height: 1.8;
+}
+
+.report-paragraph :deep(strong) {
+  font-weight: 600;
+  color: #303133;
+}
+
+.report-paragraph :deep(em) {
+  font-style: italic;
+  color: #606266;
+}
+
+.report-paragraph :deep(ul), 
+.report-paragraph :deep(ol) {
+  padding-left: 2em;
+  margin: 8px 0;
+}
+
+.report-paragraph :deep(li) {
+  margin-bottom: 4px;
+}
+
+.report-paragraph :deep(code) {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.report-paragraph :deep(blockquote) {
+  margin: 8px 0;
+  padding: 8px 16px;
+  border-left: 4px solid #409EFF;
+  background: #ecf5ff;
+  color: #606266;
+}
+
+.report-paragraph :deep(a) {
+  color: #409EFF;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.report-paragraph :deep(a:hover) {
+  color: #66b1ff;
+  text-decoration: underline;
 }
 </style>
