@@ -132,7 +132,7 @@
               </div>
               <!-- 测验内容 -->
               <div v-else>
-                <!-- 测验加载失败或选择章节 -->
+                <!-- 测验加载失败或���择章节 -->
                 <div v-if="!testData.content" class="no-content-message">
                   <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
                 </div>
@@ -233,50 +233,6 @@
           class="note-textarea"
         ></textarea>
         
-        <!-- 添加文件上传区域 -->
-        <div class="upload-section">
-          <div 
-            class="upload-area"
-            @click="triggerFileInput"
-            @drop.prevent="handleDrop"
-            @dragover.prevent
-            @dragenter.prevent="handleDragEnter"
-            @dragleave.prevent="handleDragLeave"
-            :class="{ 'dragging': isDragging }"
-          >
-            <input 
-              type="file"
-              ref="fileInput"
-              @change="handleFileSelect"
-              accept="image/*,.pdf,.doc,.docx"
-              multiple
-              class="file-input"
-            >
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>点击或拖拽文件到此处上传</p>
-            <span class="upload-tip">支持图片、PDF、Word文档</span>
-          </div>
-
-          <!-- 文件预览区域 -->
-          <div v-if="uploadedFiles.length > 0" class="preview-area">
-            <div v-for="(file, index) in uploadedFiles" :key="index" class="preview-item">
-              <!-- 图片预览 -->
-              <div v-if="file.type.startsWith('image/')" class="preview-content">
-                <img :src="file.preview" alt="预览图片">
-              </div>
-              <!-- 文件图标 -->
-              <div v-else class="preview-content file-icon">
-                <i :class="getFileIcon(file.type)"></i>
-                <span class="file-name">{{ file.name }}</span>
-              </div>
-              <!-- 删除按钮 -->
-              <button class="remove-file" @click="removeFile(index)" title="删除文件">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div class="privacy-setting">
           <label class="privacy-label">
             <input 
@@ -603,7 +559,7 @@ const updateStudyTimes = async () => {
 
     const result = await response.json();
     console.log(result)
-    // 更新学习次数值
+    // ���新学习次数值
     note.value.frequency = result.data
     
   } catch (error) {
@@ -723,7 +679,7 @@ const handleNodeClick = async (nodeData) => {
       console.error('Error loading quiz:', error);
       testData.value = { content: '测验加载失败，请重试' };
     } finally {
-      // 无论成功失败都关闭加载状态
+      // 无论成���失败都关闭加载状态
       isQuizLoading.value = false;
     }
 
@@ -985,7 +941,7 @@ const confirmSubmit = () => {
   // 禁用输入框
   disableInputs();
 
-  // 停���倒计时
+  // 停止倒计时
   if (timerId) {
     clearInterval(timerId);
     timerId = null;
@@ -1083,7 +1039,7 @@ const cancelSubmit = () => {
 // 最小化浏览器窗口
 // 切换到其他标签页
 // 切换到其他应用程序
-// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重���建立连接。这样可以更准确地记录用户的实际学习时长。
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
 
 let ws = null;
 let reconnectTimer = null;
@@ -1188,7 +1144,7 @@ onMounted(() => {
   }, 100);
 });
 
-// 路由离开时
+// 路��离开时
 onBeforeRouteLeave((to, from, next) => {
   console.log('路由离开，关闭 WebSocket');
   closeWs();
@@ -1253,32 +1209,26 @@ const saveNote = async () => {
       return;
     }
 
-    const formData = new FormData();
     const userId = localStorage.getItem('userid');
-    
-    // 添加基本数据
-    formData.append('chapterId', currentChapterId.value);
-    formData.append('content', noteContent.value);
-    formData.append('isPrivate', isPrivate.value);
-
-    // 添加文件
-    uploadedFiles.value.forEach((fileObj, index) => {
-      formData.append(`files[${index}]`, fileObj.file);
-    });
+    const noteData = {
+      chapterId: currentChapterId.value,
+      content: noteContent.value,
+      isPrivate: isPrivate.value
+    };
 
     const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
-      body: formData
+      body: JSON.stringify(noteData)
     });
 
     if (response.ok) {
       showTemporaryMessage('笔记保存成功！');
       noteContent.value = '';
       isPrivate.value = true;
-      uploadedFiles.value = [];
     } else {
       throw new Error('保存失败');
     }
@@ -1286,101 +1236,6 @@ const saveNote = async () => {
     console.error('保存笔记失败:', error);
     showTemporaryMessage('保存失败，请重试');
   }
-};
-
-// 在 script setup 中添加以下代码
-const fileInput = ref(null);
-const uploadedFiles = ref([]);
-const isDragging = ref(false);
-
-// 触发文件选择
-const triggerFileInput = () => {
-  fileInput.value.click();
-};
-
-// 处理文件选择
-const handleFileSelect = (event) => {
-  const files = Array.from(event.target.files);
-  processFiles(files);
-};
-
-// 处理拖拽进入
-const handleDragEnter = () => {
-  isDragging.value = true;
-};
-
-// 处理拖拽离开
-const handleDragLeave = () => {
-  isDragging.value = false;
-};
-
-// 处理文件拖放
-const handleDrop = (event) => {
-  isDragging.value = false;
-  const files = Array.from(event.dataTransfer.files);
-  processFiles(files);
-};
-
-// 处理文件
-const processFiles = (files) => {
-  files.forEach(file => {
-    // 检查文件类型
-    if (!isValidFileType(file)) {
-      showTemporaryMessage('不支持的文件类型');
-      return;
-    }
-    
-    // 检查文件大小（限制为10MB）
-    if (file.size > 10 * 1024 * 1024) {
-      showTemporaryMessage('文件大小不能超过10MB');
-      return;
-    }
-
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        uploadedFiles.value.push({
-          file: file,
-          name: file.name,
-          type: file.type,
-          preview: e.target.result
-        });
-      };
-      reader.readAsDataURL(file);
-    } else {
-      uploadedFiles.value.push({
-        file: file,
-        name: file.name,
-        type: file.type
-      });
-    }
-  });
-};
-
-// 检查文件类型
-const isValidFileType = (file) => {
-  const validTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ];
-  return validTypes.includes(file.type);
-};
-
-// 获取文件图标
-const getFileIcon = (fileType) => {
-  if (fileType.startsWith('image/')) return 'fas fa-image';
-  if (fileType.includes('pdf')) return 'fas fa-file-pdf';
-  if (fileType.includes('word') || fileType.includes('document')) return 'fas fa-file-word';
-  return 'fas fa-file';
-};
-
-// 移除文件
-const removeFile = (index) => {
-  uploadedFiles.value.splice(index, 1);
 };
 
 </script>
@@ -2345,121 +2200,5 @@ button:hover {
   width: 16px;
   height: 16px;
   cursor: pointer;
-}
-
-/* 添加文件上传相关样式 */
-.upload-section {
-  margin-bottom: 20px;
-}
-
-.upload-area {
-  border: 2px dashed rgb(236, 198, 236);
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: #fff;
-}
-
-.upload-area:hover {
-  background-color: rgb(245, 230, 245);
-}
-
-.upload-area.dragging {
-  background-color: rgb(245, 230, 245);
-  border-color: rgb(226, 178, 226);
-}
-
-.upload-area i {
-  font-size: 24px;
-  color: rgb(236, 198, 236);
-  margin-bottom: 8px;
-}
-
-.upload-area p {
-  margin: 8px 0;
-  color: #666;
-}
-
-.upload-tip {
-  font-size: 12px;
-  color: #999;
-}
-
-.file-input {
-  display: none;
-}
-
-.preview-area {
-  margin-top: 15px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
-}
-
-.preview-item {
-  position: relative;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  overflow: hidden;
-  aspect-ratio: 1;
-}
-
-.preview-content {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
-}
-
-.preview-content img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.file-icon {
-  color: rgb(236, 198, 236);
-}
-
-.file-icon i {
-  font-size: 24px;
-  margin-bottom: 4px;
-}
-
-.file-name {
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-  padding: 0 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.remove-file {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.remove-file:hover {
-  background-color: rgba(0, 0, 0, 0.7);
 }
 </style>
