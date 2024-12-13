@@ -226,7 +226,7 @@ const router = useRouter();
 const isQuizLoading = ref(false);
 
 // 定义当前选中的节点
-const currentNode = ref(null);
+// const currentNode = ref(null);
 
 // 添加跳转方法
 const goToReport = () => {
@@ -395,6 +395,27 @@ onMounted(() => {
   updateStudyTimes();
 });
 
+
+// 在组件挂载时检查所有叶子节点的完成状态
+onMounted(async () => {
+  await loadCourseTree();
+  // 递归检查所有叶子节点的完成状态
+  const checkAllNodes = async (nodes) => {
+    for (const node of nodes) {
+      if (!node.children || node.children.length === 0) {
+        await checkChapterCompletion(node.id);
+      } else if (node.children) {
+        await checkAllNodes(node.children);
+      }
+    }
+  };
+
+  if (treeData.value.length > 0) {
+    await checkAllNodes(treeData.value);
+  }
+  
+  // ... rest of existing onMounted code ...
+});
 // el-tree 需要的默认属性配置
 const defaultProps = {
   children: 'children',
@@ -554,9 +575,35 @@ const updateLearningCount = async (chapterId) => {
 };
 
 
+// 添加检查章节完成状态的函数
+const checkChapterCompletion = async (chapterId) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/course/chapter-completion?userId=${userId}&chapterId=${chapterId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch chapter completion status');
+    }
+
+    const result = await response.json();
+    console.log('Chapter completion status:',chapterId, result);
+    // 更新完成状态
+    completedChapters.value[chapterId] = result.data;
+  } catch (error) {
+    console.error('Error checking chapter completion:', error);
+  }
+};
+
+
+
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
-  currentNode.value = nodeData;
+  // currentNode.value = nodeData;
   // 如果正在测验中且未显示结果，显示确认弹窗
   if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
     showSubmitModal.value = true;
@@ -579,6 +626,10 @@ const handleNodeClick = async (nodeData) => {
     await updateTaskPoints(chapterId);
     await updateTestPoints(chapterId);
     return;
+  }
+   // 如果是叶子节点，检查完成状态
+   if (!nodeData.children || nodeData.children.length === 0) {
+    await checkChapterCompletion(chapterId);
   }
   try {
     // 获取章节内容
@@ -952,10 +1003,12 @@ const submitQuizScore = async (quizData) => {
       },
       body: JSON.stringify(quizData)
     });
-
     if (response.ok) {
       // 测验分数提交成功后，更新学习次数
-      await updateLearningCount(currentNode.value.id);
+      await updateLearningCount(currentChapterId);
+      //更新颜色
+    // 提交后重新检查章节完成状态
+      checkChapterCompletion(currentChapterId.value);
       console.log('提交测验成功')
       showSubmitModal.value = false;
       // ... 其他成功后的操作
