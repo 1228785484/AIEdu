@@ -76,6 +76,14 @@
           >
             测验
           </span>
+          <span 
+            class="note-btn"
+            :class="{ active: showNotePanel }"
+            @click="toggleNotePanel"
+          >
+            <i class="fas fa-edit"></i>
+            笔记
+          </span>
         </div>
         <div class="divider"></div>
         
@@ -124,7 +132,7 @@
               </div>
               <!-- 测验内容 -->
               <div v-else>
-                <!-- 测验加载失败或未选择章节 -->
+                <!-- 测验加载失败或���择章节 -->
                 <div v-if="!testData.content" class="no-content-message">
                   <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
                 </div>
@@ -208,6 +216,38 @@
         </div>
       </div>
     </div>
+
+    <!-- 添加侧边笔记面板 -->
+    <div 
+      class="note-panel"
+      :class="{ 'note-panel-open': showNotePanel }"
+    >
+      <div class="note-panel-header">
+        <h3>笔记</h3>
+        <span class="close-btn" @click="toggleNotePanel">&times;</span>
+      </div>
+      <div class="note-panel-body">
+        <textarea 
+          v-model="noteContent" 
+          placeholder="在这里输入你的笔记..."
+          class="note-textarea"
+        ></textarea>
+        
+        <div class="privacy-setting">
+          <label class="privacy-label">
+            <input 
+              type="checkbox" 
+              v-model="isPrivate"
+              class="privacy-checkbox"
+            >
+            <span>设为私密笔记</span>
+          </label>
+        </div>
+      </div>
+      <div class="note-panel-footer">
+        <button class="save-note-btn" @click="saveNote">保存笔记</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -226,7 +266,7 @@ const router = useRouter();
 const isQuizLoading = ref(false);
 
 // 定义当前选中的节点
-// const currentNode = ref(null);
+const currentNode = ref(null);
 
 // 添加跳转方法
 const goToReport = () => {
@@ -395,27 +435,6 @@ onMounted(() => {
   updateStudyTimes();
 });
 
-
-// 在组件挂载时检查所有叶子节点的完成状态
-onMounted(async () => {
-  await loadCourseTree();
-  // 递归检查所有叶子节点的完成状态
-  const checkAllNodes = async (nodes) => {
-    for (const node of nodes) {
-      if (!node.children || node.children.length === 0) {
-        await checkChapterCompletion(node.id);
-      } else if (node.children) {
-        await checkAllNodes(node.children);
-      }
-    }
-  };
-
-  if (treeData.value.length > 0) {
-    await checkAllNodes(treeData.value);
-  }
-  
-  // ... rest of existing onMounted code ...
-});
 // el-tree 需要的默认属性配置
 const defaultProps = {
   children: 'children',
@@ -540,7 +559,7 @@ const updateStudyTimes = async () => {
 
     const result = await response.json();
     console.log(result)
-    // 更新学习次数值
+    // ���新学习次数值
     note.value.frequency = result.data
     
   } catch (error) {
@@ -575,35 +594,9 @@ const updateLearningCount = async (chapterId) => {
 };
 
 
-// 添加检查章节完成状态的函数
-const checkChapterCompletion = async (chapterId) => {
-  try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch(`http://localhost:8008/api/course/chapter-completion?userId=${userId}&chapterId=${chapterId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch chapter completion status');
-    }
-
-    const result = await response.json();
-    console.log('Chapter completion status:',chapterId, result);
-    // 更新完成状态
-    completedChapters.value[chapterId] = result.data;
-  } catch (error) {
-    console.error('Error checking chapter completion:', error);
-  }
-};
-
-
-
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
-  // currentNode.value = nodeData;
+  currentNode.value = nodeData;
   // 如果正在测验中且未显示结果，显示确认弹窗
   if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
     showSubmitModal.value = true;
@@ -626,10 +619,6 @@ const handleNodeClick = async (nodeData) => {
     await updateTaskPoints(chapterId);
     await updateTestPoints(chapterId);
     return;
-  }
-   // 如果是叶子节点，检查完成状态
-   if (!nodeData.children || nodeData.children.length === 0) {
-    await checkChapterCompletion(chapterId);
   }
   try {
     // 获取章节内容
@@ -690,7 +679,7 @@ const handleNodeClick = async (nodeData) => {
       console.error('Error loading quiz:', error);
       testData.value = { content: '测验加载失败，请重试' };
     } finally {
-      // 无论成功失败都关闭加载状态
+      // 无论成���失败都关闭加载状态
       isQuizLoading.value = false;
     }
 
@@ -876,7 +865,7 @@ const confirmSubmit = () => {
           document.getElementById(`explanation-${index}`).textContent = question.explanations;
           document.getElementById(`answer-display-${index}`).style.display = 'block';
 
-          // 判断答案是否正确并显示对应图标和得分
+          // 判断答案是否正确显示对应图标和得分
           const isCorrect = userAnswer === question.answer;
           document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
           document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
@@ -1003,12 +992,10 @@ const submitQuizScore = async (quizData) => {
       },
       body: JSON.stringify(quizData)
     });
+
     if (response.ok) {
       // 测验分数提交成功后，更新学习次数
-      await updateLearningCount(currentChapterId);
-      //更新颜色
-    // 提交后重新检查章节完成状态
-      checkChapterCompletion(currentChapterId.value);
+      await updateLearningCount(currentNode.value.id);
       console.log('提交测验成功')
       showSubmitModal.value = false;
       // ... 其他成功后的操作
@@ -1052,7 +1039,7 @@ const cancelSubmit = () => {
 // 最小化浏览器窗口
 // 切换到其他标签页
 // 切换到其他应用程序
-// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重新建立连接。这样可以更准确地记录用户的实际学习时长。
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
 
 let ws = null;
 let reconnectTimer = null;
@@ -1073,7 +1060,7 @@ const handleVisibilityChange = () => {
 
 // 添加初始化 WebSocket 的函数
 const initWebSocket = () => {
-  // 先清理现有连接
+  // 先清理现连接
   closeWs();
   
   const userId = localStorage.getItem('userid');
@@ -1094,7 +1081,7 @@ const initWebSocket = () => {
     ws.addEventListener('message', messageHandle);
     ws.addEventListener('error', errorHandle);
   } catch (error) {
-    console.error('WebSocket 初始化失败:', error);
+    console.error('WebSocket 初始化败:', error);
   }
 };
 
@@ -1157,7 +1144,7 @@ onMounted(() => {
   }, 100);
 });
 
-// 路由离开时
+// 路��离开时
 onBeforeRouteLeave((to, from, next) => {
   console.log('路由离开，关闭 WebSocket');
   closeWs();
@@ -1179,7 +1166,7 @@ tryOnUnmounted(() => {
   closeWs();
 });
 
-// 组件激活时（从缓存中被重新激活）
+// 组件激活时（从缓存中被新激活）
 onActivated(() => {
   console.log('组件激活，初始化 WebSocket');
   // 重新添加页面可见性变化监听器
@@ -1187,7 +1174,7 @@ onActivated(() => {
   initWebSocket();
 });
 
-// 组件停用时（被缓存）
+// 组件停时（被缓存）
 onDeactivated(() => {
   console.log('组件停用，关闭 WebSocket');
   // 移除页面可见性变化监听器
@@ -1199,6 +1186,57 @@ defineExpose({
   initWebSocket,
   closeWs
 });
+
+// 修改笔记相关的响应式变量
+const showNotePanel = ref(false);
+const noteContent = ref('');
+const isPrivate = ref(true);
+
+// 切换笔记面板
+const toggleNotePanel = () => {
+  if (!currentChapterId.value && !showNotePanel.value) {
+    showTemporaryMessage('请先选择一个章节');
+    return;
+  }
+  showNotePanel.value = !showNotePanel.value;
+};
+
+// 修改保存笔记的方法
+const saveNote = async () => {
+  try {
+    if (!noteContent.value.trim()) {
+      showTemporaryMessage('笔记内容不能为空');
+      return;
+    }
+
+    const userId = localStorage.getItem('userid');
+    const noteData = {
+      chapterId: currentChapterId.value,
+      content: noteContent.value,
+      isPrivate: isPrivate.value
+    };
+
+    const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(noteData)
+    });
+
+    if (response.ok) {
+      showTemporaryMessage('笔记保存成功！');
+      noteContent.value = '';
+      isPrivate.value = true;
+    } else {
+      throw new Error('保存失败');
+    }
+  } catch (error) {
+    console.error('保存笔记失败:', error);
+    showTemporaryMessage('保存失败，请重试');
+  }
+};
 
 </script>
 
@@ -1802,7 +1840,7 @@ button:hover {
   margin: 0;
 }
 
-/* 添加状态点样式 */
+/* 添加状态点样 */
 .status-dot {
   width: 8px;
   height: 8px;
@@ -2040,4 +2078,127 @@ button:hover {
   }
 }
 
+/* 修改笔记按钮样式 */
+.note-btn {
+  padding: 10px 20px;
+  background-color: white;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.note-btn:hover {
+  background-color: rgb(245, 230, 245);
+  transform: translateY(-1px);
+}
+
+.note-btn.active {
+  background-color: rgb(236, 198, 236);
+  color: white;
+}
+
+/* 笔记侧边栏样式 */
+.note-panel {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 400px;
+  height: 100vh;
+  background-color: white;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.note-panel-open {
+  right: 0;
+}
+
+.note-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.note-panel-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.note-panel-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.note-textarea {
+  width: 100%;
+  height: 300px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: none;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.note-panel-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-note-btn {
+  padding: 10px 24px;
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.save-note-btn:hover {
+  background-color: rgb(226, 178, 226);
+}
+
+.close-btn {
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.privacy-setting {
+  margin-bottom: 15px;
+}
+
+.privacy-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #666;
+  font-size: 14px;
+}
+
+.privacy-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
 </style>
