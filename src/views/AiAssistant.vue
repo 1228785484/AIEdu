@@ -5,14 +5,20 @@
       <div class="nav-section">
         <h3>学生信息</h3>
         <ul>
-          <li @click="showProfileInfo">个人资料</li>
+          <li @click="navigateTo('profile')">个人资料</li>
         </ul>
       </div>
       <div class="nav-section">
         <h3>课程</h3>
         <ul>
-          <li @click="fetchSelectedCourses">学生选课情况</li>
-          <li @click="fetchCourseSelection">课程设置</li>
+          <li @click="navigateTo('courses')">学生选课情况</li>
+          <li @click="navigateTo('courseSelection')">课程设置</li>
+        </ul>
+      </div>
+      <div class="nav-section">
+        <h3>AI服务</h3>
+        <ul>
+          <li @click="navigateTo('aiChat')">AI对话</li>
         </ul>
       </div>
     </div>
@@ -24,18 +30,20 @@
         <table class="info-table">
           <thead>
             <tr>
-              <th style="width: 25%">用户名</th>
-              <th style="width: 25%">邮箱</th>
-              <th style="width: 25%">学习次数</th>
-              <th style="width: 25%">学习时间</th>
+              <th style="width: 20%">用户ID</th>
+              <th style="width: 20%">用户名</th>
+              <th style="width: 20%">邮箱</th>
+              <th style="width: 20%">学习次数</th>
+              <th style="width: 20%">学习时间</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>{{ userProfile?.username || '-' }}</td>
-              <td>{{ userProfile?.email || '-' }}</td>
-              <td>{{ userProfile?.studyCount || '0' }}</td>
-              <td>{{ formatStudyTime(userProfile?.studyTime) || '00:00:00' }}</td>
+            <tr v-for="user in allUsers" :key="user.userId">
+              <td>{{ user.userId || '-' }}</td>
+              <td>{{ user.username || '-' }}</td>
+              <td>{{ user.email || '-' }}</td>
+              <td>{{ user.studyCount || '0' }}</td>
+              <td>{{ formatStudyTime(user.studyTime) || '00:00:00' }}</td>
             </tr>
           </tbody>
         </table>
@@ -206,6 +214,32 @@
           </template>
         </el-dialog>
       </div>
+
+      <!-- 新增AI对话界面 -->
+      <div v-if="showAIService" class="profile-info">
+        <h2>AI助手</h2>
+        <div class="chat-container">
+          <div class="chat-messages" ref="chatMessages">
+            <div v-for="(msg, index) in chatMessages" 
+                 :key="index"
+                 :class="['message', msg.type]">
+              {{ msg.content }}
+            </div>
+          </div>
+          <div class="chat-input">
+            <el-input
+              v-model="userInput"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入您的问题..."
+              @keyup.enter="sendMessage"
+            />
+            <el-button type="primary" @click="sendMessage" :loading="loading">
+              发送
+            </el-button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -220,7 +254,25 @@ export default {
   },
   data() {
     return {
-      userProfile: null,
+      userProfile: {
+        userId: 1,
+        username: 'teacher_zhang',
+        email: 'zhang@example.com',
+        studyCount: 0,
+        studyTime: '00:00:00'
+      },
+      allUsers: [
+        { userId: 2, username: 'student_wang', email: 'wang@example.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 3, username: 'student_li', email: 'li@example.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 4, username: 'student_zhao', email: 'zhao@example.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 5, username: 'admin_chen', email: 'chen@example.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 6, username: 'SevenGod', email: '1228785484@qq.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 7, username: 'ZJH123', email: '3244236643@qq.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 8, username: 'Cool', email: 'noobsevengod@gmail.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 9, username: 'lzh', email: 'lq20041210@126.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 10, username: 'RJY', email: 'ruanjiay041126@163.com', studyCount: 0, studyTime: '00:00:00' },
+        { userId: 11, username: 'pl', email: '3319291032@qq.com', studyCount: 0, studyTime: '00:00:00' }
+      ],
       selectedCourses: [],
       courseSelectionData: [],
       showProfile: true,
@@ -240,15 +292,46 @@ export default {
       showDeleteDialog: false,
       deleteCourse: {
         courseId: ''
-      }
+      },
+      showAIService: false,
+      userInput: '',
+      chatMessages: [],
+      loading: false
     }
   },
+  created() {
+    const lastPage = localStorage.getItem('lastPage') || 'profile';
+    this.navigateTo(lastPage);
+  },
   methods: {
-    showProfileInfo() {
-      this.showProfile = true;
+    navigateTo(page) {
+      // 存储当前页面状态
+      localStorage.setItem('lastPage', page);
+      
+      // 重置所有页面状态
+      this.showProfile = false;
       this.showCourses = false;
       this.showCourseSelection = false;
-      this.fetchUserProfile();
+      this.showAIService = false;
+      
+      // 根据页面类型显示对应内容
+      switch(page) {
+        case 'profile':
+          this.showProfile = true;
+          this.fetchUserProfile();
+          break;
+        case 'courses':
+          this.showCourses = true;
+          this.fetchSelectedCourses();
+          break;
+        case 'courseSelection':
+          this.showCourseSelection = true;
+          this.fetchCourseSelection();
+          break;
+        case 'aiChat':
+          this.showAIService = true;
+          break;
+      }
     },
     async fetchUserProfile() {
       try {
@@ -275,6 +358,7 @@ export default {
       this.showProfile = false;
       this.showCourses = true;
       this.showCourseSelection = false;
+      this.showAIService = false;
       
       try {
         const token = localStorage.getItem('token');
@@ -332,6 +416,7 @@ export default {
       this.showProfile = false;
       this.showCourses = false;
       this.showCourseSelection = true;
+      this.showAIService = false;
       
       try {
         const token = localStorage.getItem('token');
@@ -524,7 +609,7 @@ export default {
         return;
       }
 
-      this.$confirm('确认删除该课程吗？此操作不可恢复', '提示', {
+      this.$confirm('确认删除该课程吗？此操作不可复', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -533,25 +618,84 @@ export default {
       }).catch(() => {
         this.$message({
           type: 'info',
-          message: '取消删除'
+          message: '已取消删除'
         });
       });
     },
     navigateToCourse(course) {
-      if (!course) return;
-      
-      this.$router.push({ 
-        name: 'CourseDetail', 
+      this.$router.push({
+        name: 'CourseDetail',
         params: {
           courseId: course.courseId,
-          courseName: course.courseName,
-          courseDescription: course.description
+          courseName: course.courseName
         }
       });
+    },
+    navigateToCourseStudents(course) {
+      this.$router.push({
+        name: 'CourseStudents',
+        params: { 
+          courseId: course.courseId,
+          courseName: course.courseName
+        }
+      });
+    },
+    showAIChat() {
+      this.showProfile = false;
+      this.showCourses = false; 
+      this.showCourseSelection = false;
+      this.showAIService = true;
+    },
+    async sendMessage() {
+      if (!this.userInput.trim()) return;
+      
+      try {
+        this.loading = true;
+        // 添加用户消息
+        this.chatMessages.push({
+          type: 'user',
+          content: this.userInput
+        });
+
+        const response = await fetch('http://localhost:8008/api/test/askAi', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            userId: 123,  // 这里需要替换为实际的用户ID
+            query: this.userInput
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('AI服务请求失败');
+        }
+
+        const result = await response.json();
+        
+        // 添加AI回复
+        this.chatMessages.push({
+          type: 'ai',
+          content: result.answer || '抱歉,现在无法回答这个问题'
+        });
+
+        this.userInput = '';
+        
+        // 滚动到最新消息
+        this.$nextTick(() => {
+          const chatMessages = this.$refs.chatMessages;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+      } catch (error) {
+        console.error('AI对话出错:', error);
+        this.$message.error('AI服务暂时不可用,请稍后重试');
+      } finally {
+        this.loading = false;
+      }
     }
-  },
-  created() {
-    this.fetchUserProfile();
   }
 };
 </script>
@@ -670,5 +814,47 @@ h2, h3 {
 .el-button--small {
   padding: 6px 12px;
   font-size: 12px;
+}
+
+/* 新增AI对话相关样式 */
+.chat-container {
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.message {
+  margin: 10px 0;
+  padding: 10px 15px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.user {
+  background: #e3f2fd;
+  margin-left: auto;
+}
+
+.ai {
+  background: #f5f5f5;
+  margin-right: auto;
+}
+
+.chat-input {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input .el-textarea {
+  flex: 1;
 }
 </style>
