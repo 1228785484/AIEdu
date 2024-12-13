@@ -1,4 +1,4 @@
-package org.sevengod.javabe.handler.checkins;
+package org.sevengod.javabe.handler.checkinsChain;
 
 import org.sevengod.javabe.entity.context.CheckInContext;
 

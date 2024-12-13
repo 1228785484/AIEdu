@@ -67,6 +67,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     //Minio
     implementation 'io.minio:minio:8.5.14'
+    // https://mvnrepository.com/artifact/cn.bugstack/openai-sdk-java
+    implementation 'cn.bigmodel.openapi:oapi-java-sdk:release-V4-2.3.0'
+
+
 }
 
 dependencyManagement {

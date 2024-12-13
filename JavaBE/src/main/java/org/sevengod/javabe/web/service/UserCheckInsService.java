@@ -39,4 +39,11 @@ public interface UserCheckInsService extends IService<UserCheckIns> {
      * @return 该月份中已签到的日期集合
      */
     Set<Integer> getMonthlyCheckInDays(Long userId, int year, int month);
+
+    /**
+     * 获取用户当前的连续签到天数
+     * @param userId 用户ID
+     * @return 连续签到天数
+     */
+    int getConsecutiveCheckInDays(Long userId);
 }

@@ -1,4 +1,4 @@
-package org.sevengod.javabe.handler.checkins;
+package org.sevengod.javabe.handler.checkinsChain;
 
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBucket;
@@ -31,5 +31,17 @@ public class StreakCheckInHandler extends AbstractCheckInHandler {
         bucket.set(currentStreak, 24, TimeUnit.HOURS);
         
         context.setStreakDays(currentStreak);
+    }
+
+    /**
+     * 获取用户当前的连续签到天数
+     * @param userId 用户ID
+     * @return 连续签到天数
+     */
+    public int getConsecutiveStreak(Long userId) {
+        String key = String.format(STREAK_KEY, userId);
+        RBucket<Integer> bucket = redisson.getBucket(key);
+        Integer streak = bucket.get();
+        return streak != null ? streak : 0;
     }
 }

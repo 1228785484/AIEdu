@@ -103,4 +103,13 @@ public class UserCheckInsController {
             return AjaxResult.error("查询月度签到记录失败：" + e.getMessage());
         }
     }
+
+    @GetMapping("/consecutive")
+    @Operation(summary = "获取连续签到天数", description = "获取用户当前的连续签到天数")
+    public AjaxResult getConsecutiveCheckInDays(
+            @Parameter(name = "userId", description = "用户ID", required = true)
+            @RequestParam("userId") Long userId) {
+        int days = userCheckInsService.getConsecutiveCheckInDays(userId);
+        return AjaxResult.success(days);
+    }
 }

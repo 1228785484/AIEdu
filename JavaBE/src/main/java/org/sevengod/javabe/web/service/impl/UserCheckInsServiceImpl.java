@@ -7,9 +7,9 @@ import org.sevengod.javabe.entity.UserCheckIns;
 import org.sevengod.javabe.web.mapper.UserCheckInsMapper;
 import org.sevengod.javabe.web.service.UserCheckInsService;
 import org.sevengod.javabe.entity.context.CheckInContext;
-import org.sevengod.javabe.handler.checkins.ValidateCheckInHandler;
-import org.sevengod.javabe.handler.checkins.StreakCheckInHandler;
-import org.sevengod.javabe.handler.checkins.PersistCheckInHandler;
+import org.sevengod.javabe.handler.checkinsChain.ValidateCheckInHandler;
+import org.sevengod.javabe.handler.checkinsChain.StreakCheckInHandler;
+import org.sevengod.javabe.handler.checkinsChain.PersistCheckInHandler;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -80,5 +80,11 @@ public class UserCheckInsServiceImpl extends ServiceImpl<UserCheckInsMapper, Use
         return this.list(wrapper).stream()
                 .map(checkIn -> checkIn.getCheckInDate().getDayOfMonth())
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public int getConsecutiveCheckInDays(Long userId) {
+        // 通过StreakCheckInHandler获取连续签到天数
+        return streakCheckInHandler.getConsecutiveStreak(userId);
     }
 }
