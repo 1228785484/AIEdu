@@ -77,11 +77,10 @@
             测验
           </span>
           <span 
-            class="note-btn"
+            class="action-btn" 
             :class="{ active: showNotePanel }"
             @click="toggleNotePanel"
           >
-            <i class="fas fa-edit"></i>
             笔记
           </span>
         </div>
@@ -132,7 +131,7 @@
               </div>
               <!-- 测验内容 -->
               <div v-else>
-                <!-- 测验加载失败或���择章节 -->
+                <!-- 测验加载失败或选择章节 -->
                 <div v-if="!testData.content" class="no-content-message">
                   <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
                 </div>
@@ -176,11 +175,15 @@
       </div>
     </div>
 
-    <!-- 右侧模块（仅保留选择日期的提示） -->
+    <!-- 右侧模块 -->
     <div id="right-container">
       <div id="right-content">
-        <div id="plan-title">学习计划</div>
-        <div id="plan-line"></div><!--在学习计划下面添加一条横线-->
+        <div class="right-header">
+          <div class="header-item">
+            <span class="header-title">学习计划</span>
+          </div>
+        </div>
+        <div id="plan-line"></div>
         <div id="scrollable-area">
           <!-- 目录树 -->
           <el-tree
@@ -245,7 +248,27 @@
         </div>
       </div>
       <div class="note-panel-footer">
-        <button class="save-note-btn" @click="saveNote">保存笔记</button>
+        <button 
+          v-if="!hasNote"
+          class="create-note-btn" 
+          @click="createNote"
+        >
+          创建笔记
+        </button>
+        <template v-else>
+          <button 
+            class="update-note-btn" 
+            @click="updateNote"
+          >
+            更新笔记
+          </button>
+          <button 
+            class="delete-note-btn" 
+            @click="deleteNote"
+          >
+            删除笔记
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -383,7 +406,7 @@ function selectAction(action) {
   }
 }
 
-// 目录树数据改为响应式
+// 目树数据改为响应式
 const treeData = ref([]);
 
 // 加载课程树数据的方法
@@ -559,7 +582,7 @@ const updateStudyTimes = async () => {
 
     const result = await response.json();
     console.log(result)
-    // ���新学习次数值
+    // 更新学习次数值
     note.value.frequency = result.data
     
   } catch (error) {
@@ -665,7 +688,7 @@ const handleNodeClick = async (nodeData) => {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
           showQuizModal.value = true; // 显示弹窗
           quizStarted.value = false; // 重置测验状态
-          showResults.value = false; // 重置结果显示状态
+          showResults.value = false; // 重置结果��示状态
           timeLeft.value = totalMinutes * 60; // 重置倒计时时间
           if (timerId) {
             clearInterval(timerId); // 清除之前的定时器
@@ -679,7 +702,7 @@ const handleNodeClick = async (nodeData) => {
       console.error('Error loading quiz:', error);
       testData.value = { content: '测验加载失败，请重试' };
     } finally {
-      // 无论成���失败都关闭加载状态
+      // 无论成功失败都关闭加载状态
       isQuizLoading.value = false;
     }
 
@@ -687,6 +710,33 @@ const handleNodeClick = async (nodeData) => {
     console.error('Error:', error);
     sectionData.value = { content: '请求失败，请稍后重试' };
     testData.value = { content: '请求失败，请稍后重试' };
+  }
+
+  // 获取章节笔记
+  try {
+    const response = await fetch(`http://localhost:8008/api/study-notes/chapter?userId=${userId}&chapterId=${chapterId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const note = data[0];
+        hasNote.value = true;
+        currentNoteId.value = note.id;
+        noteContent.value = note.content;
+        isPrivate.value = note.isPrivate;
+      } else {
+        hasNote.value = false;
+        currentNoteId.value = null;
+        noteContent.value = '';
+        isPrivate.value = true;
+      }
+    }
+  } catch (error) {
+    console.error('获取笔记失败:', error);
   }
 };
 
@@ -807,7 +857,7 @@ const quizData =ref()
 // 添加完成状态追踪
 const completedChapters = ref({});
 
-// 新增响应式变量
+// 新响应式变量
 const showSubmitModal = ref(false);
 const showMessage = ref(false);
 const messageText = ref('');
@@ -998,7 +1048,7 @@ const submitQuizScore = async (quizData) => {
       await updateLearningCount(currentNode.value.id);
       console.log('提交测验成功')
       showSubmitModal.value = false;
-      // ... 其他成功后的操作
+      // ... 其他成功后操作
     } else {
       throw new Error('提交测验失败');
     }
@@ -1016,7 +1066,7 @@ onUnmounted(() => {
 });
 
 // 在 script setup 中添加新的响应式变量和方法
-const showQuizModal = ref(true); // 控制弹窗显示
+const showQuizModal = ref(true); // 控制窗显示
 const quizStarted = ref(false); // 控制测验是否已开始
 
 // 在 script setup 中添加新的响应式变量
@@ -1039,13 +1089,13 @@ const cancelSubmit = () => {
 // 最小化浏览器窗口
 // 切换到其他标签页
 // 切换到其他应用程序
-// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
 
 let ws = null;
 let reconnectTimer = null;
 let isHandle = false;
 
-// 添加页面可见性变化的处理函数
+// 添加页面可见性变化的处理数
 const handleVisibilityChange = () => {
   if (document.hidden) {
     // 页面被隐藏（最小化或切换到其他标签）
@@ -1144,7 +1194,7 @@ onMounted(() => {
   }, 100);
 });
 
-// 路��离开时
+// 路由离开时
 onBeforeRouteLeave((to, from, next) => {
   console.log('路由离开，关闭 WebSocket');
   closeWs();
@@ -1191,6 +1241,8 @@ defineExpose({
 const showNotePanel = ref(false);
 const noteContent = ref('');
 const isPrivate = ref(true);
+const hasNote = ref(false);
+const currentNoteId = ref(null);
 
 // 切换笔记面板
 const toggleNotePanel = () => {
@@ -1201,8 +1253,8 @@ const toggleNotePanel = () => {
   showNotePanel.value = !showNotePanel.value;
 };
 
-// 修改保存笔记的方法
-const saveNote = async () => {
+// 创建笔记
+const createNote = async () => {
   try {
     if (!noteContent.value.trim()) {
       showTemporaryMessage('笔记内容不能为空');
@@ -1226,15 +1278,78 @@ const saveNote = async () => {
     });
 
     if (response.ok) {
-      showTemporaryMessage('笔记保存成功！');
-      noteContent.value = '';
-      isPrivate.value = true;
+      const data = await response.json();
+      currentNoteId.value = data.noteId;
+      hasNote.value = true;
+      showTemporaryMessage('笔记创建成功！');
     } else {
-      throw new Error('保存失败');
+      throw new Error('创建失败');
     }
   } catch (error) {
-    console.error('保存笔记失败:', error);
-    showTemporaryMessage('保存失败，请重试');
+    console.error('创建笔记失败:', error);
+    showTemporaryMessage('创建失败，请重试');
+  }
+};
+
+// 更新笔记
+const updateNote = async () => {
+  try {
+    if (!noteContent.value.trim()) {
+      showTemporaryMessage('笔记内容不能为空');
+      return;
+    }
+
+    const noteData = {
+      noteId: currentNoteId.value,
+      content: noteContent.value,
+      isPrivate: isPrivate.value
+    };
+
+    const response = await fetch('http://localhost:8008/api/study-notes/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(noteData)
+    });
+
+    if (response.ok) {
+      showTemporaryMessage('笔记更新成功！');
+    } else {
+      throw new Error('更新失败');
+    }
+  } catch (error) {
+    console.error('更新笔记失败:', error);
+    showTemporaryMessage('更新失败，请重试');
+  }
+};
+
+// 删除笔记
+const deleteNote = async () => {
+  try {
+    if (!currentNoteId.value) return;
+
+    const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      hasNote.value = false;
+      currentNoteId.value = null;
+      noteContent.value = '';
+      isPrivate.value = true;
+      showNotePanel.value = false;
+      showTemporaryMessage('���记删除成功！');
+    } else {
+      throw new Error('删除失败');
+    }
+  } catch (error) {
+    console.error('删除笔记失败:', error);
+    showTemporaryMessage('删除失败，请重试');
   }
 };
 
@@ -1607,7 +1722,7 @@ const saveNote = async () => {
   color:black;
 }
 
-/* 章节数据展示部分 */
+/* 章节数据展示分 */
 #section-content {
   margin-top: 20px;
   padding: 10px;
@@ -1724,7 +1839,7 @@ button:hover {
   color: white;
 }
 
-/*横线样式 */
+/*横线式 */
 #middle-line{
   height:1px;
   width:100%;
@@ -2200,5 +2315,52 @@ button:hover {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* 学习计划头部容器 */
+.right-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  margin-bottom: 10px;
+}
+
+.header-item {
+  display: flex;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 笔记按钮样式 */
+.note-btn {
+  padding: 6px 12px;
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.note-btn:hover {
+  background-color: rgb(226, 178, 226);
+}
+
+.note-btn.active {
+  background-color: rgb(226, 178, 226);
+}
+
+.note-btn i {
+  font-size: 14px;
 }
 </style>
