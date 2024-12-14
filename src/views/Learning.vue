@@ -61,6 +61,55 @@
     <!-- 中间模块（学习计划） -->
     <div id="middle-container">
       <div id="middle-content">
+        <!-- 添加签到按钮 -->
+        <div class="checkin-container">
+          <button class="checkin-btn" @click="showCalendar = true">
+            <i class="fas fa-calendar-check"></i>
+            每日签到
+          </button>
+        </div>
+
+        <!-- 签到日历弹窗 -->
+        <div v-if="showCalendar" class="calendar-modal">
+          <div class="calendar-content">
+            <div class="calendar-header">
+              <button @click="changeMonth(-1)">&lt;</button>
+              <span>{{ currentYear }}年{{ currentMonth + 1 }}月</span>
+              <button @click="changeMonth(1)">&gt;</button>
+            </div>
+            
+            <div class="calendar-body">
+              <div class="weekdays">
+                <span v-for="day in ['日','一','二','三','四','五','六']" :key="day">
+                  {{ day }}
+                </span>
+              </div>
+              <div class="days">
+                <div
+                  v-for="day in calendarDays"
+                  :key="day.date"
+                  class="day"
+                  :class="{
+                    'other-month': !day.currentMonth,
+                    'checked': checkedDays.includes(day.date),
+                    'today': isToday(day.date),
+                    'past-day': !checkedDays.includes(day.date) && isPastDay(day.date) && day.currentMonth
+                  }"
+                  @click="handleDayClick(day)"
+                >
+                  {{ day.dayOfMonth }}
+                </div>
+              </div>
+            </div>
+
+            <div class="calendar-footer">
+              <div class="checkin-stats">
+                <span>本月已签到: {{ monthlyStats.daysChecked }}天</span>
+              </div>
+              <button class="close-btn" @click="showCalendar = false">关闭</button>
+            </div>
+          </div>
+        </div>
         <div class="action-buttons">
           <span 
             class="action-btn" 
@@ -77,11 +126,10 @@
             测验
           </span>
           <span 
-            class="note-btn"
+            class="action-btn" 
             :class="{ active: showNotePanel }"
             @click="toggleNotePanel"
           >
-            <i class="fas fa-edit"></i>
             笔记
           </span>
         </div>
@@ -132,7 +180,7 @@
               </div>
               <!-- 测验内容 -->
               <div v-else>
-                <!-- 测验加载失败或���择章节 -->
+                <!-- 测验加载失败或选择章节 -->
                 <div v-if="!testData.content" class="no-content-message">
                   <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
                 </div>
@@ -176,11 +224,15 @@
       </div>
     </div>
 
-    <!-- 右侧模块（仅保留选择日期的提示） -->
+    <!-- 右侧模块 -->
     <div id="right-container">
       <div id="right-content">
-        <div id="plan-title">学习计划</div>
-        <div id="plan-line"></div><!--在学习计划下面添加一条横线-->
+        <div class="right-header">
+          <div class="header-item">
+            <span class="header-title">学习计划</span>
+          </div>
+        </div>
+        <div id="plan-line"></div>
         <div id="scrollable-area">
           <!-- 目录树 -->
           <el-tree
@@ -245,7 +297,27 @@
         </div>
       </div>
       <div class="note-panel-footer">
-        <button class="save-note-btn" @click="saveNote">保存笔记</button>
+        <button 
+          v-if="!hasNote"
+          class="create-note-btn" 
+          @click="createNote"
+        >
+          创建笔记
+        </button>
+        <template v-else>
+          <button 
+            class="update-note-btn" 
+            @click="updateNote"
+          >
+            更新笔记
+          </button>
+          <button 
+            class="delete-note-btn" 
+            @click="deleteNote"
+          >
+            删除笔记
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -253,7 +325,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, defineExpose} from 'vue';
-import { ElTree } from 'element-plus';
+import { ElTree,ElMessage } from 'element-plus';
 import {marked} from 'marked';
 import { useRouter } from 'vue-router';
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
@@ -383,7 +455,7 @@ function selectAction(action) {
   }
 }
 
-// 目录树数据改为响应式
+// 目树数据改为响应式
 const treeData = ref([]);
 
 // 加载课程树数据的方法
@@ -559,7 +631,7 @@ const updateStudyTimes = async () => {
 
     const result = await response.json();
     console.log(result)
-    // ���新学习次数值
+    // 更新学习次数值
     note.value.frequency = result.data
     
   } catch (error) {
@@ -665,7 +737,7 @@ const handleNodeClick = async (nodeData) => {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
           showQuizModal.value = true; // 显示弹窗
           quizStarted.value = false; // 重置测验状态
-          showResults.value = false; // 重置结果显示状态
+          showResults.value = false; // 重置结果��示状态
           timeLeft.value = totalMinutes * 60; // 重置倒计时时间
           if (timerId) {
             clearInterval(timerId); // 清除之前的定时器
@@ -679,7 +751,7 @@ const handleNodeClick = async (nodeData) => {
       console.error('Error loading quiz:', error);
       testData.value = { content: '测验加载失败，请重试' };
     } finally {
-      // 无论成���失败都关闭加载状态
+      // 无论成功失败都关闭加载状态
       isQuizLoading.value = false;
     }
 
@@ -687,6 +759,33 @@ const handleNodeClick = async (nodeData) => {
     console.error('Error:', error);
     sectionData.value = { content: '请求失败，请稍后重试' };
     testData.value = { content: '请求失败，请稍后重试' };
+  }
+
+  // 获取章节笔记
+  try {
+    const response = await fetch(`http://localhost:8008/api/study-notes/chapter?userId=${userId}&chapterId=${chapterId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const note = data[0];
+        hasNote.value = true;
+        currentNoteId.value = note.id;
+        noteContent.value = note.content;
+        isPrivate.value = note.isPrivate;
+      } else {
+        hasNote.value = false;
+        currentNoteId.value = null;
+        noteContent.value = '';
+        isPrivate.value = true;
+      }
+    }
+  } catch (error) {
+    console.error('获取笔记失败:', error);
   }
 };
 
@@ -807,7 +906,7 @@ const quizData =ref()
 // 添加完成状态追踪
 const completedChapters = ref({});
 
-// 新增响应式变量
+// 新响应式变量
 const showSubmitModal = ref(false);
 const showMessage = ref(false);
 const messageText = ref('');
@@ -998,7 +1097,7 @@ const submitQuizScore = async (quizData) => {
       await updateLearningCount(currentNode.value.id);
       console.log('提交测验成功')
       showSubmitModal.value = false;
-      // ... 其他成功后的操作
+      // ... 其他成功后操作
     } else {
       throw new Error('提交测验失败');
     }
@@ -1016,7 +1115,7 @@ onUnmounted(() => {
 });
 
 // 在 script setup 中添加新的响应式变量和方法
-const showQuizModal = ref(true); // 控制弹窗显示
+const showQuizModal = ref(true); // 控制窗显示
 const quizStarted = ref(false); // 控制测验是否已开始
 
 // 在 script setup 中添加新的响应式变量
@@ -1039,13 +1138,13 @@ const cancelSubmit = () => {
 // 最小化浏览器窗口
 // 切换到其他标签页
 // 切换到其他应用程序
-// 都会触发 WebSocket 连接的断开，当用户重新回到页面时，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
 
 let ws = null;
 let reconnectTimer = null;
 let isHandle = false;
 
-// 添加页面可见性变化的处理函数
+// 添加页面可见性变化的处理数
 const handleVisibilityChange = () => {
   if (document.hidden) {
     // 页面被隐藏（最小化或切换到其他标签）
@@ -1144,7 +1243,7 @@ onMounted(() => {
   }, 100);
 });
 
-// 路��离开时
+// 路由离开时
 onBeforeRouteLeave((to, from, next) => {
   console.log('路由离开，关闭 WebSocket');
   closeWs();
@@ -1191,6 +1290,8 @@ defineExpose({
 const showNotePanel = ref(false);
 const noteContent = ref('');
 const isPrivate = ref(true);
+const hasNote = ref(false);
+const currentNoteId = ref(null);
 
 // 切换笔记面板
 const toggleNotePanel = () => {
@@ -1201,8 +1302,8 @@ const toggleNotePanel = () => {
   showNotePanel.value = !showNotePanel.value;
 };
 
-// 修改保存笔记的方法
-const saveNote = async () => {
+// 创建笔记
+const createNote = async () => {
   try {
     if (!noteContent.value.trim()) {
       showTemporaryMessage('笔记内容不能为空');
@@ -1226,16 +1327,307 @@ const saveNote = async () => {
     });
 
     if (response.ok) {
-      showTemporaryMessage('笔记保存成功！');
-      noteContent.value = '';
-      isPrivate.value = true;
+      const data = await response.json();
+      currentNoteId.value = data.noteId;
+      hasNote.value = true;
+      showTemporaryMessage('笔记创建成功！');
     } else {
-      throw new Error('保存失败');
+      throw new Error('创建失败');
     }
   } catch (error) {
-    console.error('保存笔记失败:', error);
-    showTemporaryMessage('保存失败，请重试');
+    console.error('创建笔记失败:', error);
+    showTemporaryMessage('创建失败，请重试');
   }
+};
+
+// 更新笔记
+const updateNote = async () => {
+  try {
+    if (!noteContent.value.trim()) {
+      showTemporaryMessage('笔记内容不能为空');
+      return;
+    }
+
+    const noteData = {
+      noteId: currentNoteId.value,
+      content: noteContent.value,
+      isPrivate: isPrivate.value
+    };
+
+    const response = await fetch('http://localhost:8008/api/study-notes/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(noteData)
+    });
+
+    if (response.ok) {
+      showTemporaryMessage('笔记更新成功！');
+    } else {
+      throw new Error('更新失败');
+    }
+  } catch (error) {
+    console.error('更新笔记失败:', error);
+    showTemporaryMessage('更新失败，请重试');
+  }
+};
+
+// 删除笔记
+const deleteNote = async () => {
+  try {
+    if (!currentNoteId.value) return;
+
+    const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      hasNote.value = false;
+      currentNoteId.value = null;
+      noteContent.value = '';
+      isPrivate.value = true;
+      showNotePanel.value = false;
+      showTemporaryMessage('���记删除成功！');
+    } else {
+      throw new Error('删除失败');
+    }
+  } catch (error) {
+    console.error('删除笔记失败:', error);
+    showTemporaryMessage('删除失败，请重试');
+  }
+};
+
+// 在现有的 setup 中添加
+const showCalendar = ref(false);
+const currentYear = ref(new Date().getFullYear());
+const currentMonth = ref(new Date().getMonth());
+const checkedDays = ref([]);
+const monthlyStats = ref({
+  daysChecked: 0,
+  streak: 0
+});
+
+// 获取日历天数
+const calendarDays = computed(() => {
+  const days = [];
+  const firstDay = new Date(currentYear.value, currentMonth.value, 1);
+  const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0);
+  
+  // 添加上月剩余天数
+  for (let i = firstDay.getDay(); i > 0; i--) {
+    const date = new Date(currentYear.value, currentMonth.value, 1 - i);
+    days.push({
+      date: formatDate(date),
+      dayOfMonth: date.getDate(),
+      currentMonth: false
+    });
+  }
+  
+  // 添加当月天数
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const date = new Date(currentYear.value, currentMonth.value, i);
+    days.push({
+      date: formatDate(date),
+      dayOfMonth: i,
+      currentMonth: true
+    });
+  }
+  
+  return days;
+});
+
+// 格式化日期
+const formatDate = (date) => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+// 判断是否为今天
+const isToday = (date) => {
+  return date === formatDate(new Date());
+};
+
+// 切换月份
+const changeMonth = (delta) => {
+  const newMonth = currentMonth.value + delta;
+  if (newMonth < 0) {
+    currentMonth.value = 11;
+    currentYear.value--;
+  } else if (newMonth > 11) {
+    currentMonth.value = 0;
+    currentYear.value++;
+  } else {
+    currentMonth.value = newMonth;
+  }
+  loadMonthlyCheckins();
+};
+
+// 加载月度签到数据
+const loadMonthlyCheckins = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    
+    // 获取签到日期
+    const response = await fetch(`http://localhost:8008/api/checkins/monthly`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: Number(userId),
+        year: currentYear.value,
+        month: currentMonth.value + 1
+      })
+    });
+    const result = await response.json();
+    
+    // 使用 result.data 的长度更新签到天数
+    if (result && result.data) {
+      checkedDays.value = result.data;
+      monthlyStats.value.daysChecked = result.data.length;
+    } else {
+      checkedDays.value = [];
+      monthlyStats.value.daysChecked = 0;
+    }
+    // 获取连续签到统计
+    const statsResponse = await fetch(`http://localhost:8008/api/checkins/statistics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: Number(userId),
+        startDate: new Date(currentYear.value, currentMonth.value, 1).toISOString().split('T')[0],
+        endDate: new Date(currentYear.value, currentMonth.value + 1, 0).toISOString().split('T')[0]
+      })
+    });
+    
+    const statsData = await statsResponse.json();
+    monthlyStats.value.streak = statsData.streak || 0;
+  } catch (error) {
+    console.error('加载签到数据失败:', error);
+    checkedDays.value = [];
+    monthlyStats.value.daysChecked = 0;
+  }
+};
+
+// 添加获取签到状态的函数
+const getCheckinStatus = async (date) => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch('http://localhost:8008/api/checkins/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: Number(userId),
+        date: date
+      })
+    });
+    
+    const result = await response.json();
+    const isChecked = result.data?true:false;
+    
+    // 解析日期
+    const dateObj = new Date(date);
+    const dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+    
+    // 根据签到状态打印不同信息
+    if (isChecked == true) {
+      console.log(`${dateStr}已签到`);
+    } else {
+      console.log(`${dateStr}未签到`);
+    }
+    
+    return isChecked;
+  } catch (error) {
+    console.error('获取签到状态失败:', error);
+    return false;
+  }
+};
+// 修改处理签到点击的函数
+const handleDayClick = async (day) => {
+    // 检查是否是当天或之前的日期
+    const today = new Date();
+    const clickedDate = new Date(day.date);
+    today.setHours(0, 0, 0, 0);
+    clickedDate.setHours(0, 0, 0, 0);
+    
+    // 获取签到状态
+    const isChecked = await getCheckinStatus(day.date);
+    
+    // 格式化日期显示
+    const dateStr = `${clickedDate.getFullYear()}年${clickedDate.getMonth() + 1}月${clickedDate.getDate()}日`;
+    
+    // 显示签到状态
+    if (isChecked == true) {
+      ElMessage.info(`${dateStr}已签到`);
+      return;
+    }
+    
+    // 检查是否是过去的日期
+    if (clickedDate < today) {
+      ElMessage.warning(`${dateStr}不能补签`);
+      return;
+    }
+    
+    // 检查是否是未来日期
+    if (clickedDate > today) {
+      ElMessage.warning(`${dateStr}不能提前签到`);
+      return;
+    }
+  
+    // 检查是否是当前月份
+    if (!day.currentMonth) {
+      return;
+    }
+    
+    try {
+      const userId = localStorage.getItem('userid');
+      const response = await fetch(`http://localhost:8008/api/checkins/checkIn?userId=${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // 签到成功后立即更新数据
+          await loadMonthlyCheckins(); // 重新加载月度签到数据
+          ElMessage.success(`${dateStr}签到成功！`);
+        } else {
+          ElMessage.info(result.msg || `${dateStr}已签到`);
+        }
+      } else {
+        ElMessage.error('签到请求失败');
+      }
+    } catch (error) {
+      console.error('网络错误签到失败');
+      ElMessage.error('网络错误签到失败');
+    }
+  };
+
+// 在组件挂载时加载签到数据
+onMounted(() => {
+  loadMonthlyCheckins();
+});
+
+// 添加判断是否为过去日期的计算属性
+const isPastDay = (date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkDate = new Date(date);
+  return checkDate < today;
 };
 
 </script>
@@ -1607,7 +1999,7 @@ const saveNote = async () => {
   color:black;
 }
 
-/* 章节数据展示部分 */
+/* 章节数据展示分 */
 #section-content {
   margin-top: 20px;
   padding: 10px;
@@ -1724,7 +2116,7 @@ button:hover {
   color: white;
 }
 
-/*横线样式 */
+/*横线式 */
 #middle-line{
   height:1px;
   width:100%;
@@ -2201,4 +2593,241 @@ button:hover {
   height: 16px;
   cursor: pointer;
 }
+
+/* 学习计划头部容器 */
+.right-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  margin-bottom: 10px;
+}
+
+.header-item {
+  display: flex;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 笔记按钮样式 */
+.note-btn {
+  padding: 6px 12px;
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.note-btn:hover {
+  background-color: rgb(226, 178, 226);
+}
+
+.note-btn.active {
+  background-color: rgb(226, 178, 226);
+}
+
+.note-btn i {
+  font-size: 14px;
+}
+/* 签到按钮样式 */
+.checkin-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.checkin-btn {
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.checkin-btn:hover {
+  background-color: rgb(226, 178, 226);
+  transform: translateY(-2px);
+}
+
+/* 日历弹窗样式 */
+.calendar-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.calendar-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 15px;
+  width: 380px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 0 10px;
+}
+
+.calendar-header button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #007bff; /* 深蓝色 */
+  cursor: pointer;
+  padding: 5px 10px;
+  transition: all 0.3s ease;
+}
+
+.calendar-header button:hover {
+  color: #0056b3; /* 更深的蓝色 */
+  transform: scale(1.1);
+}
+
+.calendar-header span {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.weekdays span {
+  font-size: 14px;
+  color: #666;
+  padding: 5px 0;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.day {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 15px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* 普通日期样式 - 添加紫色边框 */
+.day:not(.other-month):not(.checked):not(.past-day) {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid rgb(236, 198, 236);
+}
+
+/* 已签到日期样式 */
+.day.checked {
+  background-color: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  position: relative;
+}
+
+.day.checked::after {
+  content: '✓';
+  position: absolute;
+  font-size: 12px;
+  bottom: 2px;
+  color: white;
+}
+
+/* 今天的样式 */
+.day.today {
+  border: 2px solid rgb(236, 198, 236);
+  font-weight: bold;
+}
+
+/* 过去未签到的日期样式 - 移除×号 */
+.day.past-day {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  border: none; /* 移除边框 */
+}
+
+.day.past-day::after {
+  content: none;
+}
+
+/* 其他月份日期样式 */
+.day.other-month {
+  color: #ddd;
+  cursor: default;
+}
+
+/* 日期悬停效果 */
+.day:not(.other-month):not(.checked):not(.past-day):hover {
+  background-color: rgb(245, 230, 245);
+  transform: scale(1.1);
+}
+
+.calendar-footer {
+  margin-top: 25px;
+  padding: 15px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkin-stats {
+  color: #666;
+  font-size: 15px;
+}
+
+.close-btn {
+  padding: 8px 20px;
+  background-color: #007bff; /* 深蓝色 */
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background-color: #0056b3; /* 更深的蓝色 */
+  transform: translateY(-2px);
+}
+
 </style>
