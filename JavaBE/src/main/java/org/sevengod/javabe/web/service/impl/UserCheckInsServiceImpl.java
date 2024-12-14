@@ -7,7 +7,6 @@ import org.sevengod.javabe.entity.UserCheckIns;
 import org.sevengod.javabe.web.mapper.UserCheckInsMapper;
 import org.sevengod.javabe.web.service.UserCheckInsService;
 import org.sevengod.javabe.entity.context.CheckInContext;
-import org.sevengod.javabe.handler.checkinsChain.ValidateCheckInHandler;
 import org.sevengod.javabe.handler.checkinsChain.StreakCheckInHandler;
 import org.sevengod.javabe.handler.checkinsChain.PersistCheckInHandler;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 用户签到服务实现类
@@ -26,14 +24,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserCheckInsServiceImpl extends ServiceImpl<UserCheckInsMapper, UserCheckIns> implements UserCheckInsService {
     
-    private final ValidateCheckInHandler validateCheckInHandler;
     private final StreakCheckInHandler streakCheckInHandler;
     private final PersistCheckInHandler persistCheckInHandler;
     
     @PostConstruct
     public void init() {
-        // 构建责任链：验证 -> 持久化 -> 连续签到统计
-        validateCheckInHandler.setNext(persistCheckInHandler);
+        // 构建责任链：持久化 -> 连续签到统计（验证已整合到连续签到统计中）
         persistCheckInHandler.setNext(streakCheckInHandler);
     }
     
@@ -41,50 +37,63 @@ public class UserCheckInsServiceImpl extends ServiceImpl<UserCheckInsMapper, Use
     @Transactional
     public boolean checkIn(Long userId) {
         CheckInContext context = new CheckInContext(userId);
-        validateCheckInHandler.handle(context);
+        persistCheckInHandler.handle(context);
         return context.isSuccess();
     }
 
     @Override
     public Long getCheckInCountBetweenDates(Long userId, LocalDate startDate, LocalDate endDate) {
-        LambdaQueryWrapper<UserCheckIns> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserCheckIns::getUserId, userId)
-                .ge(UserCheckIns::getCheckInDate, startDate)
-                .le(UserCheckIns::getCheckInDate, endDate);
+        // 如果是同一个月，直接使用位图计数
+        if (startDate.getYear() == endDate.getYear() && startDate.getMonthValue() == endDate.getMonthValue()) {
+            Set<Integer> checkInDays = streakCheckInHandler.getMonthlyCheckInDays(userId, startDate.getYear(), startDate.getMonthValue());
+            return (long) checkInDays.size();
+        }
+
+        // 跨月的情况，需要分月统计
+        long count = 0;
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            Set<Integer> monthlyCheckIns = streakCheckInHandler.getMonthlyCheckInDays(
+                userId, 
+                currentDate.getYear(), 
+                currentDate.getMonthValue()
+            );
+            
+            // 如果是开始月份，只统计从开始日期到月末的签到
+            if (currentDate.getYear() == startDate.getYear() && currentDate.getMonthValue() == startDate.getMonthValue()) {
+                count += monthlyCheckIns.stream()
+                    .filter(day -> day >= startDate.getDayOfMonth())
+                    .count();
+            }
+            // 如果是结束月份，只统计从月初到结束日期的签到
+            else if (currentDate.getYear() == endDate.getYear() && currentDate.getMonthValue() == endDate.getMonthValue()) {
+                count += monthlyCheckIns.stream()
+                    .filter(day -> day <= endDate.getDayOfMonth())
+                    .count();
+            }
+            // 其他月份，统计整月签到
+            else {
+                count += monthlyCheckIns.size();
+            }
+            
+            currentDate = currentDate.plusMonths(1).withDayOfMonth(1);
+        }
         
-        return this.count(wrapper);
+        return count;
     }
 
     @Override
     public boolean isCheckedInOnDate(Long userId, LocalDate date) {
-        LambdaQueryWrapper<UserCheckIns> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserCheckIns::getUserId, userId)
-                .eq(UserCheckIns::getCheckInDate, date);
-        return this.count(wrapper) > 0;
+        return streakCheckInHandler.isCheckedIn(userId, date);
     }
 
     @Override
     public Set<Integer> getMonthlyCheckInDays(Long userId, int year, int month) {
-        // 构建月份的起始和结束日期
-        LocalDate startDate = LocalDate.of(year, month, 1);
-        LocalDate endDate = startDate.plusMonths(1).minusDays(1);
-
-        // 创建查询条件
-        LambdaQueryWrapper<UserCheckIns> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserCheckIns::getUserId, userId)
-                .ge(UserCheckIns::getCheckInDate, startDate)
-                .le(UserCheckIns::getCheckInDate, endDate)
-                .select(UserCheckIns::getCheckInDate); // 只查询签到日期字段，优化性能
-
-        // 查询并转换结果
-        return this.list(wrapper).stream()
-                .map(checkIn -> checkIn.getCheckInDate().getDayOfMonth())
-                .collect(Collectors.toSet());
+        return streakCheckInHandler.getMonthlyCheckInDays(userId, year, month);
     }
 
     @Override
     public int getConsecutiveCheckInDays(Long userId) {
-        // 通过StreakCheckInHandler获取连续签到天数
         return streakCheckInHandler.getConsecutiveStreak(userId);
     }
 }

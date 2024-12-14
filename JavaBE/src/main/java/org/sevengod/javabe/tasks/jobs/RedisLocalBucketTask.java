@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class RedisLocalBucketTask {
-    private static final String BUCKET_KEY_PREFIX = "rate_limit:user:";
+    private static final String BUCKET_KEY_FORMAT = "user:%s:rate_limit";
     private static final int MAX_TOKENS = 20;
     private static final int REPLENISH_TOKENS = 10;
     private static final int REPLENISH_PERIOD_MINUTES = 1;
@@ -25,7 +25,7 @@ public class RedisLocalBucketTask {
      * @param userId user ID
      */
     public void initializeTokenBucket(String userId) {
-        String bucketKey = BUCKET_KEY_PREFIX + userId;
+        String bucketKey = String.format(BUCKET_KEY_FORMAT, userId);
         RBucket<Integer> bucket = redissonClient.getBucket(bucketKey);
         if (!bucket.isExists()) {
             bucket.set(MAX_TOKENS);
@@ -40,7 +40,7 @@ public class RedisLocalBucketTask {
      * @return true if 消耗成功, false 没token
      */
     public boolean tryConsume(String userId, int tokens) {
-        String bucketKey = BUCKET_KEY_PREFIX + userId;
+        String bucketKey = String.format(BUCKET_KEY_FORMAT, userId);
         RBucket<Integer> bucket = redissonClient.getBucket(bucketKey);
         
         if (!bucket.isExists()) {
@@ -63,7 +63,7 @@ public class RedisLocalBucketTask {
      * @param tokens 归还的令牌数
      */
     public void returnTokens(String userId, int tokens) {
-        String bucketKey = BUCKET_KEY_PREFIX + userId;
+        String bucketKey = String.format(BUCKET_KEY_FORMAT, userId);
         RBucket<Integer> bucket = redissonClient.getBucket(bucketKey);
         
         if (!bucket.isExists()) {
@@ -82,7 +82,7 @@ public class RedisLocalBucketTask {
      */
     @Scheduled(fixedRate = 60000) //每分钟运行
     public void replenishTokens() {
-        Iterable<String> keys = redissonClient.getKeys().getKeysByPattern(BUCKET_KEY_PREFIX + "*");
+        Iterable<String> keys = redissonClient.getKeys().getKeysByPattern("user:*:rate_limit");
         for (String key : keys) {
             RBucket<Integer> bucket = redissonClient.getBucket(key);
             Integer currentTokens = bucket.get();
@@ -100,7 +100,7 @@ public class RedisLocalBucketTask {
      * @return 可用的Token, 或者MAX_TOKENS如果桶不存在的话
      */
     public int getAvailableTokens(String userId) {
-        String bucketKey = BUCKET_KEY_PREFIX + userId;
+        String bucketKey = String.format(BUCKET_KEY_FORMAT, userId);
         RBucket<Integer> bucket = redissonClient.getBucket(bucketKey);
         Integer tokens = bucket.get();
         return tokens != null ? tokens : MAX_TOKENS;

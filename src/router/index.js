@@ -11,6 +11,7 @@ import ReportGeneration from '../views/ReportGeneration.vue';
 import DatePicker from '../views/TestPages/DatePicker.vue';
 import WebsocketTest from '../views/TestPages/WebsocketTest.vue';
 import FileUploader from '../views/TestPages/FileUploader.vue';  // 导入 FileUploader 组件
+import CheckInCalendar from '../views/TestPages/CheckInCalendar.vue';  // 导入签到日历组件
 import CourseDetail from '@/views/CourseDetail.vue'
 
 
@@ -70,6 +71,12 @@ const routes = [
     path: '/file-uploader',
     name: 'file-uploader',
     component: FileUploader,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/check-in',         // 签到页面路径
+    name: 'check-in',
+    component: CheckInCalendar,
     meta: { requiresAuth: true }
   },
   {

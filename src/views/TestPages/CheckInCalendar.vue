@@ -45,6 +45,10 @@
           <div class="check-in-count">{{ monthlyCheckIns }}</div>
           <div class="check-in-label">本月已签到天数</div>
         </div>
+        <div class="statistics-box">
+          <div class="check-in-count">{{ consecutiveCheckIns }}</div>
+          <div class="check-in-label">连续签到天数</div>
+        </div>
       </div>
     </div>
   </div>
@@ -61,8 +65,7 @@ const checkedDays = ref(new Set())
 const todayChecked = ref(false)
 const userId = ref(1)
 const loading = ref(true)
-
-const API_BASE_URL = 'http://localhost:8008/api/checkins'
+const consecutiveCheckIns = ref(0)
 
 // 计算当月天数
 const daysInMonth = computed(() => {
@@ -120,7 +123,7 @@ const handleCheckIn = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/checkIn?userId=${userId.value}`, {
+    const response = await fetch(`http://localhost:8008/api/checkins/checkIn?userId=${userId.value}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -134,6 +137,8 @@ const handleCheckIn = async () => {
       const today = new Date().getDate()
       checkedDays.value.add(today)
       todayChecked.value = true
+      // 更新连续签到天数
+      await loadConsecutiveCheckIns()
     } else {
       ElMessage.error(result.msg || '签到失败')
     }
@@ -148,7 +153,7 @@ const loadMonthlyCheckIns = async () => {
 
   loading.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}/monthly`, {
+    const response = await fetch(`http://localhost:8008/api/checkins/monthly`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -176,8 +181,33 @@ const loadMonthlyCheckIns = async () => {
   }
 }
 
+// 加载连续签到天数
+const loadConsecutiveCheckIns = async () => {
+  if (!userId.value) return
+
+  try {
+    const response = await fetch(`http://localhost:8008/api/checkins/consecutive?userId=${userId.value}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+
+    const result = await response.json()
+    if (result.code === 200) {
+      consecutiveCheckIns.value = result.data
+    } else {
+      ElMessage.error(result.msg || '获取连续签到天数失败')
+    }
+  } catch (error) {
+    ElMessage.error('获取连续签到天数失败：' + error.message)
+  }
+}
+
 onMounted(() => {
   loadMonthlyCheckIns()
+  loadConsecutiveCheckIns()
 })
 </script>
 
@@ -298,33 +328,30 @@ onMounted(() => {
 }
 
 .statistics-container {
-  margin-top: 16px;
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
+  margin-top: 16px;
+  gap: 16px;
 }
 
 .statistics-box {
-  padding: 12px 24px;
+  flex: 1;
   text-align: center;
-  background: #f0f9eb;
+  padding: 12px;
+  background-color: #f5f7fa;
   border-radius: 8px;
-  transition: transform 0.3s ease;
-}
-
-.statistics-box:hover {
-  transform: translateY(-2px);
 }
 
 .check-in-count {
   font-size: 24px;
   font-weight: bold;
-  color: #67C23A;
-  margin-bottom: 4px;
+  color: #409EFF;
 }
 
 .check-in-label {
-  font-size: 12px;
-  color: #909399;
+  font-size: 14px;
+  color: #606266;
+  margin-top: 4px;
 }
 
 :deep(.el-button) {
