@@ -544,6 +544,7 @@ onMounted(() => {
 loadCourseTree();
 updateLearningProgress();
 updateStudyTimes();
+updateTaskPoints();
 });
 
 // el-tree 需要的默认属性配置
@@ -592,6 +593,14 @@ try {
     // 更新任务点数据
     note.value.task = result.data.completedChapters;
     note.value.sumTask = result.data.totalChapters;
+
+    // 添加判断逻辑
+    if (note.value.task === note.value.sumTask) {
+      // 如果任务点完成，更新完成状态
+      completedChapters.value[unitId] = true;
+    } else {
+      completedChapters.value[unitId] = false;
+    }
 } catch (error) {
     console.error('Error fetching task points:', error);
 }
@@ -728,25 +737,51 @@ console.error('Error checking chapter completion:', error);
 }
 };
 
-// 在组件挂载时检查所有叶子节点的完成状态
+
+// 在组件挂载时检查所有节点的完成状态
 onMounted(async () => {
   await loadCourseTree();
-  // 递归检查所有叶子节点的完成状态
+  // 递归检查所有节点的完成状态
   const checkAllNodes = async (nodes) => {
     for (const node of nodes) {
-      if (!node.children || node.children.length === 0) {
-        await checkChapterCompletion(node.id);
-      } else if (node.children) {
+      // await checkChapterCompletion(node.id);
+      // 如果有子节点,说明是单元节点,使用updateTaskPoints检查完成状态
+      if (node.children && node.children.length > 0) {
+        await updateTaskPoints(node.id);
         await checkAllNodes(node.children);
+      } else {
+        // 如果没有子节点,说明是章节节点,使用checkChapterCompletion检查完成状态
+        await checkChapterCompletion(node.id);
       }
     }
   };
+
   if (treeData.value.length > 0) {
     await checkAllNodes(treeData.value);
   }
   
-  // ... rest of existing onMounted code ...
+  // ... 其他现有的 onMounted 代码 ...
 });
+
+// 在组件挂载时检查所有叶子节点的完成状态
+// onMounted(async () => {
+//   await loadCourseTree();
+//   // 递归检查所有叶子节点的完成状态
+//   const checkAllNodes = async (nodes) => {
+//     for (const node of nodes) {
+//       if (!node.children || node.children.length === 0) {
+//         await checkChapterCompletion(node.id);
+//       } else if (node.children) {
+//         await checkAllNodes(node.children);
+//       }
+//     }
+//   };
+//   if (treeData.value.length > 0) {
+//     await checkAllNodes(treeData.value);
+//   }
+  
+//   // ... rest of existing onMounted code ...
+// });
 
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
@@ -1134,6 +1169,32 @@ try {
     if (response.ok) {
     // 测验分数提交成功后，更新学习次数
     await updateLearningCount(currentNode.value.id);
+    // 提交后重新检查章节完成状态
+    await checkChapterCompletion(currentNode.value.id);
+      
+      // 找到当前章节的父节点(单元)并检查其完成状态
+      const findParentUnit = (nodes, targetId) => {
+        for (const node of nodes) {
+          if (node.children) {
+            // 检查是否在当前节点的子节点中找到目标ID
+            if (node.children.some(child => child.id === targetId)) {
+              return node.id;
+            }
+            // 递归检查子节点
+            const result = findParentUnit(node.children, targetId);
+            if (result) return result;
+          }
+        }
+        return null;
+      };
+      
+      // 获取当前章节所属的单元ID
+      const unitId = findParentUnit(treeData.value, currentNode.value.id);
+      if (unitId) {
+        // 更新单元的完成状态
+        await updateTaskPoints(unitId);
+      }
+
     console.log('提交测验成功')
     showSubmitModal.value = false;
     // ... 其他成功后操作
