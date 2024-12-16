@@ -61,7 +61,7 @@
     <!-- 中间模块（学习计划） -->
     <div id="middle-container">
       <div id="middle-content">
-        <!-- 添加签到按钮 -->
+          <!-- 添加签到按钮 -->
         <div class="checkin-container">
           <button class="checkin-btn" @click="showCalendar = true">
             <i class="fas fa-calendar-check"></i>
@@ -69,8 +69,8 @@
           </button>
         </div>
 
-        <!-- 签到日历弹窗 -->
-        <div v-if="showCalendar" class="calendar-modal">
+         <!-- 签到日历弹窗 -->
+         <div v-if="showCalendar" class="calendar-modal">
           <div class="calendar-content">
             <div class="calendar-header">
               <button @click="changeMonth(-1)">&lt;</button>
@@ -110,6 +110,7 @@
             </div>
           </div>
         </div>
+
         <div class="action-buttons">
           <span 
             class="action-btn" 
@@ -258,12 +259,22 @@
             </template>
           </el-tree>
 
-           <!-- 添加生成报告按钮 -->
-           <div class="report-btn-container">
-            <button class="report-btn" @click="goToReport">
-              <i class="fas fa-file-alt"></i>
-              生成学习报告
-            </button>
+          <div class="button-group">
+            <!-- 添加整合笔记按钮 -->
+            <div class="report-btn-container">
+              <button class="integrate-notes-btn" @click="integrateNotes">
+                <i class="fas fa-book"></i>
+                生成整合笔记
+              </button>
+            </div>
+
+            <!-- 生成报告按钮 -->
+            <div class="report-btn-container">
+              <button class="report-btn" @click="goToReport">
+                <i class="fas fa-file-alt"></i>
+                生成学习报告
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -318,6 +329,34 @@
             删除笔记
           </button>
         </template>
+      </div>
+    </div>
+
+    <!-- 添加整合笔记弹窗 -->
+    <div v-if="showIntegrateModal" class="integrate-modal">
+      <div class="integrate-modal-content">
+        <div class="integrate-modal-header">
+          <h2>笔记整合</h2>
+          <button class="export-btn" @click="exportToDoc" :disabled="isExporting">
+            <i class="fas fa-file-word"></i>
+            {{ isExporting ? '导出中...' : '导出为Word' }}
+          </button>
+          <span class="close-btn" @click="showIntegrateModal = false">&times;</span>
+        </div>
+        <div class="integrate-modal-body">
+          <div v-if="allNotes.length === 0" class="no-notes">
+            暂无笔记
+          </div>
+          <div v-else class="notes-list">
+            <div v-for="note in allNotes" :key="note.noteId" class="note-item">
+              <div class="note-header">
+                <h3>章节 {{ note.chapterTitle || note.chapterId }}</h3>
+                <span class="note-date">{{ new Date(note.createdAt).toLocaleString() }}</span>
+              </div>
+              <div class="note-content">{{ note.content }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -529,7 +568,7 @@ const quizId = ref()
 // 修改初始化状态
 const selectedAction = ref('learn'); // 默认显示学习界面
 
-// 添加一个变量来存储当前选中的章节ID
+// 加一来   当前选中的章节ID
 const currentChapterId = ref(null);
 
 //更新任务点的函数
@@ -669,21 +708,18 @@ const updateLearningCount = async (chapterId) => {
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
   currentNode.value = nodeData;
-  // 如果正在测验中且未显示结果，显示确认弹窗
   if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
     showSubmitModal.value = true;
-    // 保存用户想要切换到的节点
     pendingNode.value = nodeData;
     return;
   }
 
-  // 原有的处理逻辑
   const chapterId = nodeData.id;
   currentChapterId.value = chapterId;
   const userId = localStorage.getItem('userid');
 
-  console.log('Clicked node ID:', chapterId);
-  console.log('User ID:', userId);
+  // 获取章节笔记
+  await getNoteByChapter(userId, chapterId);
 
   // 如果不是叶子节点，直接返回
   if (nodeData.children && nodeData.children.length > 0) {
@@ -692,8 +728,9 @@ const handleNodeClick = async (nodeData) => {
     await updateTestPoints(chapterId);
     return;
   }
+
+  // 获取章节内容
   try {
-    // 获取章节内容
     const sectionResponse = await fetch(`http://localhost:8008/api/test/genContent`, {
       method: 'POST',
       headers: {
@@ -710,7 +747,7 @@ const handleNodeClick = async (nodeData) => {
       const sectionResult = await sectionResponse.json();
       if (sectionResult && sectionResult.data && sectionResult.data.content) {
         sectionData.value = { content: sectionResult.data.content };
-        selectedAction.value = 'learn'; // 切换到学习界面
+        selectedAction.value = 'learn'; // 切换学习界面
       } else {
         sectionData.value = { content: '无法加载内容' };
       }
@@ -737,7 +774,7 @@ const handleNodeClick = async (nodeData) => {
           testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
           showQuizModal.value = true; // 显示弹窗
           quizStarted.value = false; // 重置测验状态
-          showResults.value = false; // 重置结果��示状态
+          showResults.value = false; // 重置结果示状态
           timeLeft.value = totalMinutes * 60; // 重置倒计时时间
           if (timerId) {
             clearInterval(timerId); // 清除之前的定时器
@@ -759,33 +796,6 @@ const handleNodeClick = async (nodeData) => {
     console.error('Error:', error);
     sectionData.value = { content: '请求失败，请稍后重试' };
     testData.value = { content: '请求失败，请稍后重试' };
-  }
-
-  // 获取章节笔记
-  try {
-    const response = await fetch(`http://localhost:8008/api/study-notes/chapter?userId=${userId}&chapterId=${chapterId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const note = data[0];
-        hasNote.value = true;
-        currentNoteId.value = note.id;
-        noteContent.value = note.content;
-        isPrivate.value = note.isPrivate;
-      } else {
-        hasNote.value = false;
-        currentNoteId.value = null;
-        noteContent.value = '';
-        isPrivate.value = true;
-      }
-    }
-  } catch (error) {
-    console.error('获取笔记失败:', error);
   }
 };
 
@@ -823,7 +833,7 @@ const score = ref(0);
           <span id="answer-icon-${index}" style="margin-left: 20px;"></span>
         </div>
         <div class="correct-answer" style="color: #28a745; margin-bottom: 5px; display: flex; align-items: center;">
-          正确答案：<span id="correct-answer-${index}"></span>
+          正确  案：<span id="correct-answer-${index}"></span>
           <span id="score-display-${index}" style="margin-left: 40px; color: #666;"></span>
         </div>
         <div class="explanation" style="color: #666; margin-top: 5px;">
@@ -859,10 +869,10 @@ const score = ref(0);
 }
 
 const totalMinutes = 10; // 总倒计时时间（分钟）
-const timeLeft = ref(totalMinutes * 60); // 初始化倒计时时间（秒）
+const timeLeft = ref(totalMinutes * 60); // 初   化倒计时时间（秒）
 let timerId = null;
 
-// 计算倒计时显示
+//   算倒计时显示
 const countdownDisplay = computed(() => {
   const minutes = Math.floor(timeLeft.value / 60);
   const seconds = timeLeft.value % 60;
@@ -987,7 +997,7 @@ const confirmSubmit = () => {
           document.getElementById(`explanation-${index}`).textContent = question.explanations;
           document.getElementById(`answer-display-${index}`).style.display = 'block';
           
-          // 判断答案是否正确并显示对应图标和得分
+          // 判断答案是否正确并显示对图标得分
           const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
           document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
           document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
@@ -995,13 +1005,13 @@ const confirmSubmit = () => {
       } else {
         // 如果没有选择答案，推入null或空数组
         userAnswers.push(question.type === 'single' ? null : []);
-        document.getElementById(`user-answer-${index}`).textContent = '未作答';
+        document.getElementById(`user-answer-${index}`).textContent = '  作答';
         document.getElementById(`correct-answer-${index}`).textContent = 
           Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
         document.getElementById(`explanation-${index}`).textContent = question.explanations;
         document.getElementById(`answer-display-${index}`).style.display = 'block';
 
-         // 未作答显示错误图标和0分
+         // 未作答显示错误图标0分
          document.getElementById(`answer-icon-${index}`).textContent = '❌';
         document.getElementById(`score-display-${index}`).textContent = '你的得分：0.0';
       }
@@ -1010,14 +1020,14 @@ const confirmSubmit = () => {
     });
   }
 
-  // 更新答案数组和分数
+  // 更新答案数组和分   
   answers.value = userAnswers;
   score.value = totalScore;
   
-  // 显示结果
+  // 显  结果
   showResults.value = true;
 
-  // 准备提交数据
+  // 准   提   据
   quizData.value = {
     quizId: quizId.value,
     userId: Number(localStorage.getItem('userid')),
@@ -1040,7 +1050,7 @@ const confirmSubmit = () => {
   // 禁用输入框
   disableInputs();
 
-  // 停止倒计时
+  // 停   倒计时
   if (timerId) {
     clearInterval(timerId);
     timerId = null;
@@ -1138,13 +1148,13 @@ const cancelSubmit = () => {
 // 最小化浏览器窗口
 // 切换到其他标签页
 // 切换到其他应用程序
-// 都会触发 WebSocket 连接的断开，当用户重新回到页面，会自动重建立连接。这样可以更准确地记录用户的实际学习时长。
+// 都会触发 WebSocket 连接的断开，当用户重新回到页面，自动重建立连接。这样可以更准确地记录用户的实际学习时长。
 
 let ws = null;
 let reconnectTimer = null;
 let isHandle = false;
 
-// 添加页面可见性变化的处理数
+// 添加页面可见性变化处理数
 const handleVisibilityChange = () => {
   if (document.hidden) {
     // 页面被隐藏（最小化或切换到其他标签）
@@ -1166,7 +1176,7 @@ const initWebSocket = () => {
   const courseId = localStorage.getItem('selectedCourseId');
   
   if (!userId || !courseId) {
-    console.warn('缺少必要的连接参数');
+    console.warn('缺少要的连接参数');
     return;
   }
 
@@ -1243,7 +1253,7 @@ onMounted(() => {
   }, 100);
 });
 
-// 路由离开时
+// 路  离开时
 onBeforeRouteLeave((to, from, next) => {
   console.log('路由离开，关闭 WebSocket');
   closeWs();
@@ -1273,7 +1283,7 @@ onActivated(() => {
   initWebSocket();
 });
 
-// 组件停时（被缓存）
+// 组件停时（被缓）
 onDeactivated(() => {
   console.log('组件停用，关闭 WebSocket');
   // 移除页面可见性变化监听器
@@ -1286,121 +1296,6 @@ defineExpose({
   closeWs
 });
 
-// 修改笔记相关的响应式变量
-const showNotePanel = ref(false);
-const noteContent = ref('');
-const isPrivate = ref(true);
-const hasNote = ref(false);
-const currentNoteId = ref(null);
-
-// 切换笔记面板
-const toggleNotePanel = () => {
-  if (!currentChapterId.value && !showNotePanel.value) {
-    showTemporaryMessage('请先选择一个章节');
-    return;
-  }
-  showNotePanel.value = !showNotePanel.value;
-};
-
-// 创建笔记
-const createNote = async () => {
-  try {
-    if (!noteContent.value.trim()) {
-      showTemporaryMessage('笔记内容不能为空');
-      return;
-    }
-
-    const userId = localStorage.getItem('userid');
-    const noteData = {
-      chapterId: currentChapterId.value,
-      content: noteContent.value,
-      isPrivate: isPrivate.value
-    };
-
-    const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(noteData)
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      currentNoteId.value = data.noteId;
-      hasNote.value = true;
-      showTemporaryMessage('笔记创建成功！');
-    } else {
-      throw new Error('创建失败');
-    }
-  } catch (error) {
-    console.error('创建笔记失败:', error);
-    showTemporaryMessage('创建失败，请重试');
-  }
-};
-
-// 更新笔记
-const updateNote = async () => {
-  try {
-    if (!noteContent.value.trim()) {
-      showTemporaryMessage('笔记内容不能为空');
-      return;
-    }
-
-    const noteData = {
-      noteId: currentNoteId.value,
-      content: noteContent.value,
-      isPrivate: isPrivate.value
-    };
-
-    const response = await fetch('http://localhost:8008/api/study-notes/update', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(noteData)
-    });
-
-    if (response.ok) {
-      showTemporaryMessage('笔记更新成功！');
-    } else {
-      throw new Error('更新失败');
-    }
-  } catch (error) {
-    console.error('更新笔记失败:', error);
-    showTemporaryMessage('更新失败，请重试');
-  }
-};
-
-// 删除笔记
-const deleteNote = async () => {
-  try {
-    if (!currentNoteId.value) return;
-
-    const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-
-    if (response.ok) {
-      hasNote.value = false;
-      currentNoteId.value = null;
-      noteContent.value = '';
-      isPrivate.value = true;
-      showNotePanel.value = false;
-      showTemporaryMessage('���记删除成功！');
-    } else {
-      throw new Error('删除失败');
-    }
-  } catch (error) {
-    console.error('删除笔记失败:', error);
-    showTemporaryMessage('删除失败，请重试');
-  }
-};
 
 // 在现有的 setup 中添加
 const showCalendar = ref(false);
@@ -1411,7 +1306,6 @@ const monthlyStats = ref({
   daysChecked: 0,
   streak: 0
 });
-
 // 获取日历天数
 const calendarDays = computed(() => {
   const days = [];
@@ -1440,17 +1334,14 @@ const calendarDays = computed(() => {
   
   return days;
 });
-
 // 格式化日期
 const formatDate = (date) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
-
 // 判断是否为今天
 const isToday = (date) => {
   return date === formatDate(new Date());
 };
-
 // 切换月份
 const changeMonth = (delta) => {
   const newMonth = currentMonth.value + delta;
@@ -1465,7 +1356,6 @@ const changeMonth = (delta) => {
   }
   loadMonthlyCheckins();
 };
-
 // 加载月度签到数据
 const loadMonthlyCheckins = async () => {
   try {
@@ -1516,7 +1406,6 @@ const loadMonthlyCheckins = async () => {
     monthlyStats.value.daysChecked = 0;
   }
 };
-
 // 添加获取签到状态的函数
 const getCheckinStatus = async (date) => {
   try {
@@ -1616,18 +1505,246 @@ const handleDayClick = async (day) => {
       ElMessage.error('网络错误签到失败');
     }
   };
-
 // 在组件挂载时加载签到数据
 onMounted(() => {
   loadMonthlyCheckins();
 });
-
 // 添加判断是否为过去日期的计算属性
 const isPastDay = (date) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const checkDate = new Date(date);
   return checkDate < today;
+};
+
+// 修改笔记相关的响应式变量
+const showNotePanel = ref(false);
+const noteContent = ref('');
+const isPrivate = ref(true);
+const hasNote = ref(false);
+const currentNoteId = ref(null);
+
+// 切换笔记面板
+const toggleNotePanel = () => {
+  if (!currentChapterId.value && !showNotePanel.value) {
+    showTemporaryMessage('请先选择一个章节');
+    return;
+  }
+  showNotePanel.value = !showNotePanel.value;
+};
+
+// 获取章节笔记
+const getNoteByChapter = async (userId, chapterId) => {
+  try {
+    console.log('正在获取章节笔记...');
+    const response = await fetch(`http://localhost:8008/api/study-notes/chapter?userId=${userId}&chapterId=${chapterId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('获取到的笔记数据:', data);
+      if (data.code === 200 && data.data && data.data.length > 0) {
+        // 获取最新的笔记（数组中的第一个）
+        const note = data.data[0];
+        hasNote.value = true;
+        currentNoteId.value = note.noteId;
+        noteContent.value = note.content;
+        isPrivate.value = note.isPrivate;
+        showNotePanel.value = true;  // 打开笔记面板
+        console.log('笔记内容已加载:', noteContent.value);
+      } else {
+        hasNote.value = false;
+        currentNoteId.value = null;
+        noteContent.value = '';
+        isPrivate.value = true;
+        showNotePanel.value = false;
+      }
+    }
+  } catch (error) {
+    console.error('获取笔记失败:', error);
+    hasNote.value = false;
+    currentNoteId.value = null;
+    noteContent.value = '';
+    isPrivate.value = true;
+    showNotePanel.value = false;
+  }
+};
+
+// 修改创建笔记的方法
+const createNote = async () => {
+  try {
+    if (!noteContent.value.trim()) {
+      showTemporaryMessage('笔记内容不能为空');
+      return;
+    }
+
+    const userId = localStorage.getItem('userid');
+    const noteData = {
+      chapterId: currentChapterId.value,
+      content: noteContent.value,
+      isPrivate: isPrivate.value
+    };
+
+    const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(noteData)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      currentNoteId.value = data.noteId;
+      hasNote.value = true;
+      showTemporaryMessage('笔记创建成功！');
+    } else {
+      throw new Error('创建失败');
+    }
+  } catch (error) {
+    console.error('创建笔记失败:', error);
+    showTemporaryMessage('创建失败，请重试');
+  }
+};
+
+// 更新笔记
+const updateNote = async () => {
+  try {
+    if (!noteContent.value.trim()) {
+      showTemporaryMessage('笔记内容不能为空');
+      return;
+    }
+
+    const userId = localStorage.getItem('userid');
+    const noteData = {
+      noteId: currentNoteId.value,
+      chapterId: currentChapterId.value,
+      content: noteContent.value,
+      isPrivate: isPrivate.value
+    };
+
+    const response = await fetch(`http://localhost:8008/api/study-notes/update?userId=${userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(noteData)
+    });
+
+    if (response.ok) {
+      showTemporaryMessage('笔记更新成功！');
+      // 更新成功后重新获取笔记内容
+      await getNoteByChapter(userId, currentChapterId.value);
+    } else {
+      throw new Error('更新失败');
+    }
+  } catch (error) {
+    console.error('更新笔记失败:', error);
+    showTemporaryMessage('更新失败，请重试');
+  }
+};
+
+// 删除笔记
+const deleteNote = async () => {
+  try {
+    if (!currentNoteId.value) return;
+
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}?userId=${userId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      hasNote.value = false;
+      currentNoteId.value = null;
+      noteContent.value = '';
+      isPrivate.value = true;
+      showNotePanel.value = false;
+      showTemporaryMessage('笔记删除成功！');
+    } else {
+      throw new Error('删除失败');
+    }
+  } catch (error) {
+    console.error('删除笔记失败:', error);
+    showTemporaryMessage('删除失败，请重试');
+  }
+};
+
+// 添加新的响应式变量
+const showIntegrateModal = ref(false);
+const allNotes = ref([]);
+const isExporting = ref(false);
+
+// 添加整合笔记的方法
+const integrateNotes = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const response = await fetch(`http://localhost:8008/api/study-notes/user/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.code === 200 && data.data) {
+        // 按章节ID排序
+        allNotes.value = data.data.sort((a, b) => a.chapterId - b.chapterId);
+        showIntegrateModal.value = true;
+      }
+    }
+  } catch (error) {
+    console.error('获取笔记失败:', error);
+    showTemporaryMessage('获取笔记失败');
+  }
+};
+
+// 导出为Word文档
+const exportToDoc = async () => {
+  try {
+    isExporting.value = true;
+    let docContent = '<html><body>';
+    docContent += '<h1>学习笔记整合</h1>';
+
+    allNotes.value.forEach(note => {
+      docContent += `
+        <div style="margin-bottom: 20px;">
+          <h2>章节 ${note.chapterTitle || note.chapterId}</h2>
+          <p>${note.content}</p>
+          <p><small>创建时间: ${new Date(note.createdAt).toLocaleString()}</small></p>
+        </div>
+      `;
+    });
+
+    docContent += '</body></html>';
+
+    // 创建Blob对象
+    const blob = new Blob([docContent], { type: 'application/msword' });
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '学习笔记整合.doc';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showTemporaryMessage('导出成功！');
+  } catch (error) {
+    console.error('导出失败:', error);
+    showTemporaryMessage('导出失败，请重试');
+  } finally {
+    isExporting.value = false;
+  }
 };
 
 </script>
@@ -1780,7 +1897,7 @@ const isPastDay = (date) => {
     background: #ccc;
 }
 
-/* 左侧统计项样式 */
+/* 左侧统计  样式 */
 .course-stats {
     margin: 15px 0;
     padding: 15px;
@@ -1996,7 +2113,8 @@ const isPastDay = (date) => {
   margin-top: 20px;
   max-height: 400px;
   overflow-y: auto;
-  color:black;
+  color: black;
+  flex: 1;  /* 让树形目录占据剩余空间 */
 }
 
 /* 章节数据展示分 */
@@ -2031,7 +2149,7 @@ const isPastDay = (date) => {
     width: 280px;
 }
 
-/* 学习计划模块 */
+/* 学习   划模块 */
 #learning-plan-container {
     margin-top: 30px;
 }
@@ -2137,12 +2255,12 @@ button:hover {
   border-radius: 8px;
 }
 
-/* 添加边框样式 */
+/* 添加边框式 */
 .border-container {
   border: 15px solid transparent;
 }
 
-/* 当选中学习时，应用紫色边框 */
+/* 当选中学时，应用紫色边框 */
 .purple-border {
   border-color: rgb(237, 201, 237);
   height:490px;
@@ -2176,6 +2294,7 @@ button:hover {
 .report-btn-container {
   margin-top: 20px;
   padding: 0 10px;
+  margin-bottom: 20px;  /* 添加底部间距 */
 }
 
 .report-btn {
@@ -2535,11 +2654,12 @@ button:hover {
 .note-textarea {
   width: 100%;
   height: 300px;
-  padding: 12px;
+  padding: 15px;
   border: 1px solid #ddd;
   border-radius: 8px;
   resize: none;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.6;
   margin-bottom: 15px;
 }
 
@@ -2548,20 +2668,40 @@ button:hover {
   border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
-.save-note-btn {
-  padding: 10px 24px;
-  background-color: rgb(236, 198, 236);
-  color: white;
+.create-note-btn,
+.update-note-btn,
+.delete-note-btn {
+  padding: 10px 20px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.save-note-btn:hover {
-  background-color: rgb(226, 178, 226);
+.create-note-btn {
+  background-color: rgb(236, 198, 236);
+  color: white;
+}
+
+.update-note-btn {
+  background-color: #4CAF50;
+  color: white;
+  margin-right: 10px;
+}
+
+.delete-note-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.create-note-btn:hover,
+.update-note-btn:hover,
+.delete-note-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
 }
 
 .close-btn {
@@ -2640,6 +2780,155 @@ button:hover {
 .note-btn i {
   font-size: 14px;
 }
+
+/* 整合笔记按钮样式 */
+.integrate-notes-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;  /* 添加底部间距 */
+}
+
+.integrate-notes-btn:hover {
+  background: rgb(226, 178, 226);
+  transform: translateY(-1px);
+}
+
+.integrate-notes-btn i {
+  font-size: 16px;
+}
+
+/* 整合笔记弹窗样式 */
+.integrate-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+}
+
+.integrate-modal-content {
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.integrate-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.integrate-modal-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.integrate-modal-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.export-btn {
+  padding: 8px 16px;
+  background: rgb(236, 198, 236);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: rgb(226, 178, 226);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.note-item {
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.note-date {
+  color: #666;
+  font-size: 14px;
+}
+
+.note-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.no-notes {
+  text-align: center;
+  color: #666;
+  padding: 40px;
+}
+
+/* 修改滚动区域样式 */
+#scrollable-area {
+  margin-top: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;  /* 调整按钮布局 */
+  min-height: 500px;  /* 确保有足够的高度来分隔按钮 */
+}
+
+/* 添加按钮组容器 */
+.button-group {
+  margin-top: auto;  /* 将按钮组推到底部 */
+  padding-top: 20px;
+}
+
+
 /* 签到按钮样式 */
 .checkin-container {
   position: absolute;
@@ -2647,7 +2936,6 @@ button:hover {
   right: 20px;
   z-index: 10;
 }
-
 .checkin-btn {
   background-color: rgb(236, 198, 236);
   color: white;
@@ -2660,12 +2948,10 @@ button:hover {
   gap: 8px;
   transition: all 0.3s ease;
 }
-
 .checkin-btn:hover {
   background-color: rgb(226, 178, 226);
   transform: translateY(-2px);
 }
-
 /* 日历弹窗样式 */
 .calendar-modal {
   position: fixed;
@@ -2679,7 +2965,6 @@ button:hover {
   align-items: center;
   z-index: 1000;
 }
-
 .calendar-content {
   background-color: white;
   padding: 25px;
@@ -2687,7 +2972,6 @@ button:hover {
   width: 380px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
-
 .calendar-header {
   display: flex;
   justify-content: space-between;
@@ -2695,7 +2979,6 @@ button:hover {
   margin-bottom: 25px;
   padding: 0 10px;
 }
-
 .calendar-header button {
   background: none;
   border: none;
@@ -2705,37 +2988,31 @@ button:hover {
   padding: 5px 10px;
   transition: all 0.3s ease;
 }
-
 .calendar-header button:hover {
   color: #0056b3; /* 更深的蓝色 */
   transform: scale(1.1);
 }
-
 .calendar-header span {
   font-size: 18px;
   font-weight: 500;
   color: #333;
 }
-
 .weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
   margin-bottom: 15px;
 }
-
 .weekdays span {
   font-size: 14px;
   color: #666;
   padding: 5px 0;
 }
-
 .days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
 }
-
 .day {
   height: 40px;
   display: flex;
@@ -2747,14 +3024,12 @@ button:hover {
   position: relative;
   transition: all 0.3s ease;
 }
-
 /* 普通日期样式 - 添加紫色边框 */
 .day:not(.other-month):not(.checked):not(.past-day) {
   background-color: #fff;
   color: #333;
   border: 1px solid rgb(236, 198, 236);
 }
-
 /* 已签到日期样式 */
 .day.checked {
   background-color: rgb(236, 198, 236);
@@ -2762,7 +3037,6 @@ button:hover {
   border: none;
   position: relative;
 }
-
 .day.checked::after {
   content: '✓';
   position: absolute;
@@ -2770,13 +3044,11 @@ button:hover {
   bottom: 2px;
   color: white;
 }
-
 /* 今天的样式 */
 .day.today {
   border: 2px solid rgb(236, 198, 236);
   font-weight: bold;
 }
-
 /* 过去未签到的日期样式 - 移除×号 */
 .day.past-day {
   background-color: #f5f5f5;
@@ -2784,23 +3056,19 @@ button:hover {
   cursor: not-allowed;
   border: none; /* 移除边框 */
 }
-
 .day.past-day::after {
   content: none;
 }
-
 /* 其他月份日期样式 */
 .day.other-month {
   color: #ddd;
   cursor: default;
 }
-
 /* 日期悬停效果 */
 .day:not(.other-month):not(.checked):not(.past-day):hover {
   background-color: rgb(245, 230, 245);
   transform: scale(1.1);
 }
-
 .calendar-footer {
   margin-top: 25px;
   padding: 15px;
@@ -2809,12 +3077,10 @@ button:hover {
   justify-content: space-between;
   align-items: center;
 }
-
 .checkin-stats {
   color: #666;
   font-size: 15px;
 }
-
 .close-btn {
   padding: 8px 20px;
   background-color: #007bff; /* 深蓝色 */
@@ -2824,10 +3090,8 @@ button:hover {
   cursor: pointer;
   transition: all 0.3s ease;
 }
-
 .close-btn:hover {
   background-color: #0056b3; /* 更深的蓝色 */
   transform: translateY(-2px);
 }
-
 </style>
