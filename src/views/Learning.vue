@@ -756,15 +756,15 @@ if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) 
     pendingNode.value = nodeData;
     return;
 }
-// 如果是叶子节点，检查完成状态
-if (!nodeData.children || nodeData.children.length === 0) {
-    await checkChapterCompletion(chapterId);
-}
-
 
 const chapterId = nodeData.id;
 currentChapterId.value = chapterId;
 const userId = localStorage.getItem('userid');
+
+// 如果是叶子节点，检查完成状态
+if (!nodeData.children || nodeData.children.length === 0) {
+    await checkChapterCompletion(chapterId);
+}
 
 // 获取章节笔记
 await getNoteByChapter(userId, chapterId);
