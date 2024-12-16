@@ -80,6 +80,8 @@ dify:
     ask-ai: app-oGCLThhvLjBwqnhzLbNnOure
     quiz-key: app-RjU3aR6XQ5Dd91QmeGF8UMoK
     rating-key: app-r3XrfEpRMPqh9Tvtxhe0FzPw
+    lesson-plan-key: app-pzd1C2M0db7rx6aVmyXfMyoK
+    rating-key-overall: app-747C4Xw2wxRMaR1mh324bMtB
 
 springdoc:
   swagger-ui:
