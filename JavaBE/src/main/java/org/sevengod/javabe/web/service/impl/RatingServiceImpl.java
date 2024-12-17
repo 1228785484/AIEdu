@@ -99,7 +99,7 @@ public class RatingServiceImpl implements RatingService {
             List<Units> units = unitMapper.selectList(
                     new QueryWrapper<Units>()
                             .eq("course_id", courseId)
-                            .orderByAsc("unit_order")
+                            .orderByAsc("unit_id")
             );
 
             if (units.isEmpty()) {
@@ -112,7 +112,7 @@ public class RatingServiceImpl implements RatingService {
                             .in("unit_id", units.stream()
                                     .map(Units::getUnitId)
                                     .collect(Collectors.toList()))
-                            .orderByAsc("chapter_order")
+                            .orderByAsc("sequence_number")
             );
 
             // 按单元ID分组章节
