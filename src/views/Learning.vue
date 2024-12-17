@@ -1,218 +1,224 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
-    <div id="main-container">
-      <!-- 左侧模块 -->
-      <div id="left-container">
-        <div id="left-content">
-          <div class="left-header">
-            <h2>课程大纲</h2>
-            <div class="header-underline"></div>
+  <div id="main-container">
+    <!-- 左侧模块 -->
+    <div id="left-container">
+      <div id="left-content">
+        <div class="left-header">
+          <h2>课程大纲</h2>
+          <div class="header-underline"></div>
+        </div>
+
+        <!-- 课程进度统计 -->
+        <div class="course-stats">
+          <div class="stat-item">
+            <div class="stat-icon">
+              <img src="@/assets/task.png" alt="任务点">
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">任务点</span>
+              <span class="stat-value">{{note.task}}/{{note.sumTask}}</span>
+            </div>
           </div>
-  
-          <!-- 课程进度统计 -->
-          <div class="course-stats">
-            <div class="stat-item">
-              <div class="stat-icon">
-                <img src="@/assets/task.png" alt="任务点">
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">任务点</span>
-                <span class="stat-value">{{note.task}}/{{note.sumTask}}</span>
-              </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <img src="@/assets/test.png" alt="测试">
             </div>
-  
-            <div class="stat-item">
-              <div class="stat-icon">
-                <img src="@/assets/test.png" alt="测试">
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">测试</span>
-                <span class="stat-value">{{note.test}}/{{note.sumTest}}</span>
-              </div>
+            <div class="stat-content">
+              <span class="stat-label">测试</span>
+              <span class="stat-value">{{note.test}}/{{note.sumTest}}</span>
             </div>
-  
-            <div class="stat-item">
-              <div class="stat-icon">
-                <img src="@/assets/frequency.png" alt="学习次数">
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">学习次数</span>
-                <span class="stat-value">{{note.frequency}}</span>
-              </div>
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <img src="@/assets/frequency.png" alt="学习次数">
             </div>
-  
-            <div class="stat-item">
-              <div class="stat-icon">
-                <img src="@/assets/progress.png" alt="学习进度">
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">学习进度</span>
-                <span class="stat-value">{{progressValue}}%</span>
-              </div>
+            <div class="stat-content">
+              <span class="stat-label">学习次数</span>
+              <span class="stat-value">{{note.frequency}}</span>
             </div>
-  
-            <div class="progress-chart-container">
-              <e-charts class="progress-chart" :option="option" />
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <img src="@/assets/progress.png" alt="学习进度">
             </div>
+            <div class="stat-content">
+              <span class="stat-label">学习进度</span>
+              <span class="stat-value">{{progressValue}}%</span>
+            </div>
+          </div>
+
+          <div class="progress-chart-container">
+            <e-charts class="progress-chart" :option="option" />
           </div>
         </div>
       </div>
-  
-      <!-- 中间模块（学习计划） -->
-      <div id="middle-container">
-        <div id="middle-content">
-            <!-- 添加签到按钮 -->
-          <div class="checkin-container">
-            <button class="checkin-btn" @click="showCalendar = true">
-              <i class="fas fa-calendar-check"></i>
-              每日签到
-            </button>
+    </div>
+
+    <!-- 中间模块（学习计划） -->
+    <div id="middle-container">
+      <div id="middle-content">
+          <!-- 添加签到按钮 -->
+        <div class="checkin-container">
+          <button class="checkin-btn" @click="showCalendar = true">
+            <i class="fas fa-calendar-check"></i>
+            每日签到
+          </button>
+        </div>
+
+         <!-- 签到日历弹窗 -->
+         <div v-if="showCalendar" class="calendar-modal">
+          <div class="calendar-content">
+            <div class="calendar-header">
+              <button @click="changeMonth(-1)">&lt;</button>
+              <span>{{ currentYear }}年{{ currentMonth + 1 }}月</span>
+              <button @click="changeMonth(1)">&gt;</button>
+            </div>
+            
+            <div class="calendar-body">
+              <div class="weekdays">
+                <span v-for="day in ['日','一','二','三','四','五','六']" :key="day">
+                  {{ day }}
+                </span>
+              </div>
+              <div class="days">
+                <div
+                  v-for="day in calendarDays"
+                  :key="day.date"
+                  class="day"
+                  :class="{
+                    'other-month': !day.currentMonth,
+                    'checked': checkedDays.includes(day.date),
+                    'today': isToday(day.date),
+                    'past-day': !checkedDays.includes(day.date) && isPastDay(day.date) && day.currentMonth
+                  }"
+                  @click="handleDayClick(day)"
+                >
+                  {{ day.dayOfMonth }}
+                </div>
+              </div>
+            </div>
+
+            <div class="calendar-footer">
+              <div class="checkin-stats">
+                <span>本月已签到: {{ monthlyStats.daysChecked }}天</span>
+              </div>
+              <button class="close-btn" @click="showCalendar = false">关闭</button>
+            </div>
           </div>
-  
-           <!-- 签到日历弹窗 -->
-           <div v-if="showCalendar" class="calendar-modal">
-            <div class="calendar-content">
-              <div class="calendar-header">
-                <button @click="changeMonth(-1)">&lt;</button>
-                <span>{{ currentYear }}年{{ currentMonth + 1 }}月</span>
-                <button @click="changeMonth(1)">&gt;</button>
+        </div>
+
+        <div class="action-buttons">
+          <span 
+            class="action-btn" 
+            :class="{ active: selectedAction === 'learn' }"
+            @click="selectAction('learn')"
+          >
+            学习
+          </span>
+          <span 
+            class="action-btn" 
+            :class="{ active: selectedAction === 'test' }"
+            @click="selectAction('test')"
+          >
+            测验
+          </span>
+          <span 
+            class="action-btn" 
+            :class="{ active: showNotePanel }"
+            @click="toggleNotePanel"
+          >
+            笔记
+          </span>
+        </div>
+        <div class="divider"></div>
+        
+        <!-- 内容区域 -->
+        <div class="content-wrapper">
+          <div v-if="selectedAction === 'learn'" class="content-section learn-section">
+            <div class="section-content">
+              <!-- 显示章节内容 -->
+              <div v-html="markdownToHtml"></div>
+            </div>
+          </div>
+          <div v-if="selectedAction === 'test'" class="content-section test-section">
+            <div class="section-content">
+              <!-- 提交确认弹窗 -->
+              <div v-if="showSubmitModal" class="submit-modal">
+                <div class="modal-content">
+                  <img src="@/assets/thinking-character.gif" alt="思考的小人" class="thinking-character">
+                  <div class="modal-text">是否确认提交答案？</div>
+                  <div class="modal-buttons">
+                    <button class="modal-btn yes-btn" @click="confirmSubmit">Yes</button>
+                    <button class="modal-btn no-btn" @click="cancelSubmit">No</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 提示消息 -->
+              <div v-if="showMessage" class="message-popup">
+                {{ messageText }}
+              </div>
+
+              <div v-if="showQuizModal&& testData.content && !isQuizLoading" class="quiz-modal">
+                <div class="modal-content">
+                  <img src="@/assets/cute-character.gif" alt="Quiz Character" class="cute-character">
+                  <h2>准备好开始测验了吗？</h2>
+                  <!-- 添加条件渲染的提示文字 -->
+                  <p v-if="completedChapters[currentChapterId]" class="modal-text">
+                    你已经完成过测验，是否再练一次？
+                  </p>
+                  <p v-else class="modal-text">
+                    这是第一次测验，计入成绩
+                  </p>
+                  <div class="modal-buttons">
+                    <button class="modal-btn start-btn" @click="startQuiz">开始测验</button>
+                    <button class="modal-btn cancel-btn" @click="cancelQuiz">取消</button>
+                  </div>
+                </div>
               </div>
               
-              <div class="calendar-body">
-                <div class="weekdays">
-                  <span v-for="day in ['日','一','二','三','四','五','六']" :key="day">
-                    {{ day }}
-                  </span>
-                </div>
-                <div class="days">
-                  <div
-                    v-for="day in calendarDays"
-                    :key="day.date"
-                    class="day"
-                    :class="{
-                      'other-month': !day.currentMonth,
-                      'checked': checkedDays.includes(day.date),
-                      'today': isToday(day.date),
-                      'past-day': !checkedDays.includes(day.date) && isPastDay(day.date) && day.currentMonth
-                    }"
-                    @click="handleDayClick(day)"
-                  >
-                    {{ day.dayOfMonth }}
-                  </div>
-                </div>
+              <!-- 加载状态显示 -->
+              <div v-if="isQuizLoading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>测验内容加载中...</p>
               </div>
-  
-              <div class="calendar-footer">
-                <div class="checkin-stats">
-                  <span>本月已签到: {{ monthlyStats.daysChecked }}天</span>
-                </div>
-                <button class="close-btn" @click="showCalendar = false">关闭</button>
-              </div>
-            </div>
-          </div>
-  
-          <div class="action-buttons">
-            <span 
-              class="action-btn" 
-              :class="{ active: selectedAction === 'learn' }"
-              @click="selectAction('learn')"
-            >
-              学习
-            </span>
-            <span 
-              class="action-btn" 
-              :class="{ active: selectedAction === 'test' }"
-              @click="selectAction('test')"
-            >
-              测验
-            </span>
-            <span 
-              class="action-btn" 
-              :class="{ active: showNotePanel }"
-              @click="toggleNotePanel"
-            >
-              笔记
-            </span>
-          </div>
-          <div class="divider"></div>
-          
-          <!-- 内容区域 -->
-          <div class="content-wrapper">
-            <div v-if="selectedAction === 'learn'" class="content-section learn-section">
-              <div class="section-content">
-                <!-- 显示章节内容 -->
-                <div v-html="markdownToHtml"></div>
-              </div>
-            </div>
-            <div v-if="selectedAction === 'test'" class="content-section test-section">
-              <div class="section-content">
-                <!-- 提交确认弹窗 -->
-                <div v-if="showSubmitModal" class="submit-modal">
-                  <div class="modal-content">
-                    <img src="@/assets/thinking-character.gif" alt="思考的小人" class="thinking-character">
-                    <div class="modal-text">是否确认提交答案？</div>
-                    <div class="modal-buttons">
-                      <button class="modal-btn yes-btn" @click="confirmSubmit">Yes</button>
-                      <button class="modal-btn no-btn" @click="cancelSubmit">No</button>
-                    </div>
-                  </div>
-                </div>
-  
-                <!-- 提示消息 -->
-                <div v-if="showMessage" class="message-popup">
-                  {{ messageText }}
-                </div>
-  
-                <!-- 测验内容加载完成后显示的弹窗 -->
-                <div v-if="showQuizModal && testData.content && !isQuizLoading" class="quiz-modal">
-                  <div class="modal-content">
-                    <img src="@/assets/cute-character.gif" alt="可爱的小人" class="cute-character">
-                    <div class="modal-buttons">
-                      <button class="modal-btn start-btn" @click="startQuiz">开始测验</button>
-                      <button class="modal-btn cancel-btn" @click="cancelQuiz">取消</button>
-                    </div>
-                  </div>
+              <!-- 测验内容 -->
+              <div v-else>
+                <!-- 测验加载失败或选择章节 -->
+                <div v-if="!testData.content" class="no-content-message">
+                  <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
                 </div>
                 
-                <!-- 加载状态显示 -->
-                <div v-if="isQuizLoading" class="loading-container">
-                  <div class="loading-spinner"></div>
-                  <p>测验内容加载中...</p>
-                </div>
-                <!-- 测验内容 -->
+                <!-- 只有在成功加载测验内容后才显示测验界面 -->
                 <div v-else>
-                  <!-- 测验加载失败或选择章节 -->
-                  <div v-if="!testData.content" class="no-content-message">
-                    <p>{{ testData.content === null ? '请选择一个章节开始测验' : '测验加载失败，请重试' }}</p>
-                  </div>
+                  <!-- 题目内容 -->
+                  <div v-html="testData.content"></div>
                   
-                  <!-- 只有在成功加载测验内容后才显示测验界面 -->
-                  <div v-else>
-                    <!-- 题目内容 -->
-                    <div v-html="testData.content"></div>
-                    
-                    <!-- 只在测验内容加载后且未提交答案时显示倒计时和提交按钮 -->
-                    <template v-if="!showResults">
-                      <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
-                      <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
-                        提交答案
-                      </button>
-                      <div v-else class="time-message">时间结束，禁止答题</div>
-                    </template>
-                    
-                    <!-- 只在提交答案后显示测验结果 -->
-                    <div v-if="showResults" class="results-section">
-                      <div class="score">得分：{{ score }}分</div>
-                      <div class="answers">
-                        <div v-for="(question, index) in que.value" :key="index">
-                          <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
-                          <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
-                            用户答案：{{ userAnswers[index] || '未作答' }}
-                          </div>
-                          <div class="correct-answer">正确答案：{{ question.answer }}</div>
-                          <div v-if="userAnswers[index] !== question.answer" class="explanation">
-                            解析：{{ question.explanation }}
-                          </div>
+                  <!-- 只在测验内容加载后且未提交答案时显示倒计时和提交按钮 -->
+                  <template v-if="!showResults">
+                    <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
+                    <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
+                      提交答案
+                    </button>
+                    <div v-else class="time-message">时间结束，禁止答题</div>
+                  </template>
+                  
+                  <!-- 只在提交答案后显示测验结果 -->
+                  <div v-if="showResults" class="results-section">
+                    <div class="score">得分：{{ score }}分</div>
+                    <div class="answers">
+                      <div v-for="(question, index) in que.value" :key="index">
+                        <div class="question-text">{{ index + 1 }}. {{ question.question }}</div>
+                        <div class="user-answer" :class="{ incorrect: userAnswers[index] !== question.answer }">
+                          用户答案：{{ userAnswers[index] || '未作答' }}
+                        </div>
+                        <div class="correct-answer">正确答案：{{ question.answer }}</div>
+                        <div v-if="userAnswers[index] !== question.answer" class="explanation">
+                          解析：{{ question.explanation }}
                         </div>
                       </div>
                     </div>
@@ -220,148 +226,149 @@
                 </div>
               </div>
             </div>
-            
           </div>
-        </div>
-      </div>
-  
-      <!-- 右侧模块 -->
-      <div id="right-container">
-        <div id="right-content">
-          <div class="right-header">
-            <div class="header-item">
-              <span class="header-title">学习计划</span>
-            </div>
-          </div>
-          <div id="plan-line"></div>
-          <div id="scrollable-area">
-            <!-- 目录树 -->
-            <el-tree
-              style="max-width: 600px"
-              :data="treeData"
-              :props="defaultProps"
-              :current-node-key="currentChapterId"
-              @node-click="handleNodeClick"
-              :highlight-current="false"
-            >
-              <template #default="{ node }">
-                <div 
-                  style="display: flex; align-items: center; width: 100%"
-                  :class="{ 'selected-node': currentChapterId === node.data.id }"
-                >
-                  <span 
-                    v-if="!node.children || node.children.length === 0"
-                    class="status-dot"
-                    :class="{ 'completed': completedChapters[node.data.id] }"
-                  ></span>
-                  <span style="margin-left: 8px">{{ node.label }}</span>
-                </div>
-              </template>
-            </el-tree>
-  
-            <div class="button-group">
-              <!-- 添加整合笔记按钮 -->
-              <div class="report-btn-container">
-                <button class="integrate-notes-btn" @click="integrateNotes">
-                  <i class="fas fa-book"></i>
-                  生成整合笔记
-                </button>
-              </div>
-  
-              <!-- 生成报告按钮 -->
-              <div class="report-btn-container">
-                <button class="report-btn" @click="goToReport">
-                  <i class="fas fa-file-alt"></i>
-                  生成学习报告
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-  
-      <!-- 添加侧边笔记面板 -->
-      <div 
-        class="note-panel"
-        :class="{ 'note-panel-open': showNotePanel }"
-      >
-        <div class="note-panel-header">
-          <h3>笔记</h3>
-          <span class="close-btn" @click="toggleNotePanel">&times;</span>
-        </div>
-        <div class="note-panel-body">
-          <textarea 
-            v-model="noteContent" 
-            placeholder="在这里输入你的笔记..."
-            class="note-textarea"
-          ></textarea>
           
-          <div class="privacy-setting">
-            <label class="privacy-label">
-              <input 
-                type="checkbox" 
-                v-model="isPrivate"
-                class="privacy-checkbox"
-              >
-              <span>设为私密笔记</span>
-            </label>
-          </div>
-        </div>
-        <div class="note-panel-footer">
-          <button 
-            v-if="!hasNote"
-            class="create-note-btn" 
-            @click="createNote"
-          >
-            创建笔记
-          </button>
-          <template v-else>
-            <button 
-              class="update-note-btn" 
-              @click="updateNote"
-            >
-              更新笔记
-            </button>
-            <button 
-              class="delete-note-btn" 
-              @click="deleteNote"
-            >
-              删除笔记
-            </button>
-          </template>
         </div>
       </div>
-  
-      <!-- 添加整合笔记弹窗 -->
-      <div v-if="showIntegrateModal" class="integrate-modal">
-        <div class="integrate-modal-content">
-          <div class="integrate-modal-header">
-            <h2>笔记整合</h2>
-            <button class="export-btn" @click="exportToDoc" :disabled="isExporting">
-              <i class="fas fa-file-word"></i>
-              {{ isExporting ? '导出中...' : '导出为Word' }}
-            </button>
-            <span class="close-btn" @click="showIntegrateModal = false">&times;</span>
+    </div>
+
+    <!-- 右侧模块 -->
+    <div id="right-container">
+      <div id="right-content">
+        <div class="right-header">
+          <div class="header-item">
+            <span class="header-title">学习计划</span>
           </div>
-          <div class="integrate-modal-body">
-            <div v-if="allNotes.length === 0" class="no-notes">
-              暂无笔记
-            </div>
-            <div v-else class="notes-list">
-              <div v-for="note in allNotes" :key="note.noteId" class="note-item">
-                <div class="note-header">
-                  <h3>章节 {{ note.chapterTitle || note.chapterId }}</h3>
-                  <span class="note-date">{{ new Date(note.createdAt).toLocaleString() }}</span>
-                </div>
-                <div class="note-content">{{ note.content }}</div>
+        </div>
+        <div id="plan-line"></div>
+        <div id="scrollable-area">
+          <!-- 目录树 -->
+          <el-tree
+            style="max-width: 600px"
+            :data="treeData"
+            :props="defaultProps"
+            :current-node-key="currentChapterId"
+            @node-click="handleNodeClick"
+            :highlight-current="false"
+          >
+            <template #default="{ node }">
+              <div 
+                style="display: flex; align-items: center; width: 100%"
+                :class="{ 'selected-node': currentChapterId === node.data.id }"
+              >
+                <span 
+                  v-if="!node.children || node.children.length === 0"
+                  class="status-dot"
+                  :class="{ 'completed': completedChapters[node.data.id] }"
+                ></span>
+                <span style="margin-left: 8px">{{ node.label }}</span>
               </div>
+            </template>
+          </el-tree>
+
+          <div class="button-group">
+            <!-- 添加整合笔记按钮 -->
+            <div class="report-btn-container">
+              <button class="integrate-notes-btn" @click="integrateNotes">
+                <i class="fas fa-book"></i>
+                生成整合笔记
+              </button>
+            </div>
+
+            <!-- 生成报告按钮 -->
+            <div class="report-btn-container">
+              <button class="report-btn" @click="goToReport">
+                <i class="fas fa-file-alt"></i>
+                生成学习报告
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 添加侧边笔记面板 -->
+    <div 
+      class="note-panel"
+      :class="{ 'note-panel-open': showNotePanel }"
+    >
+      <div class="note-panel-header">
+        <h3>笔记</h3>
+        <span class="close-btn" @click="toggleNotePanel">&times;</span>
+      </div>
+      <div class="note-panel-body">
+        <textarea 
+          v-model="noteContent" 
+          placeholder="在这里输入你的笔记..."
+          class="note-textarea"
+        ></textarea>
+        
+        <div class="privacy-setting">
+          <label class="privacy-label">
+            <input 
+              type="checkbox" 
+              v-model="isPrivate"
+              class="privacy-checkbox"
+            >
+            <span>设为私密笔记</span>
+          </label>
+        </div>
+      </div>
+      <div class="note-panel-footer">
+        <button 
+          v-if="!hasNote"
+          class="create-note-btn" 
+          @click="createNote"
+        >
+          创建笔记
+        </button>
+        <template v-else>
+          <button 
+            class="update-note-btn" 
+            @click="updateNote"
+          >
+            更新笔记
+          </button>
+          <button 
+            class="delete-note-btn" 
+            @click="deleteNote"
+          >
+            删除笔记
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <!-- 添加整合笔记弹窗 -->
+    <div v-if="showIntegrateModal" class="integrate-modal">
+      <div class="integrate-modal-content">
+        <div class="integrate-modal-header">
+          <h2>笔记整合</h2>
+          <button class="export-btn" @click="exportToDoc" :disabled="isExporting">
+            <i class="fas fa-file-word"></i>
+            {{ isExporting ? '导出中...' : '导出为Word' }}
+          </button>
+          <span class="close-btn" @click="showIntegrateModal = false">&times;</span>
+        </div>
+        <div class="integrate-modal-body">
+          <div v-if="allNotes.length === 0" class="no-notes">
+            暂无笔记
+          </div>
+          <div v-else class="notes-list">
+            <div v-for="note in allNotes" :key="note.noteId" class="note-item">
+              <div class="note-header">
+                <h3>章节 {{ note.chapterTitle || note.chapterId }}</h3>
+                <span class="note-date">{{ new Date(note.createdAt).toLocaleString() }}</span>
+              </div>
+              <div class="note-content">{{ note.content }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
-  
+
 <script setup>
 import { ref, onMounted, onUnmounted, computed, defineExpose} from 'vue';
 import { ElTree,ElMessage } from 'element-plus';
@@ -409,88 +416,88 @@ frequency: data5
 var progressValue = ref(0);
 var option = ref({
 title: {
-    text: progressValue.value + '%',
-    textStyle: {
-    color: '#28BCFE',
-    fontSize: '25px'
-    },
-    subtext: '加载进度',
-    subtextStyle: {
-    color: '#a9a9a9',
-    fontSize: '10px',
-    },
-    itemGap: 20,
-    left: 'center',
-    top: '43%'
+  text: progressValue.value + '%',
+  textStyle: {
+  color: '#28BCFE',
+  fontSize: '25px'
+  },
+  subtext: '加载进度',
+  subtextStyle: {
+  color: '#a9a9a9',
+  fontSize: '10px',
+  },
+  itemGap: 20,
+  left: 'center',
+  top: '43%'
 },
 grid: [{ x: '7%', y: '7%', width: '33%', height: '100%' }],
 angleAxis: {
-    startAngle: 180,
-    max: 360,
-    clockwise: true,
-    show: false
+  startAngle: 180,
+  max: 360,
+  clockwise: true,
+  show: false
 },
 radiusAxis: {
-    type: 'category',
-    show: true,
-    axisLabel: { show: false },
-    axisLine: { show: false },
-    axisTick: { show: false }
+  type: 'category',
+  show: true,
+  axisLabel: { show: false },
+  axisLine: { show: false },
+  axisTick: { show: false }
 },
 polar: {
-    center: ['50%', '60%'],
-    radius: '150%',
+  center: ['50%', '60%'],
+  radius: '150%',
 },
 series: [
-    {
-    type: 'bar',
-    z: 2,
-    data: [progressValue.value * 180 / 100],
-    showBackground: true,
-    backgroundStyle: { color: 'transparent' },
-    coordinateSystem: 'polar',
-    roundCap: true,
-    barWidth: 20,
-    barGap: '-100%',
-    itemStyle: {
-        opacity: 1,
-        color: {
-        type: 'linear',
-        x: 0,
-        y: 0,
-        x2: 0,
-        y2: 1,
-        colorStops: [
-            { offset: 0, color: '#25BFFF' },
-            { offset: 1, color: '#5284DE' }
-        ],
-        shadowBlur: 5,
-        shadowColor: '#f92a2a'
-        }
-    }
-    },
-    {
-    type: 'bar',
-    z: 1,
-    data: [180],
-    coordinateSystem: 'polar',
-    roundCap: true,
-    barWidth: 20,
-    barGap: '-100%',
-    itemStyle: { opacity: 1, color: '#093368' }
-    }
+  {
+  type: 'bar',
+  z: 2,
+  data: [progressValue.value * 180 / 100],
+  showBackground: true,
+  backgroundStyle: { color: 'transparent' },
+  coordinateSystem: 'polar',
+  roundCap: true,
+  barWidth: 20,
+  barGap: '-100%',
+  itemStyle: {
+      opacity: 1,
+      color: {
+      type: 'linear',
+      x: 0,
+      y: 0,
+      x2: 0,
+      y2: 1,
+      colorStops: [
+          { offset: 0, color: '#25BFFF' },
+          { offset: 1, color: '#5284DE' }
+      ],
+      shadowBlur: 5,
+      shadowColor: '#f92a2a'
+      }
+  }
+  },
+  {
+  type: 'bar',
+  z: 1,
+  data: [180],
+  coordinateSystem: 'polar',
+  roundCap: true,
+  barWidth: 20,
+  barGap: '-100%',
+  itemStyle: { opacity: 1, color: '#093368' }
+  }
 ]
 });
 
 // const selectedAction = ref(''); // 用于跟踪当前选中的动作
 function selectAction(action) {
 if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
-    // 如果正在测验中且未显示结果，显示确认弹窗
-    showSubmitModal.value = true;
-    // 保存用户想要切换到的动作
-    pendingAction.value = action;
+  // 如果正在测验中且未显示结果，显示确认弹窗
+  showSubmitModal.value = true;
+  // 保存用户想要切换到的动作
+  pendingAction.value = action;
 } else {
-    selectedAction.value = action;
+  selectedAction.value = action;
 }
 }
 
@@ -500,43 +507,43 @@ const treeData = ref([]);
 // 加载课程树数据的方法
 const loadCourseTree = async () => {
 try {
-    const courseId = localStorage.getItem('selectedCourseId');
-    if (!courseId) {
-    console.error('No course selected');
-    return;
-    }
+  const courseId = localStorage.getItem('selectedCourseId');
+  if (!courseId) {
+  console.error('No course selected');
+  return;
+  }
 
-    const token = localStorage.getItem('token');
-    const response = await fetch(`http://localhost:8008/api/course/${courseId}/tree`, {
-    headers: {
-        'Authorization': `Bearer ${token}`
-    }
-    });
+  const token = localStorage.getItem('token');
+  const response = await fetch(`http://localhost:8008/api/course/${courseId}/tree`, {
+  headers: {
+      'Authorization': `Bearer ${token}`
+  }
+  });
 
-    if (!response.ok) {
-    throw new Error('Failed to fetch course tree');
-    }
+  if (!response.ok) {
+  throw new Error('Failed to fetch course tree');
+  }
 
-    const result = await response.json();
-    console.log('Received course tree:', result);
+  const result = await response.json();
+  console.log('Received course tree:', result);
 
-    const transformNode = (node) => {
-    return {
-        id: node.id,
-        label: `${node.name}`,
-        children: Array.isArray(node.children) ? node.children.map(child => transformNode(child)) : []
-    };
-    };
+  const transformNode = (node) => {
+  return {
+      id: node.id,
+      label: `${node.name}`,
+      children: Array.isArray(node.children) ? node.children.map(child => transformNode(child)) : []
+  };
+  };
 
-    if (result && result.length > 0 && result[0].children) {
-    treeData.value = result[0].children.map(chapter => transformNode(chapter));
-    } else {
-    console.error('Invalid course tree structure');
-    treeData.value = [];
-    }
+  if (result && result.length > 0 && result[0].children) {
+  treeData.value = result[0].children.map(chapter => transformNode(chapter));
+  } else {
+  console.error('Invalid course tree structure');
+  treeData.value = [];
+  }
 } catch (error) {
-    console.error('Error loading course tree:', error);
-    treeData.value = [];
+  console.error('Error loading course tree:', error);
+  treeData.value = [];
 }
 };
 
@@ -576,140 +583,140 @@ const currentChapterId = ref(null);
 // 添加新的函数用于获取任务点数据
 const updateTaskPoints = async (unitId) => {
 try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch(`http://localhost:8008/api/course/unit-completion?userId=${userId}&unitId=${unitId}`, {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-    });
+  const userId = localStorage.getItem('userid');
+  const response = await fetch(`http://localhost:8008/api/course/unit-completion?userId=${userId}&unitId=${unitId}`, {
+  method: 'GET',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
 
-    if (!response.ok) {
-    throw new Error('Failed to fetch task points');
-    }
+  if (!response.ok) {
+  throw new Error('Failed to fetch task points');
+  }
 
-    const result = await response.json();
-    console.log(result)
-    // 更新任务点数据
-    note.value.task = result.data.completedChapters;
-    note.value.sumTask = result.data.totalChapters;
+  const result = await response.json();
+  console.log(result)
+  // 更新任务点数据
+  note.value.task = result.data.completedChapters;
+  note.value.sumTask = result.data.totalChapters;
 
-    // 添加判断逻辑
-    if (note.value.task === note.value.sumTask) {
-      // 如果任务点完成，更新完成状态
-      completedChapters.value[unitId] = true;
-    } else {
-      completedChapters.value[unitId] = false;
-    }
+  // 添加判断逻辑
+  if (note.value.task === note.value.sumTask) {
+    // 如果任务点完成，更新完成状态
+    completedChapters.value[unitId] = true;
+  } else {
+    completedChapters.value[unitId] = false;
+  }
 } catch (error) {
-    console.error('Error fetching task points:', error);
+  console.error('Error fetching task points:', error);
 }
 };
 
 //更新测验点的函数
 const updateTestPoints = async (unitId) => {
 try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch(`http://localhost:8008/api/course/quiz-completion?userId=${userId}&unitId=${unitId}`, {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-    });
+  const userId = localStorage.getItem('userid');
+  const response = await fetch(`http://localhost:8008/api/course/quiz-completion?userId=${userId}&unitId=${unitId}`, {
+  method: 'GET',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
 
-    if (!response.ok) {
-    throw new Error('Failed to fetch test points');
-    }
+  if (!response.ok) {
+  throw new Error('Failed to fetch test points');
+  }
 
-    const result = await response.json();
-    console.log(result)
-    // 更新任务点数据
-    note.value.test = result.data.completedQuizzes;
-    note.value.sumTest = result.data.totalQuizzes;
+  const result = await response.json();
+  console.log(result)
+  // 更新任务点数据
+  note.value.test = result.data.completedQuizzes;
+  note.value.sumTest = result.data.totalQuizzes;
 } catch (error) {
-    console.error('Error fetching test points:', error);
+  console.error('Error fetching test points:', error);
 }
 };
 
 // 添加获取学习进度的函数
 const updateLearningProgress = async () => {
 try {
-    const userId = localStorage.getItem('userid');
-    const courseId = localStorage.getItem('selectedCourseId');
-    
-    const response = await fetch(`http://localhost:8008/api/course/course-completion-percentage?userId=${userId}&courseId=${courseId}`, {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-    });
+  const userId = localStorage.getItem('userid');
+  const courseId = localStorage.getItem('selectedCourseId');
+  
+  const response = await fetch(`http://localhost:8008/api/course/course-completion-percentage?userId=${userId}&courseId=${courseId}`, {
+  method: 'GET',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
 
-    if (!response.ok) {
-    throw new Error('Failed to fetch learning progress');
-    }
+  if (!response.ok) {
+  throw new Error('Failed to fetch learning progress');
+  }
 
-    const result = await response.json();
-    // 更新进度值
-    console.log(result)
-    progressValue.value = parseInt(result.data.completionPercentage);
-    
-    // 更新图表配置
-    option.value.title.text = progressValue.value + '%';
-    option.value.series[0].data = [progressValue.value * 180 / 100];
+  const result = await response.json();
+  // 更新进度值
+  console.log(result)
+  progressValue.value = parseInt(result.data.completionPercentage);
+  
+  // 更新图表配置
+  option.value.title.text = progressValue.value + '%';
+  option.value.series[0].data = [progressValue.value * 180 / 100];
 } catch (error) {
-    console.error('Error fetching learning progress:', error);
+  console.error('Error fetching learning progress:', error);
 }
 };
 
 // 添加获取学习次数的函数
 const updateStudyTimes = async () => {
 try {
-    const userId = localStorage.getItem('userid');
-    
-    const response = await fetch(`http://localhost:8008/api/course/study-times?userId=${userId}`, {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-    });
+  const userId = localStorage.getItem('userid');
+  
+  const response = await fetch(`http://localhost:8008/api/course/study-times?userId=${userId}`, {
+  method: 'GET',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
 
-    if (!response.ok) {
-    throw new Error('Failed to fetch study times');
-    }
+  if (!response.ok) {
+  throw new Error('Failed to fetch study times');
+  }
 
-    const result = await response.json();
-    console.log(result)
-    // 更新学习次数值
-    note.value.frequency = result.data
-    
+  const result = await response.json();
+  console.log(result)
+  // 更新学习次数值
+  note.value.frequency = result.data
+  
 } catch (error) {
-    console.error('Error fetching study times:', error);
+  console.error('Error fetching study times:', error);
 }
 };
 
 // 添加更新学习次数的函数
 const updateLearningCount = async (chapterId) => {
 try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch('http://localhost:8008/api/course/study-times-update', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify({
-        userId: parseInt(userId),
-        chapterId: parseInt(chapterId)
-    })
-    });
-    
-    if (response.ok) {
-    console.log('学习次数更新成功');
-    } else {
-    console.error('更新学习次数失败:', response.statusText);
-    }
+  const userId = localStorage.getItem('userid');
+  const response = await fetch('http://localhost:8008/api/course/study-times-update', {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify({
+      userId: parseInt(userId),
+      chapterId: parseInt(chapterId)
+  })
+  });
+  
+  if (response.ok) {
+  console.log('学习次数更新成功');
+  } else {
+  console.error('更新学习次数失败:', response.statusText);
+  }
 } catch (error) {
-    console.error('更新学习次数失败:', error);
+  console.error('更新学习次数失败:', error);
 }
 };
 
@@ -718,14 +725,14 @@ const checkChapterCompletion = async (chapterId) => {
 try {
 const userId = localStorage.getItem('userid');
 const response = await fetch(`http://localhost:8008/api/course/chapter-completion?userId=${userId}&chapterId=${chapterId}`, {
-    method: 'GET',
-    headers: {
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
+  method: 'GET',
+  headers: {
+  'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
 });
 
 if (!response.ok) {
-    throw new Error('Failed to fetch chapter completion status');
+  throw new Error('Failed to fetch chapter completion status');
 }
 
 const result = await response.json();
@@ -740,27 +747,27 @@ console.error('Error checking chapter completion:', error);
 
 // 在组件挂载时检查所有节点的完成状态
 onMounted(async () => {
-  await loadCourseTree();
-  // 递归检查所有节点的完成状态
-  const checkAllNodes = async (nodes) => {
-    for (const node of nodes) {
-      // await checkChapterCompletion(node.id);
-      // 如果有子节点,说明是单元节点,使用updateTaskPoints检查完成状态
-      if (node.children && node.children.length > 0) {
-        await updateTaskPoints(node.id);
-        await checkAllNodes(node.children);
-      } else {
-        // 如果没有子节点,说明是章节节点,使用checkChapterCompletion检查完成状态
-        await checkChapterCompletion(node.id);
-      }
+await loadCourseTree();
+// 递归检查所有节点的完成状态
+const checkAllNodes = async (nodes) => {
+  for (const node of nodes) {
+    // await checkChapterCompletion(node.id);
+    // 如果有子节点,说明是单元节点,使用updateTaskPoints检查完成状态
+    if (node.children && node.children.length > 0) {
+      await updateTaskPoints(node.id);
+      await checkAllNodes(node.children);
+    } else {
+      // 如果没有子节点,说明是章节节点,使用checkChapterCompletion检查完成状态
+      await checkChapterCompletion(node.id);
     }
-  };
-
-  if (treeData.value.length > 0) {
-    await checkAllNodes(treeData.value);
   }
-  
-  // ... 其他现有的 onMounted 代码 ...
+};
+
+if (treeData.value.length > 0) {
+  await checkAllNodes(treeData.value);
+}
+
+// ... 其他现有的 onMounted 代码 ...
 });
 
 // 在组件挂载时检查所有叶子节点的完成状态
@@ -779,7 +786,7 @@ onMounted(async () => {
 //   if (treeData.value.length > 0) {
 //     await checkAllNodes(treeData.value);
 //   }
-  
+
 //   // ... rest of existing onMounted code ...
 // });
 
@@ -787,9 +794,9 @@ onMounted(async () => {
 const handleNodeClick = async (nodeData) => {
 currentNode.value = nodeData;
 if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
-    showSubmitModal.value = true;
-    pendingNode.value = nodeData;
-    return;
+  showSubmitModal.value = true;
+  pendingNode.value = nodeData;
+  return;
 }
 
 const chapterId = nodeData.id;
@@ -798,7 +805,7 @@ const userId = localStorage.getItem('userid');
 
 // 如果是叶子节点，检查完成状态
 if (!nodeData.children || nodeData.children.length === 0) {
-    await checkChapterCompletion(chapterId);
+  await checkChapterCompletion(chapterId);
 }
 
 // 获取章节笔记
@@ -806,84 +813,84 @@ await getNoteByChapter(userId, chapterId);
 
 // 如果不是叶子节点，直接返回
 if (nodeData.children && nodeData.children.length > 0) {
-    console.log("这是根节点")
-    await updateTaskPoints(chapterId);
-    await updateTestPoints(chapterId);
-    return;
+  console.log("这是根节点")
+  await updateTaskPoints(chapterId);
+  await updateTestPoints(chapterId);
+  return;
 }
 
 // 获取章节内容
 try {
-    const sectionResponse = await fetch(`http://localhost:8008/api/test/genContent`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify({
-        userId: userId,
-        chapterId: chapterId
-    })
-    });
-    // ... handle section response ...
-    if (sectionResponse.ok) {
-    const sectionResult = await sectionResponse.json();
-    if (sectionResult && sectionResult.data && sectionResult.data.content) {
-        sectionData.value = { content: sectionResult.data.content };
-        selectedAction.value = 'learn'; // 切换学习界面
-    } else {
-        sectionData.value = { content: '无法加载内容' };
-    }
-    }
-    // 设置测验加载状态
-    isQuizLoading.value = true;
-    try {
-    const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
-        method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-        userId: userId,
-        chapterId: chapterId
-        })
-    });
-    if (quizResponse.ok) {
-        // 测验分数提交成功后，更新学习次数
-        await updateLearningCount(currentChapterId);
-        //更新颜色
-        // 提交后重新检查章节完成状态
-        checkChapterCompletion(currentChapterId.value);
-        const quizResult = await quizResponse.json();
-        quizId.value = quizResult.data.quiz_id;
-        que.value = quizResult.data.questions;
-        if (quizResult && quizResult.data && quizResult.data.questions) {
-        testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-        showQuizModal.value = true; // 显示弹窗
-        quizStarted.value = false; // 重置测验状态
-        showResults.value = false; // 重置结果示状态
-        timeLeft.value = totalMinutes * 60; // 重置倒计时时间
-        if (timerId) {
-            clearInterval(timerId); // 清除之前的定时器
-            timerId = null;
-        }
-        } else {
-        testData.value = { content: '无法加载测验内容' };
-        }
-    }
-    } catch (error) {
-    console.error('Error loading quiz:', error);
-    testData.value = { content: '测验加载失败，请重试' };
-    } finally {
-    // 无论成功失败都关闭加载状态
-    isQuizLoading.value = false;
-    }
+  const sectionResponse = await fetch(`http://localhost:8008/api/test/genContent`, {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify({
+      userId: userId,
+      chapterId: chapterId
+  })
+  });
+  // ... handle section response ...
+  if (sectionResponse.ok) {
+  const sectionResult = await sectionResponse.json();
+  if (sectionResult && sectionResult.data && sectionResult.data.content) {
+      sectionData.value = { content: sectionResult.data.content };
+      selectedAction.value = 'learn'; // 切换学习界面
+  } else {
+      sectionData.value = { content: '无法加载内容' };
+  }
+  }
+  // 设置测验加载状态
+  isQuizLoading.value = true;
+  try {
+  const quizResponse = await fetch(`http://localhost:8008/api/test/genQuiz`, {
+      method: 'POST',
+      headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+      userId: userId,
+      chapterId: chapterId
+      })
+  });
+  if (quizResponse.ok) {
+      // 测验分数提交成功后，更新学习次数
+      await updateLearningCount(currentChapterId);
+      //更新颜色
+      // 提交后重新检查章节完成状态
+      checkChapterCompletion(currentChapterId.value);
+      const quizResult = await quizResponse.json();
+      quizId.value = quizResult.data.quiz_id;
+      que.value = quizResult.data.questions;
+      if (quizResult && quizResult.data && quizResult.data.questions) {
+      testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
+      showQuizModal.value = true; // 显示弹窗
+      quizStarted.value = false; // 重置测验状态
+      showResults.value = false; // 重置结果示状态
+      timeLeft.value = totalMinutes * 60; // 重置倒计时时间
+      if (timerId) {
+          clearInterval(timerId); // 清除之前的定时器
+          timerId = null;
+      }
+      } else {
+      testData.value = { content: '无法加载测验内容' };
+      }
+  }
+  } catch (error) {
+  console.error('Error loading quiz:', error);
+  testData.value = { content: '测验加载失败，请重试' };
+  } finally {
+  // 无论成功失败都关闭加载状态
+  isQuizLoading.value = false;
+  }
 
 } catch (error) {
-    console.error('Error:', error);
-    sectionData.value = { content: '请求失败，请稍后重试' };
-    testData.value = { content: '请求失败，请稍后重试' };
+  console.error('Error:', error);
+  sectionData.value = { content: '请求失败，请稍后重试' };
+  testData.value = { content: '请求失败，请稍后重试' };
 }
 };
 
@@ -899,60 +906,60 @@ const score = ref(0);
 //渲染测验题目的函数
 function renderQuizQuestions(questions) {
 return questions.map((question, index) => {
-    let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选)'}</div>`;
-    questionHtml += `<div class="options">`;
-    for (const [option, text] of Object.entries(question.options)) {
-    const inputType = question.type === 'single' ? 'radio' : 'checkbox';
-    questionHtml += `<div class="option">
-        <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}" style="display:none">
-        <label for="question-${index}-${option}" class="option-box" style="display:flex; align-items:center; border:1px solid rgb(236,201,237); padding:10px; margin:5px 0; cursor:pointer; border-radius:4px; background-color:white; transition: all 0.3s ease">
-        <span style="width:30px; height:30px; border:2px solid rgb(236,201,237); border-radius:50%; display:flex; align-items:center; justify-content:center; background-color:white">${option}</span>
-        <span style="flex:1; text-align:center; margin-left:10px">${text}</span>
-        </label>
-    </div>`;
-    }
-    questionHtml += `</div>`;
+  let questionHtml = `<div class="question">${index + 1}.${question.question} ${question.type === 'single' ? '(单选题)' : '(多选)'}</div>`;
+  questionHtml += `<div class="options">`;
+  for (const [option, text] of Object.entries(question.options)) {
+  const inputType = question.type === 'single' ? 'radio' : 'checkbox';
+  questionHtml += `<div class="option">
+      <input type="${inputType}" id="question-${index}-${option}" name="question-${index}" value="${option}" style="display:none">
+      <label for="question-${index}-${option}" class="option-box" style="display:flex; align-items:center; border:1px solid rgb(236,201,237); padding:10px; margin:5px 0; cursor:pointer; border-radius:4px; background-color:white; transition: all 0.3s ease">
+      <span style="width:30px; height:30px; border:2px solid rgb(236,201,237); border-radius:50%; display:flex; align-items:center; justify-content:center; background-color:white">${option}</span>
+      <span style="flex:1; text-align:center; margin-left:10px">${text}</span>
+      </label>
+  </div>`;
+  }
+  questionHtml += `</div>`;
 
-    // 添加答案显示区域（初始隐藏）
-    questionHtml += `
-    <div id="answer-display-${index}" style="display:none; margin: 15px 0;">
-        <div class="user-answer" style="color: #666; margin-bottom: 5px; display: flex; align-items: center;">
-        你的答案：<span id="user-answer-${index}"></span>
-        <span id="answer-icon-${index}" style="margin-left: 20px;"></span>
-        </div>
-        <div class="correct-answer" style="color: #28a745; margin-bottom: 5px; display: flex; align-items: center;">
-        正确  案：<span id="correct-answer-${index}"></span>
-        <span id="score-display-${index}" style="margin-left: 40px; color: #666;"></span>
-        </div>
-        <div class="explanation" style="color: #666; margin-top: 5px;">
-        解析：<span id="explanation-${index}"></span>
-        </div>
-    </div>
-    `;
-    // 添加横线，除了最后一题
-    if (index < questions.length - 1) {
-    questionHtml += `<div style="height: 1px; background-color: black; margin: 30px 0;"></div>`;
-    }
-    questionHtml += `
-    <style>
-        .option-box:hover {
-        background-color: rgb(245,230,245) !important;
-        transform: translateX(5px);
-        }
-        input[type="radio"]:checked + label.option-box,
-        input[type="checkbox"]:checked + label.option-box {
-        background-color: rgb(236,201,237) !important;
-        border-color: rgb(236,201,237);
-        }
-        input[type="radio"]:checked + label.option-box span:first-child,
-        input[type="checkbox"]:checked + label.option-box span:first-child {
-        background-color: rgb(236,201,237);
-        border-color: black;
-        color: black;
-        }
-    </style>
-    `;
-    return questionHtml;
+  // 添加答案显示区域（初始隐藏）
+  questionHtml += `
+  <div id="answer-display-${index}" style="display:none; margin: 15px 0;">
+      <div class="user-answer" style="color: #666; margin-bottom: 5px; display: flex; align-items: center;">
+      你的答案：<span id="user-answer-${index}"></span>
+      <span id="answer-icon-${index}" style="margin-left: 20px;"></span>
+      </div>
+      <div class="correct-answer" style="color: #28a745; margin-bottom: 5px; display: flex; align-items: center;">
+      正确  案：<span id="correct-answer-${index}"></span>
+      <span id="score-display-${index}" style="margin-left: 40px; color: #666;"></span>
+      </div>
+      <div class="explanation" style="color: #666; margin-top: 5px;">
+      解析：<span id="explanation-${index}"></span>
+      </div>
+  </div>
+  `;
+  // 添加横线，除了最后一题
+  if (index < questions.length - 1) {
+  questionHtml += `<div style="height: 1px; background-color: black; margin: 30px 0;"></div>`;
+  }
+  questionHtml += `
+  <style>
+      .option-box:hover {
+      background-color: rgb(245,230,245) !important;
+      transform: translateX(5px);
+      }
+      input[type="radio"]:checked + label.option-box,
+      input[type="checkbox"]:checked + label.option-box {
+      background-color: rgb(236,201,237) !important;
+      border-color: rgb(236,201,237);
+      }
+      input[type="radio"]:checked + label.option-box span:first-child,
+      input[type="checkbox"]:checked + label.option-box span:first-child {
+      background-color: rgb(236,201,237);
+      border-color: black;
+      color: black;
+      }
+  </style>
+  `;
+  return questionHtml;
 }).join('');
 }
 
@@ -973,14 +980,14 @@ if (!quizStarted.value) return; // 如果测验未开始，不启动倒计时
 
 timeLeft.value = totalMinutes * 60;
 if (timerId !== null) {
-    clearInterval(timerId);
+  clearInterval(timerId);
 }
 timerId = setInterval(() => {
-    if (timeLeft.value > 0) {
-    timeLeft.value--;
-    } else {
-    clearInterval(timerId);
-    }
+  if (timeLeft.value > 0) {
+  timeLeft.value--;
+  } else {
+  clearInterval(timerId);
+  }
 }, 1000);
 };
 
@@ -1020,7 +1027,7 @@ const showTemporaryMessage = (message) => {
 messageText.value = message;
 showMessage.value = true;
 setTimeout(() => {
-    showMessage.value = false;
+  showMessage.value = false;
 }, 1000);
 };
 
@@ -1034,78 +1041,78 @@ let c = JSON.parse(JSON.stringify(que))._value;
 
 // 禁用所有输入框
 function disableInputs() {
-    const allInputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-    allInputs.forEach(input => {
-    input.disabled = true;
-    });
+  const allInputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+  allInputs.forEach(input => {
+  input.disabled = true;
+  });
 }
 
 if (c) {
-    c.forEach((question, index) => {
-    const questionId = `question-${index}`;
-    const selectedInputs = document.querySelectorAll(`input[name="${questionId}"]:checked`);
-    
-    if (selectedInputs.length > 0) {
-        // 根据题目类型处理答案
-        if (question.type === 'single') {
-        // 单选题：只取第一个选中的值
-        const userAnswer = selectedInputs[0].value;
-        userAnswers.push(userAnswer);
-        
-        // 判断答案是否正确
-        if (userAnswer === question.answer) {
-            totalScore += 10;
-        }
-        // 显示答案和解析
-        document.getElementById(`user-answer-${index}`).textContent = userAnswer;
-        document.getElementById(`correct-answer-${index}`).textContent = question.answer;
-        document.getElementById(`explanation-${index}`).textContent = question.explanations;
-        document.getElementById(`answer-display-${index}`).style.display = 'block';
+  c.forEach((question, index) => {
+  const questionId = `question-${index}`;
+  const selectedInputs = document.querySelectorAll(`input[name="${questionId}"]:checked`);
+  
+  if (selectedInputs.length > 0) {
+      // 根据题目类型处理答案
+      if (question.type === 'single') {
+      // 单选题：只取第一个选中的值
+      const userAnswer = selectedInputs[0].value;
+      userAnswers.push(userAnswer);
+      
+      // 判断答案是否正确
+      if (userAnswer === question.answer) {
+          totalScore += 10;
+      }
+      // 显示答案和解析
+      document.getElementById(`user-answer-${index}`).textContent = userAnswer;
+      document.getElementById(`correct-answer-${index}`).textContent = question.answer;
+      document.getElementById(`explanation-${index}`).textContent = question.explanations;
+      document.getElementById(`answer-display-${index}`).style.display = 'block';
 
-        // 判断答案是否正确显示对应图标和得分
-        const isCorrect = userAnswer === question.answer;
-        document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
-        document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
-        } else if (question.type === 'multiple') {
-        // 多选题：收集所有选中的值
-        const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
-        userAnswers.push(userAnswer);
-        // 判断多选题答案是否完全正确
-        const correctAnswer = Array.isArray(question.answer) ? 
-            question.answer.sort() : 
-            [question.answer].sort();
-            
-        if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
-            totalScore += 10;
-        }
-        // 显示答案和解析
-        document.getElementById(`user-answer-${index}`).textContent = userAnswer.join(', ');
-        document.getElementById(`correct-answer-${index}`).textContent = 
-            Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
-        document.getElementById(`explanation-${index}`).textContent = question.explanations;
-        document.getElementById(`answer-display-${index}`).style.display = 'block';
-        
-        // 判断答案是否正确并显示对图标得分
-        const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
-        document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
-        document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
-        }
-    } else {
-        // 如果没有选择答案，推入null或空数组
-        userAnswers.push(question.type === 'single' ? null : []);
-        document.getElementById(`user-answer-${index}`).textContent = '  作答';
-        document.getElementById(`correct-answer-${index}`).textContent = 
-        Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
-        document.getElementById(`explanation-${index}`).textContent = question.explanations;
-        document.getElementById(`answer-display-${index}`).style.display = 'block';
+      // 判断答案是否正确显示对应图标和得分
+      const isCorrect = userAnswer === question.answer;
+      document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
+      document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
+      } else if (question.type === 'multiple') {
+      // 多选题：收集所有选中的值
+      const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
+      userAnswers.push(userAnswer);
+      // 判断多选题答案是否完全正确
+      const correctAnswer = Array.isArray(question.answer) ? 
+          question.answer.sort() : 
+          [question.answer].sort();
+          
+      if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
+          totalScore += 10;
+      }
+      // 显示答案和解析
+      document.getElementById(`user-answer-${index}`).textContent = userAnswer.join(', ');
+      document.getElementById(`correct-answer-${index}`).textContent = 
+          Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
+      document.getElementById(`explanation-${index}`).textContent = question.explanations;
+      document.getElementById(`answer-display-${index}`).style.display = 'block';
+      
+      // 判断答案是否正确并显示对图标得分
+      const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
+      document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
+      document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
+      }
+  } else {
+      // 如果没有选择答案，推入null或空数组
+      userAnswers.push(question.type === 'single' ? null : []);
+      document.getElementById(`user-answer-${index}`).textContent = '  作答';
+      document.getElementById(`correct-answer-${index}`).textContent = 
+      Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
+      document.getElementById(`explanation-${index}`).textContent = question.explanations;
+      document.getElementById(`answer-display-${index}`).style.display = 'block';
 
-        // 未作答显示错误图标0分
-        document.getElementById(`answer-icon-${index}`).textContent = '❌';
-        document.getElementById(`score-display-${index}`).textContent = '你的得分：0.0';
-    }
-    clearInterval(timerId);
-    timerId = null;
-    });
+      // 未作答显示错误图标0分
+      document.getElementById(`answer-icon-${index}`).textContent = '❌';
+      document.getElementById(`score-display-${index}`).textContent = '你的得分：0.0';
+  }
+  clearInterval(timerId);
+  timerId = null;
+  });
 }
 
 // 更新答案数组和分   
@@ -1117,31 +1124,31 @@ showResults.value = true;
 
 // 准   提   据
 quizData.value = {
-    quizId: quizId.value,
-    userId: Number(localStorage.getItem('userid')),
-    questions: JSON.stringify(que.value),
-    score: totalScore,
-    timeLeft: timeLeft.value
+  quizId: quizId.value,
+  userId: Number(localStorage.getItem('userid')),
+  questions: JSON.stringify(que.value),
+  score: totalScore,
+  timeLeft: timeLeft.value
 
 };
 
 // 更新章节完成状态
 if (currentChapterId.value) {
-    completedChapters.value[currentChapterId.value] = true;
+  completedChapters.value[currentChapterId.value] = true;
 }
 
 console.log(quizData.value);
 // 提交到后端
 if (que.value) {
-    submitQuizScore(quizData.value);
+  submitQuizScore(quizData.value);
 }
 // 禁用输入框
 disableInputs();
 
 // 停   倒计时
 if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
+  clearInterval(timerId);
+  timerId = null;
 }
 
 // 显示结果
@@ -1157,60 +1164,60 @@ showTemporaryMessage('提交成功！');
 // 修改提交测验分数的函数
 const submitQuizScore = async (quizData) => {
 try {
-    const response = await fetch('http://localhost:8008/quiz/submitQuiz', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify(quizData)
-    });
+  const response = await fetch('http://localhost:8008/quiz/submitQuiz', {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify(quizData)
+  });
 
-    if (response.ok) {
-    // 测验分数提交成功后，更新学习次数
-    await updateLearningCount(currentNode.value.id);
-    // 提交后重新检查章节完成状态
-    await checkChapterCompletion(currentNode.value.id);
-      
-      // 找到当前章节的父节点(单元)并检查其完成状态
-      const findParentUnit = (nodes, targetId) => {
-        for (const node of nodes) {
-          if (node.children) {
-            // 检查是否在当前节点的子节点中找到目标ID
-            if (node.children.some(child => child.id === targetId)) {
-              return node.id;
-            }
-            // 递归检查子节点
-            const result = findParentUnit(node.children, targetId);
-            if (result) return result;
+  if (response.ok) {
+  // 测验分数提交成功后，更新学习次数
+  await updateLearningCount(currentNode.value.id);
+  // 提交后重新检查章节完成状态
+  await checkChapterCompletion(currentNode.value.id);
+    
+    // 找到当前章节的父节点(单元)并检查其完成状态
+    const findParentUnit = (nodes, targetId) => {
+      for (const node of nodes) {
+        if (node.children) {
+          // 检查是否在当前节点的子节点中找到目标ID
+          if (node.children.some(child => child.id === targetId)) {
+            return node.id;
           }
+          // 递归检查子节点
+          const result = findParentUnit(node.children, targetId);
+          if (result) return result;
         }
-        return null;
-      };
-      
-      // 获取当前章节所属的单元ID
-      const unitId = findParentUnit(treeData.value, currentNode.value.id);
-      if (unitId) {
-        // 更新单元的完成状态
-        await updateTaskPoints(unitId);
       }
-
-    console.log('提交测验成功')
-    showSubmitModal.value = false;
-    // ... 其他成功后操作
-    } else {
-    throw new Error('提交测验失败');
+      return null;
+    };
+    
+    // 获取当前章节所属的单元ID
+    const unitId = findParentUnit(treeData.value, currentNode.value.id);
+    if (unitId) {
+      // 更新单元的完成状态
+      await updateTaskPoints(unitId);
     }
+
+  console.log('提交测验成功')
+  showSubmitModal.value = false;
+  // ... 其他成功后操作
+  } else {
+  throw new Error('提交测验失败');
+  }
 } catch (error) {
-    console.error('提交测验失败:', error);
+  console.error('提交测验失败:', error);
 }
 };
 
 // 组件卸载时清除定时器
 onUnmounted(() => {
 if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
+  clearInterval(timerId);
+  timerId = null;
 }
 });
 
@@ -1247,13 +1254,13 @@ let isHandle = false;
 // 添加页面可见性变化处理数
 const handleVisibilityChange = () => {
 if (document.hidden) {
-    // 页面被隐藏（最小化或切换到其他标签）
-    console.log('页面被隐藏，关闭 WebSocket');
-    closeWs();
+  // 页面被隐藏（最小化或切换到其他标签）
+  console.log('页面被隐藏，关闭 WebSocket');
+  closeWs();
 } else {
-    // 页面重新可见
-    console.log('页面重新可见，重新连接 WebSocket');
-    initWebSocket();
+  // 页面重新可见
+  console.log('页面重新可见，重新连接 WebSocket');
+  initWebSocket();
 }
 };
 
@@ -1266,21 +1273,21 @@ const userId = localStorage.getItem('userid');
 const courseId = localStorage.getItem('selectedCourseId');
 
 if (!userId || !courseId) {
-    console.warn('缺少要的连接参数');
-    return;
+  console.warn('缺少要的连接参数');
+  return;
 }
 
 console.log('正在初始化 WebSocket 连接...');
 const wsUrl = `ws://localhost:8008/study-time?userId=${userId}&courseId=${courseId}`;
 
 try {
-    ws = new WebSocket(wsUrl);
-    ws.addEventListener('open', openHandle);
-    ws.addEventListener('close', closeHandle);
-    ws.addEventListener('message', messageHandle);
-    ws.addEventListener('error', errorHandle);
+  ws = new WebSocket(wsUrl);
+  ws.addEventListener('open', openHandle);
+  ws.addEventListener('close', closeHandle);
+  ws.addEventListener('message', messageHandle);
+  ws.addEventListener('error', errorHandle);
 } catch (error) {
-    console.error('WebSocket 初始化败:', error);
+  console.error('WebSocket 初始化败:', error);
 }
 };
 
@@ -1292,7 +1299,7 @@ isHandle = false;
 const closeHandle = () => {
 console.log('WebSocket 连接已关闭');
 if (!isHandle) {
-    scheduleReconnect();
+  scheduleReconnect();
 }
 };
 
@@ -1306,29 +1313,29 @@ console.error('WebSocket 错误:', error);
 
 const scheduleReconnect = () => {
 if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
+  clearTimeout(reconnectTimer);
 }
 reconnectTimer = setTimeout(() => {
-    console.log('尝试重新连接...');
-    initWebSocket();
+  console.log('尝试重新连接...');
+  initWebSocket();
 }, 1000);
 };
 
 const closeWs = () => {
 isHandle = true;
 if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
+  clearTimeout(reconnectTimer);
+  reconnectTimer = null;
 }
 if (ws) {
-    ws.removeEventListener('open', openHandle);
-    ws.removeEventListener('close', closeHandle);
-    ws.removeEventListener('message', messageHandle);
-    ws.removeEventListener('error', errorHandle);
-    if (ws.readyState === WebSocket.OPEN) {
-    ws.close();
-    }
-    ws = null;
+  ws.removeEventListener('open', openHandle);
+  ws.removeEventListener('close', closeHandle);
+  ws.removeEventListener('message', messageHandle);
+  ws.removeEventListener('error', errorHandle);
+  if (ws.readyState === WebSocket.OPEN) {
+  ws.close();
+  }
+  ws = null;
 }
 console.log('WebSocket 连接已清理');
 };
@@ -1339,7 +1346,7 @@ console.log('组件挂载，初始化 WebSocket');
 // 添加页面可见性变化监听器
 document.addEventListener('visibilitychange', handleVisibilityChange);
 setTimeout(() => {
-    initWebSocket();
+  initWebSocket();
 }, 100);
 });
 
@@ -1404,22 +1411,22 @@ const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0);
 
 // 添加上月剩余天数
 for (let i = firstDay.getDay(); i > 0; i--) {
-    const date = new Date(currentYear.value, currentMonth.value, 1 - i);
-    days.push({
-    date: formatDate(date),
-    dayOfMonth: date.getDate(),
-    currentMonth: false
-    });
+  const date = new Date(currentYear.value, currentMonth.value, 1 - i);
+  days.push({
+  date: formatDate(date),
+  dayOfMonth: date.getDate(),
+  currentMonth: false
+  });
 }
 
 // 添加当月天数
 for (let i = 1; i <= lastDay.getDate(); i++) {
-    const date = new Date(currentYear.value, currentMonth.value, i);
-    days.push({
-    date: formatDate(date),
-    dayOfMonth: i,
-    currentMonth: true
-    });
+  const date = new Date(currentYear.value, currentMonth.value, i);
+  days.push({
+  date: formatDate(date),
+  dayOfMonth: i,
+  currentMonth: true
+  });
 }
 
 return days;
@@ -1436,164 +1443,164 @@ return date === formatDate(new Date());
 const changeMonth = (delta) => {
 const newMonth = currentMonth.value + delta;
 if (newMonth < 0) {
-    currentMonth.value = 11;
-    currentYear.value--;
+  currentMonth.value = 11;
+  currentYear.value--;
 } else if (newMonth > 11) {
-    currentMonth.value = 0;
-    currentYear.value++;
+  currentMonth.value = 0;
+  currentYear.value++;
 } else {
-    currentMonth.value = newMonth;
+  currentMonth.value = newMonth;
 }
 loadMonthlyCheckins();
 };
 // 加载月度签到数据
 const loadMonthlyCheckins = async () => {
 try {
-    const userId = localStorage.getItem('userid');
-    
-    // 获取签到日期
-    const response = await fetch(`http://localhost:8008/api/checkins/monthly`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify({
-        userId: Number(userId),
-        year: currentYear.value,
-        month: currentMonth.value + 1
-    })
-    });
-    const result = await response.json();
-    
-    // 使用 result.data 的长度更新签到天数
-    if (result && result.data) {
-    checkedDays.value = result.data;
-    monthlyStats.value.daysChecked = result.data.length;
-    } else {
-    checkedDays.value = [];
-    monthlyStats.value.daysChecked = 0;
-    }
-    // 获取连续签到统计
-    const statsResponse = await fetch(`http://localhost:8008/api/checkins/statistics`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify({
-        userId: Number(userId),
-        startDate: new Date(currentYear.value, currentMonth.value, 1).toISOString().split('T')[0],
-        endDate: new Date(currentYear.value, currentMonth.value + 1, 0).toISOString().split('T')[0]
-    })
-    });
-    
-    const statsData = await statsResponse.json();
-    monthlyStats.value.streak = statsData.streak || 0;
+  const userId = localStorage.getItem('userid');
+  
+  // 获取签到日期
+  const response = await fetch(`http://localhost:8008/api/checkins/monthly`, {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify({
+      userId: Number(userId),
+      year: currentYear.value,
+      month: currentMonth.value + 1
+  })
+  });
+  const result = await response.json();
+  
+  // 使用 result.data 的长度更新签到天数
+  if (result && result.data) {
+  checkedDays.value = result.data;
+  monthlyStats.value.daysChecked = result.data.length;
+  } else {
+  checkedDays.value = [];
+  monthlyStats.value.daysChecked = 0;
+  }
+  // 获取连续签到统计
+  const statsResponse = await fetch(`http://localhost:8008/api/checkins/statistics`, {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify({
+      userId: Number(userId),
+      startDate: new Date(currentYear.value, currentMonth.value, 1).toISOString().split('T')[0],
+      endDate: new Date(currentYear.value, currentMonth.value + 1, 0).toISOString().split('T')[0]
+  })
+  });
+  
+  const statsData = await statsResponse.json();
+  monthlyStats.value.streak = statsData.streak || 0;
 } catch (error) {
-    console.error('加载签到数据失败:', error);
-    checkedDays.value = [];
-    monthlyStats.value.daysChecked = 0;
+  console.error('加载签到数据失败:', error);
+  checkedDays.value = [];
+  monthlyStats.value.daysChecked = 0;
 }
 };
 // 添加获取签到状态的函数
 const getCheckinStatus = async (date) => {
 try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch('http://localhost:8008/api/checkins/status', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify({
-        userId: Number(userId),
-        date: date
-    })
-    });
-    
-    const result = await response.json();
-    const isChecked = result.data?true:false;
-    
-    // 解析日期
-    const dateObj = new Date(date);
-    const dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
-    
-    // 根据签到状态打印不同信息
-    if (isChecked == true) {
-    console.log(`${dateStr}已签到`);
-    } else {
-    console.log(`${dateStr}未签到`);
-    }
-    
-    return isChecked;
+  const userId = localStorage.getItem('userid');
+  const response = await fetch('http://localhost:8008/api/checkins/status', {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify({
+      userId: Number(userId),
+      date: date
+  })
+  });
+  
+  const result = await response.json();
+  const isChecked = result.data?true:false;
+  
+  // 解析日期
+  const dateObj = new Date(date);
+  const dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+  
+  // 根据签到状态打印不同信息
+  if (isChecked == true) {
+  console.log(`${dateStr}已签到`);
+  } else {
+  console.log(`${dateStr}未签到`);
+  }
+  
+  return isChecked;
 } catch (error) {
-    console.error('获取签到状态失败:', error);
-    return false;
+  console.error('获取签到状态失败:', error);
+  return false;
 }
 };
 // 修改处理签到点击的函数
 const handleDayClick = async (day) => {
-    // 检查是否是当天或之前的日期
-    const today = new Date();
-    const clickedDate = new Date(day.date);
-    today.setHours(0, 0, 0, 0);
-    clickedDate.setHours(0, 0, 0, 0);
-    
-    // 获取签到状态
-    const isChecked = await getCheckinStatus(day.date);
-    
-    // 格式化日期显示
-    const dateStr = `${clickedDate.getFullYear()}年${clickedDate.getMonth() + 1}月${clickedDate.getDate()}日`;
-    
-    // 显示签到状态
-    if (isChecked == true) {
-    ElMessage.info(`${dateStr}已签到`);
-    return;
-    }
-    
-    // 检查是否是过去的日期
-    if (clickedDate < today) {
-    ElMessage.warning(`${dateStr}不能补签`);
-    return;
-    }
-    
-    // 检查是否是未来日期
-    if (clickedDate > today) {
-    ElMessage.warning(`${dateStr}不能提前签到`);
-    return;
-    }
+  // 检查是否是当天或之前的日期
+  const today = new Date();
+  const clickedDate = new Date(day.date);
+  today.setHours(0, 0, 0, 0);
+  clickedDate.setHours(0, 0, 0, 0);
+  
+  // 获取签到状态
+  const isChecked = await getCheckinStatus(day.date);
+  
+  // 格式化日期显示
+  const dateStr = `${clickedDate.getFullYear()}年${clickedDate.getMonth() + 1}月${clickedDate.getDate()}日`;
+  
+  // 显示签到状态
+  if (isChecked == true) {
+  ElMessage.info(`${dateStr}已签到`);
+  return;
+  }
+  
+  // 检查是否是过去的日期
+  if (clickedDate < today) {
+  ElMessage.warning(`${dateStr}不能补签`);
+  return;
+  }
+  
+  // 检查是否是未来日期
+  if (clickedDate > today) {
+  ElMessage.warning(`${dateStr}不能提前签到`);
+  return;
+  }
 
-    // 检查是否是当前月份
-    if (!day.currentMonth) {
-    return;
-    }
-    
-    try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch(`http://localhost:8008/api/checkins/checkIn?userId=${userId}`, {
-        method: 'POST',
-        headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-    });
-    
-    if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-        // 签到成功后立即更新数据
-        await loadMonthlyCheckins(); // 重新加载月度签到数据
-        ElMessage.success(`${dateStr}签到成功！`);
-        } else {
-        ElMessage.info(result.msg || `${dateStr}已签到`);
-        }
-    } else {
-        ElMessage.error('签到请求失败');
-    }
-    } catch (error) {
-    console.error('网络错误签到失败');
-    ElMessage.error('网络错误签到失败');
-    }
+  // 检查是否是当前月份
+  if (!day.currentMonth) {
+  return;
+  }
+  
+  try {
+  const userId = localStorage.getItem('userid');
+  const response = await fetch(`http://localhost:8008/api/checkins/checkIn?userId=${userId}`, {
+      method: 'POST',
+      headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+  });
+  
+  if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+      // 签到成功后立即更新数据
+      await loadMonthlyCheckins(); // 重新加载月度签到数据
+      ElMessage.success(`${dateStr}签到成功！`);
+      } else {
+      ElMessage.info(result.msg || `${dateStr}已签到`);
+      }
+  } else {
+      ElMessage.error('签到请求失败');
+  }
+  } catch (error) {
+  console.error('网络错误签到失败');
+  ElMessage.error('网络错误签到失败');
+  }
 };
 // 在组件挂载时加载签到数据
 onMounted(() => {
@@ -1617,8 +1624,8 @@ const currentNoteId = ref(null);
 // 切换笔记面板
 const toggleNotePanel = () => {
 if (!currentChapterId.value && !showNotePanel.value) {
-    showTemporaryMessage('请先选择一个章节');
-    return;
+  showTemporaryMessage('请先选择一个章节');
+  return;
 }
 showNotePanel.value = !showNotePanel.value;
 };
@@ -1626,147 +1633,147 @@ showNotePanel.value = !showNotePanel.value;
 // 获取章节笔记
 const getNoteByChapter = async (userId, chapterId) => {
 try {
-    console.log('正在获取章节笔记...');
-    const response = await fetch(`http://localhost:8008/api/study-notes/chapter?userId=${userId}&chapterId=${chapterId}`, {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-    }
-    });
-    
-    if (response.ok) {
-    const data = await response.json();
-    console.log('获取到的笔记数据:', data);
-    if (data.code === 200 && data.data && data.data.length > 0) {
-        // 获取最新的笔记（数组中的第一个）
-        const note = data.data[0];
-        hasNote.value = true;
-        currentNoteId.value = note.noteId;
-        noteContent.value = note.content;
-        isPrivate.value = note.isPrivate;
-        showNotePanel.value = true;  // 打开笔记面板
-        console.log('笔记内容已加载:', noteContent.value);
-    } else {
-        hasNote.value = false;
-        currentNoteId.value = null;
-        noteContent.value = '';
-        isPrivate.value = true;
-        showNotePanel.value = false;
-    }
-    }
+  console.log('正在获取章节笔记...');
+  const response = await fetch(`http://localhost:8008/api/study-notes/chapter?userId=${userId}&chapterId=${chapterId}`, {
+  method: 'GET',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json'
+  }
+  });
+  
+  if (response.ok) {
+  const data = await response.json();
+  console.log('获取到的笔记数据:', data);
+  if (data.code === 200 && data.data && data.data.length > 0) {
+      // 获取最新的笔记（数组中的第一个）
+      const note = data.data[0];
+      hasNote.value = true;
+      currentNoteId.value = note.noteId;
+      noteContent.value = note.content;
+      isPrivate.value = note.isPrivate;
+      showNotePanel.value = true;  // 打开笔记面板
+      console.log('笔记内容已加载:', noteContent.value);
+  } else {
+      hasNote.value = false;
+      currentNoteId.value = null;
+      noteContent.value = '';
+      isPrivate.value = true;
+      showNotePanel.value = false;
+  }
+  }
 } catch (error) {
-    console.error('获取笔记失败:', error);
-    hasNote.value = false;
-    currentNoteId.value = null;
-    noteContent.value = '';
-    isPrivate.value = true;
-    showNotePanel.value = false;
+  console.error('获取笔记失败:', error);
+  hasNote.value = false;
+  currentNoteId.value = null;
+  noteContent.value = '';
+  isPrivate.value = true;
+  showNotePanel.value = false;
 }
 };
 
 // 修改创建笔记的方法
 const createNote = async () => {
 try {
-    if (!noteContent.value.trim()) {
-    showTemporaryMessage('笔记内容不能为空');
-    return;
-    }
+  if (!noteContent.value.trim()) {
+  showTemporaryMessage('笔记内容不能为空');
+  return;
+  }
 
-    const userId = localStorage.getItem('userid');
-    const noteData = {
-    chapterId: currentChapterId.value,
-    content: noteContent.value,
-    isPrivate: isPrivate.value
-    };
+  const userId = localStorage.getItem('userid');
+  const noteData = {
+  chapterId: currentChapterId.value,
+  content: noteContent.value,
+  isPrivate: isPrivate.value
+  };
 
-    const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify(noteData)
-    });
+  const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify(noteData)
+  });
 
-    if (response.ok) {
-    const data = await response.json();
-    currentNoteId.value = data.noteId;
-    hasNote.value = true;
-    showTemporaryMessage('笔记创建成功！');
-    } else {
-    throw new Error('创建失败');
-    }
+  if (response.ok) {
+  const data = await response.json();
+  currentNoteId.value = data.noteId;
+  hasNote.value = true;
+  showTemporaryMessage('笔记创建成功！');
+  } else {
+  throw new Error('创建失败');
+  }
 } catch (error) {
-    console.error('创建笔记失败:', error);
-    showTemporaryMessage('创建失败，请重试');
+  console.error('创建笔记失败:', error);
+  showTemporaryMessage('创建失败，请重试');
 }
 };
 
 // 更新笔记
 const updateNote = async () => {
 try {
-    if (!noteContent.value.trim()) {
-    showTemporaryMessage('笔记内容不能为空');
-    return;
-    }
+  if (!noteContent.value.trim()) {
+  showTemporaryMessage('笔记内容不能为空');
+  return;
+  }
 
-    const userId = localStorage.getItem('userid');
-    const noteData = {
-    noteId: currentNoteId.value,
-    chapterId: currentChapterId.value,
-    content: noteContent.value,
-    isPrivate: isPrivate.value
-    };
+  const userId = localStorage.getItem('userid');
+  const noteData = {
+  noteId: currentNoteId.value,
+  chapterId: currentChapterId.value,
+  content: noteContent.value,
+  isPrivate: isPrivate.value
+  };
 
-    const response = await fetch(`http://localhost:8008/api/study-notes/update?userId=${userId}`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify(noteData)
-    });
+  const response = await fetch(`http://localhost:8008/api/study-notes/update?userId=${userId}`, {
+  method: 'POST',
+  headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  },
+  body: JSON.stringify(noteData)
+  });
 
-    if (response.ok) {
-    showTemporaryMessage('笔记更新成功！');
-    // 更新成功后重新获取笔记内容
-    await getNoteByChapter(userId, currentChapterId.value);
-    } else {
-    throw new Error('更新失败');
-    }
+  if (response.ok) {
+  showTemporaryMessage('笔记更新成功！');
+  // 更新成功后重新获取笔记内容
+  await getNoteByChapter(userId, currentChapterId.value);
+  } else {
+  throw new Error('更新失败');
+  }
 } catch (error) {
-    console.error('更新笔记失败:', error);
-    showTemporaryMessage('更新失败，请重试');
+  console.error('更新笔记失败:', error);
+  showTemporaryMessage('更新失败，请重试');
 }
 };
 
 // 删除笔记
 const deleteNote = async () => {
 try {
-    if (!currentNoteId.value) return;
+  if (!currentNoteId.value) return;
 
-    const userId = localStorage.getItem('userid');
-    const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}?userId=${userId}`, {
-    method: 'POST',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-    });
+  const userId = localStorage.getItem('userid');
+  const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}?userId=${userId}`, {
+  method: 'POST',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
 
-    if (response.ok) {
-    hasNote.value = false;
-    currentNoteId.value = null;
-    noteContent.value = '';
-    isPrivate.value = true;
-    showNotePanel.value = false;
-    showTemporaryMessage('笔记删除成功！');
-    } else {
-    throw new Error('删除失败');
-    }
+  if (response.ok) {
+  hasNote.value = false;
+  currentNoteId.value = null;
+  noteContent.value = '';
+  isPrivate.value = true;
+  showNotePanel.value = false;
+  showTemporaryMessage('笔记删除成功！');
+  } else {
+  throw new Error('删除失败');
+  }
 } catch (error) {
-    console.error('删除笔记失败:', error);
-    showTemporaryMessage('删除失败，请重试');
+  console.error('删除笔记失败:', error);
+  showTemporaryMessage('删除失败，请重试');
 }
 };
 
@@ -1778,68 +1785,68 @@ const isExporting = ref(false);
 // 添加整合笔记的方法
 const integrateNotes = async () => {
 try {
-    const userId = localStorage.getItem('userid');
-    const response = await fetch(`http://localhost:8008/api/study-notes/user/${userId}`, {
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-    });
+  const userId = localStorage.getItem('userid');
+  const response = await fetch(`http://localhost:8008/api/study-notes/user/${userId}`, {
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
 
-    if (response.ok) {
-    const data = await response.json();
-    if (data.code === 200 && data.data) {
-        // 按章节ID排序
-        allNotes.value = data.data.sort((a, b) => a.chapterId - b.chapterId);
-        showIntegrateModal.value = true;
-    }
-    }
+  if (response.ok) {
+  const data = await response.json();
+  if (data.code === 200 && data.data) {
+      // 按章节ID排序
+      allNotes.value = data.data.sort((a, b) => a.chapterId - b.chapterId);
+      showIntegrateModal.value = true;
+  }
+  }
 } catch (error) {
-    console.error('获取笔记失败:', error);
-    showTemporaryMessage('获取笔记失败');
+  console.error('获取笔记失败:', error);
+  showTemporaryMessage('获取笔记失败');
 }
 };
 
 // 导出为Word文档
 const exportToDoc = async () => {
 try {
-    isExporting.value = true;
-    let docContent = '<html><body>';
-    docContent += '<h1>学习笔记整合</h1>';
+  isExporting.value = true;
+  let docContent = '<html><body>';
+  docContent += '<h1>学习笔记整合</h1>';
 
-    allNotes.value.forEach(note => {
-    docContent += `
-        <div style="margin-bottom: 20px;">
-        <h2>章节 ${note.chapterTitle || note.chapterId}</h2>
-        <p>${note.content}</p>
-        <p><small>创建时间: ${new Date(note.createdAt).toLocaleString()}</small></p>
-        </div>
-    `;
-    });
+  allNotes.value.forEach(note => {
+  docContent += `
+      <div style="margin-bottom: 20px;">
+      <h2>章节 ${note.chapterTitle || note.chapterId}</h2>
+      <p>${note.content}</p>
+      <p><small>创建时间: ${new Date(note.createdAt).toLocaleString()}</small></p>
+      </div>
+  `;
+  });
 
-    docContent += '</body></html>';
+  docContent += '</body></html>';
 
-    // 创建Blob对象
-    const blob = new Blob([docContent], { type: 'application/msword' });
-    // 创建下载链接
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = '学习笔记整合.doc';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // 创建Blob对象
+  const blob = new Blob([docContent], { type: 'application/msword' });
+  // 创建下载链接
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '学习笔记整合.doc';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-    showTemporaryMessage('导出成功！');
+  showTemporaryMessage('导出成功！');
 } catch (error) {
-    console.error('导出失败:', error);
-    showTemporaryMessage('导出失败，请重试');
+  console.error('导出失败:', error);
+  showTemporaryMessage('导出失败，请重试');
 } finally {
-    isExporting.value = false;
+  isExporting.value = false;
 }
 };
 
 </script>
-  
-  
+
+
 <style scoped>
 /* 主容器 */
 #main-container {
@@ -3035,154 +3042,160 @@ border-radius: 20px;
 cursor: pointer;
 display: flex;
 align-items: center;
-        gap: 8px;
-        transition: all 0.3s ease;
-    }
-    .checkin-btn:hover {
-        background-color: rgb(226, 178, 226);
-        transform: translateY(-2px);
-    }
-    /* 日历弹窗样式 */
-    .calendar-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-    .calendar-content {
-        background-color: white;
-        padding: 25px;
-        border-radius: 15px;
-        width: 380px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-    .calendar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        padding: 0 10px;
-    }
-    .calendar-header button {
-        background: none;
-        border: none;
-        font-size: 20px;
-        color: #007bff; /* 深蓝色 */
-        cursor: pointer;
-        padding: 5px 10px;
-        transition: all 0.3s ease;
-    }
-    .calendar-header button:hover {
-        color: #0056b3; /* 更深的蓝色 */
-        transform: scale(1.1);
-    }
-    .calendar-header span {
-        font-size: 18px;
-        font-weight: 500;
-        color: #333;
-    }
-    .weekdays {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        text-align: center;
-        margin-bottom: 15px;
-    }
-    .weekdays span {
-        font-size: 14px;
-        color: #666;
-        padding: 5px 0;
-    }
-    .days {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 8px;
-    }
-    .day {
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        border-radius: 50%;
-        font-size: 15px;
-        position: relative;
-        transition: all 0.3s ease;
-    }
-    /* 普通日期样式 - 添加紫色边框 */
-    .day:not(.other-month):not(.checked):not(.past-day) {
-        background-color: #fff;
-        color: #333;
-        border: 1px solid rgb(236, 198, 236);
-    }
-    /* 已签到日期样式 */
-    .day.checked {
-        background-color: rgb(236, 198, 236);
-        color: white;
-        border: none;
-        position: relative;
-    }
-    .day.checked::after {
-        content: '✓';
-        position: absolute;
-        font-size: 12px;
-        bottom: 2px;
-        color: white;
-    }
-    /* 今天的样式 */
-    .day.today {
-        border: 2px solid rgb(236, 198, 236);
-        font-weight: bold;
-    }
-    /* 过去未签到的日期样式 - 移除×号 */
-    .day.past-day {
-        background-color: #f5f5f5;
-        color: #999;
-        cursor: not-allowed;
-        border: none; /* 移除边框 */
-    }
-    .day.past-day::after {
-        content: none;
-    }
-    /* 其他月份日期样式 */
-    .day.other-month {
-        color: #ddd;
-        cursor: default;
-    }
-    /* 日期悬停效果 */
-    .day:not(.other-month):not(.checked):not(.past-day):hover {
-        background-color: rgb(245, 230, 245);
-        transform: scale(1.1);
-    }
-    .calendar-footer {
-        margin-top: 25px;
-        padding: 15px;
-        border-top: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .checkin-stats {
-        color: #666;
-        font-size: 15px;
-    }
-    .close-btn {
-        padding: 8px 20px;
-        background-color: #007bff; /* 深蓝色 */
-        color: white;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    .close-btn:hover {
-        background-color: #0056b3; /* 更深的蓝色 */
-        transform: translateY(-2px);
-    }
-    </style>
-    
+      gap: 8px;
+      transition: all 0.3s ease;
+  }
+  .checkin-btn:hover {
+      background-color: rgb(226, 178, 226);
+      transform: translateY(-2px);
+  }
+  /* 日历弹窗样式 */
+  .calendar-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+  }
+  .calendar-content {
+      background-color: white;
+      padding: 25px;
+      border-radius: 15px;
+      width: 380px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding: 0 10px;
+  }
+  .calendar-header button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #007bff; /* 深蓝色 */
+      cursor: pointer;
+      padding: 5px 10px;
+      transition: all 0.3s ease;
+  }
+  .calendar-header button:hover {
+      color: #0056b3; /* 更深的蓝色 */
+      transform: scale(1.1);
+  }
+  .calendar-header span {
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+  }
+  .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      margin-bottom: 15px;
+  }
+  .weekdays span {
+      font-size: 14px;
+      color: #666;
+      padding: 5px 0;
+  }
+  .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+  }
+  .day {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 50%;
+      font-size: 15px;
+      position: relative;
+      transition: all 0.3s ease;
+  }
+  /* 普通日期样式 - 添加紫色边框 */
+  .day:not(.other-month):not(.checked):not(.past-day) {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid rgb(236, 198, 236);
+  }
+  /* 已签到日期样式 */
+  .day.checked {
+      background-color: rgb(236, 198, 236);
+      color: white;
+      border: none;
+      position: relative;
+  }
+  .day.checked::after {
+      content: '✓';
+      position: absolute;
+      font-size: 12px;
+      bottom: 2px;
+      color: white;
+  }
+  /* 今天的样式 */
+  .day.today {
+      border: 2px solid rgb(236, 198, 236);
+      font-weight: bold;
+  }
+  /* 过去未签到的日期样式 - 移除×号 */
+  .day.past-day {
+      background-color: #f5f5f5;
+      color: #999;
+      cursor: not-allowed;
+      border: none; /* 移除边框 */
+  }
+  .day.past-day::after {
+      content: none;
+  }
+  /* 其他月份日期样式 */
+  .day.other-month {
+      color: #ddd;
+      cursor: default;
+  }
+  /* 日期悬停效果 */
+  .day:not(.other-month):not(.checked):not(.past-day):hover {
+      background-color: rgb(245, 230, 245);
+      transform: scale(1.1);
+  }
+  .calendar-footer {
+      margin-top: 25px;
+      padding: 15px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+  }
+  .checkin-stats {
+      color: #666;
+      font-size: 15px;
+  }
+  .close-btn {
+      padding: 8px 20px;
+      background-color: #007bff; /* 深蓝色 */
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+  }
+  .close-btn:hover {
+      background-color: #0056b3; /* 更深的蓝色 */
+      transform: translateY(-2px);
+  }
+  .modal-text {
+  font-size: 16px;
+  color: #666;
+  margin: 15px 0;
+  padding: 0 20px;
+}
+  </style>
+  
