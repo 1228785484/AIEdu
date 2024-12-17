@@ -144,10 +144,12 @@
               <div v-html="markdownToHtml"></div>
             </div>
           </div>
+          <!-- 修改测验内容部分 -->
           <div v-if="selectedAction === 'test'" class="content-section test-section">
             <div class="section-content">
               <!-- 提交确认弹窗 -->
               <div v-if="showSubmitModal" class="submit-modal">
+                <!-- ... 保持不变 ... -->
                 <div class="modal-content">
                   <img src="@/assets/thinking-character.gif" alt="思考的小人" class="thinking-character">
                   <div class="modal-text">是否确认提交答案？</div>
@@ -163,11 +165,11 @@
                 {{ messageText }}
               </div>
 
-              <div v-if="showQuizModal&& testData.content && !isQuizLoading" class="quiz-modal">
+              <!-- 测验内容加载完成后显示的弹窗 -->
+              <div v-if="showQuizModal && testData.content && !isQuizLoading" class="quiz-modal">
                 <div class="modal-content">
                   <img src="@/assets/cute-character.gif" alt="Quiz Character" class="cute-character">
                   <h2>准备好开始测验了吗？</h2>
-                  <!-- 添加条件渲染的提示文字 -->
                   <p v-if="completedChapters[currentChapterId]" class="modal-text">
                     你已经完成过测验，是否再练一次？
                   </p>
@@ -186,6 +188,7 @@
                 <div class="loading-spinner"></div>
                 <p>测验内容加载中...</p>
               </div>
+
               <!-- 测验内容 -->
               <div v-else>
                 <!-- 测验加载失败或选择章节 -->
@@ -199,7 +202,7 @@
                   <div v-html="testData.content"></div>
                   
                   <!-- 只在测验内容加载后且未提交答案时显示倒计时和提交按钮 -->
-                  <template v-if="!showResults">
+                  <template v-if="quizStarted && !showResults">
                     <div class="countdown">剩余时间：{{ countdownDisplay }}</div>
                     <button v-if="timeLeft > 0" @click="submitAnswers" class="submit-btn">
                       提交答案
@@ -209,6 +212,7 @@
                   
                   <!-- 只在提交答案后显示测验结果 -->
                   <div v-if="showResults" class="results-section">
+                    <!-- ... 保持不变 ... -->
                     <div class="score">得分：{{ score }}分</div>
                     <div class="answers">
                       <div v-for="(question, index) in que.value" :key="index">
@@ -222,6 +226,7 @@
                         </div>
                       </div>
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -582,6 +587,11 @@ const currentChapterId = ref(null);
 //更新任务点的函数
 // 添加新的函数用于获取任务点数据
 const updateTaskPoints = async (unitId) => {
+// 添加参数检查
+if (!unitId) {
+  console.error('无效的单元ID');
+  return;
+}
 try {
   const userId = localStorage.getItem('userid');
   const response = await fetch(`http://localhost:8008/api/course/unit-completion?userId=${userId}&unitId=${unitId}`, {
@@ -596,7 +606,7 @@ try {
   }
 
   const result = await response.json();
-  console.log(result)
+  // console.log(result)
   // 更新任务点数据
   note.value.task = result.data.completedChapters;
   note.value.sumTask = result.data.totalChapters;
@@ -736,7 +746,7 @@ if (!response.ok) {
 }
 
 const result = await response.json();
-console.log('Chapter completion status:', chapterId, result);
+// console.log('Chapter completion status:', chapterId, result);
 // 更新完成状态
 completedChapters.value[chapterId] = result.data;
 } catch (error) {
@@ -1200,6 +1210,8 @@ try {
     if (unitId) {
       // 更新单元的完成状态
       await updateTaskPoints(unitId);
+    }else {
+        console.error('未找到对应的单元ID');
     }
 
   console.log('提交测验成功')
