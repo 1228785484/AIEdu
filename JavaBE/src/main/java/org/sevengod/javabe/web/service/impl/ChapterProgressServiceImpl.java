@@ -2,7 +2,7 @@ package org.sevengod.javabe.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.sevengod.javabe.entity.ChapterProgress;
+import org.sevengod.javabe.entity.dto.ChapterProgress;
 import org.sevengod.javabe.web.mapper.ChapterProgressMapper;
 import org.sevengod.javabe.web.service.ChapterProgressService;
 import org.springframework.beans.factory.annotation.Autowired;

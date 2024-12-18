@@ -3,7 +3,7 @@ package org.sevengod.javabe.web.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.sevengod.javabe.entity.User;
+import org.sevengod.javabe.entity.dto.User;
 import org.springframework.stereotype.Service;
 
 @Service

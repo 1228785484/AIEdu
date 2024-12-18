@@ -2,8 +2,7 @@ package org.sevengod.javabe.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import groovy.transform.AutoClone;
-import org.sevengod.javabe.entity.CourseEnrollment;
+import org.sevengod.javabe.entity.dto.CourseEnrollment;
 import org.sevengod.javabe.web.mapper.EnrollmentMapper;
 import org.sevengod.javabe.web.service.EnrollmentService;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,16 +1,15 @@
 package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import org.sevengod.javabe.entity.Chapter;
-import org.sevengod.javabe.entity.PersonalizedContents;
-import org.sevengod.javabe.entity.QuizSubmission;
-import org.sevengod.javabe.entity.Quizzes;
+import org.sevengod.javabe.entity.dto.Chapter;
+import org.sevengod.javabe.entity.dto.PersonalizedContents;
+import org.sevengod.javabe.entity.dto.QuizSubmission;
+import org.sevengod.javabe.entity.dto.Quizzes;
 import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.mapper.PersonalizedContentMapper;
 import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
 import org.sevengod.javabe.web.mapper.QuizzesMapper;
 import org.redisson.api.RAtomicLong;
-import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

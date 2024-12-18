@@ -1,32 +1,23 @@
 package org.sevengod.javabe.web.service.impl;
 
-import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
-import org.sevengod.javabe.entity.Chapter;
-import org.sevengod.javabe.entity.PersonalizedContents;
-import org.sevengod.javabe.entity.WorkflowResponse;
+import org.sevengod.javabe.entity.dto.Chapter;
+import org.sevengod.javabe.entity.dto.PersonalizedContents;
 import org.sevengod.javabe.web.mapper.PersonalizedContentMapper;
 import org.sevengod.javabe.web.service.CourseTreeService;
 import org.sevengod.javabe.web.service.DifyService;
 import org.sevengod.javabe.web.service.PersonalizedService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

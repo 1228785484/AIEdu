@@ -1,9 +1,8 @@
 package org.sevengod.javabe.web.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
-import org.sevengod.javabe.entity.UserCheckIns;
+import org.sevengod.javabe.entity.dto.UserCheckIns;
 import org.sevengod.javabe.web.mapper.UserCheckInsMapper;
 import org.sevengod.javabe.web.service.UserCheckInsService;
 import org.sevengod.javabe.entity.context.CheckInContext;

@@ -2,7 +2,7 @@ package org.sevengod.javabe.web.service.impl;
 
 import org.jetbrains.annotations.NotNull;
 import org.sevengod.javabe.util.DifyResponseUtil;
-import org.sevengod.javabe.entity.Chapter;
+import org.sevengod.javabe.entity.dto.Chapter;
 import org.sevengod.javabe.web.exception.DifyException;
 import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.service.DifyService;

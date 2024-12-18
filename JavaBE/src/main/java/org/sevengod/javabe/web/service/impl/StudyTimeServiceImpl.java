@@ -3,7 +3,7 @@ package org.sevengod.javabe.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.sevengod.javabe.entity.DailyStudyTime;
+import org.sevengod.javabe.entity.dto.DailyStudyTime;
 import org.sevengod.javabe.web.mapper.DailyStudyTimeMapper;
 import org.sevengod.javabe.web.service.StudyTimeService;
 import org.springframework.stereotype.Service;

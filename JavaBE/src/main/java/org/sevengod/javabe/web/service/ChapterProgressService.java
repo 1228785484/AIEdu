@@ -1,7 +1,7 @@
 package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.sevengod.javabe.entity.ChapterProgress;
+import org.sevengod.javabe.entity.dto.ChapterProgress;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
