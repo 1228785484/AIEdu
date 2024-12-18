@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.commons.lang3.StringUtils;
-import org.sevengod.javabe.entity.User;
+import org.sevengod.javabe.entity.dto.User;
 import org.sevengod.javabe.web.mapper.UserMapper;
 import org.sevengod.javabe.web.service.UserService;
 import org.springframework.stereotype.Service;

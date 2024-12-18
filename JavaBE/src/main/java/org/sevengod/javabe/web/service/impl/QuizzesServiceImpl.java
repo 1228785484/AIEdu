@@ -1,11 +1,10 @@
 package org.sevengod.javabe.web.service.impl;
 
-import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.sevengod.javabe.entity.Chapter;
-import org.sevengod.javabe.entity.QuizSubmission;
-import org.sevengod.javabe.entity.Quizzes;
+import org.sevengod.javabe.entity.dto.Chapter;
+import org.sevengod.javabe.entity.dto.QuizSubmission;
+import org.sevengod.javabe.entity.dto.Quizzes;
 import org.sevengod.javabe.web.exception.DifyException;
 import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.mapper.QuizSubmissionMapper;
@@ -21,11 +20,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
 
 @Service
 public class QuizzesServiceImpl extends ServiceImpl<QuizzesMapper, Quizzes> implements QuizzesService {

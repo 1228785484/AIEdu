@@ -2,7 +2,7 @@ package org.sevengod.javabe.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.sevengod.javabe.entity.Units;
+import org.sevengod.javabe.entity.dto.Units;
 import org.sevengod.javabe.web.mapper.UnitMapper;
 import org.sevengod.javabe.web.service.UnitService;
 import org.springframework.beans.factory.annotation.Autowired;

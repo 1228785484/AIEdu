@@ -1,7 +1,7 @@
 package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.sevengod.javabe.entity.UserCheckIns;
+import org.sevengod.javabe.entity.dto.UserCheckIns;
 
 import java.time.LocalDate;
 import java.util.Set;

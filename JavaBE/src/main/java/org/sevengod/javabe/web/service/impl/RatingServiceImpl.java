@@ -1,8 +1,7 @@
 package org.sevengod.javabe.web.service.impl;
 
-import com.esotericsoftware.minlog.Log;
-import org.sevengod.javabe.entity.Chapter;
-import org.sevengod.javabe.entity.Units;
+import org.sevengod.javabe.entity.dto.Chapter;
+import org.sevengod.javabe.entity.dto.Units;
 import org.sevengod.javabe.util.DifyResponseUtil;
 import org.sevengod.javabe.web.mapper.ChapterMapper;
 import org.sevengod.javabe.web.mapper.UnitMapper;
@@ -16,12 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;

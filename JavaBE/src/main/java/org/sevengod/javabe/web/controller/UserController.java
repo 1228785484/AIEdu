@@ -7,8 +7,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.common.AjaxResult;
-import org.sevengod.javabe.entity.User;
+import org.sevengod.javabe.entity.dto.User;
 import org.sevengod.javabe.web.service.UserService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "用户管理", description = "用户相关接口")
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     
     private final UserService userService;
-    
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "获取用户列表", description = "分页获取用户列表，支持按用户名、邮箱和激活状态筛选")
     @GetMapping("/list")
     public AjaxResult getUserList(

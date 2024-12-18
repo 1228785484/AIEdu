@@ -3,7 +3,7 @@ package org.sevengod.javabe.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.sevengod.javabe.entity.StudyNote;
+import org.sevengod.javabe.entity.dto.StudyNote;
 import org.sevengod.javabe.entity.po.StudyNotePo;
 import org.sevengod.javabe.entity.vo.StudyNoteVo;
 import org.sevengod.javabe.entity.dto.StudyNoteDto;

@@ -1,7 +1,7 @@
 package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.sevengod.javabe.entity.StudyNote;
+import org.sevengod.javabe.entity.dto.StudyNote;
 import org.sevengod.javabe.entity.po.StudyNotePo;
 import org.sevengod.javabe.entity.vo.StudyNoteVo;
 import org.sevengod.javabe.entity.dto.StudyNoteDto;

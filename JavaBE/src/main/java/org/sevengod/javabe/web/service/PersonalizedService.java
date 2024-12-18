@@ -1,9 +1,7 @@
 package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.sevengod.javabe.entity.PersonalizedContents;
-import org.sevengod.javabe.web.mapper.PersonalizedContentMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.sevengod.javabe.entity.dto.PersonalizedContents;
 import org.springframework.stereotype.Service;
 import java.util.concurrent.CompletableFuture;
 

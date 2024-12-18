@@ -1,4 +1,4 @@
-package org.sevengod.javabe.entity;
+package org.sevengod.javabe.entity.dto;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

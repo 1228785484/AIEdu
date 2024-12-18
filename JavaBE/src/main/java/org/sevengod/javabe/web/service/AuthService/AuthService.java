@@ -3,7 +3,7 @@ package org.sevengod.javabe.web.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.sevengod.javabe.dto.LoginRequest;
 import org.sevengod.javabe.dto.RegisterRequest;
-import org.sevengod.javabe.entity.User;
+import org.sevengod.javabe.entity.dto.User;
 import org.sevengod.javabe.web.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;

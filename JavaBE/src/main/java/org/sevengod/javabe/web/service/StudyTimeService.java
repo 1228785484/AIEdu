@@ -1,7 +1,7 @@
 package org.sevengod.javabe.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.sevengod.javabe.entity.DailyStudyTime;
+import org.sevengod.javabe.entity.dto.DailyStudyTime;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

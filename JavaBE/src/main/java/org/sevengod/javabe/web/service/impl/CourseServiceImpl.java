@@ -1,6 +1,6 @@
 package org.sevengod.javabe.web.service.impl;
 
-import org.sevengod.javabe.entity.Course;
+import org.sevengod.javabe.entity.dto.Course;
 import org.sevengod.javabe.dto.CourseBasicDTO;
 import org.sevengod.javabe.web.mapper.CourseMapper;
 import org.sevengod.javabe.web.service.CourseService;
