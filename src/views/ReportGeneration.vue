@@ -119,21 +119,9 @@
             <div v-else-if="learningReport" class="report-body">
               <div class="report-content">
                 <div class="report-section">
-                  <h4>学习进度</h4>
+                  <h4>学习评价</h4>
                   <p class="report-text">{{ learningReport.progress }}</p>
-                </div>
-                <div class="report-section">
-                  <h4>知识掌握情况</h4>
-                  <p class="report-text">{{ learningReport.mastery }}</p>
-                </div>
-                <div class="report-section">
-                  <h4>学习建议</h4>
-                  <ul class="suggestion-list">
-                    <li v-for="(suggestion, index) in learningReport.suggestions" :key="index">
-                      {{ suggestion }}
-                    </li>
-                  </ul>
-                </div>
+                </div>                       
               </div>
             </div>
             
@@ -407,7 +395,7 @@ const generateLearningReport = async () => {
     const userId = localStorage.getItem('userid')
     const courseId = localStorage.getItem('selectedCourseId')
     
-    const response = await fetch('http://localhost:8008/api/test/askAi', {
+    const response = await fetch('http://localhost:8008/rating/getOverallRating', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -415,8 +403,7 @@ const generateLearningReport = async () => {
       },
       body: JSON.stringify({
         userId: userId,
-        courseId: courseId,
-        query: '请根据用户的学习数据生成一份详细的学情报告，包括：1. 整体学习进度 2. 知识点掌握情况 3. 针对性的学习建议'
+        courseId: courseId
       })
     })
 
@@ -427,9 +414,7 @@ const generateLearningReport = async () => {
     const result = await response.json()
     
     learningReport.value = {
-      progress: result.data.progress || '暂无进度数据',
-      mastery: result.data.mastery || '暂无掌握度数据',
-      suggestions: result.data.suggestions || ['无学习建议']
+      progress: result.data.reply || '暂无进度数据',
     }
     
     ElMessage.success('报告更新成功')
