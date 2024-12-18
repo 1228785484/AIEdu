@@ -105,6 +105,8 @@
             <div class="calendar-footer">
               <div class="checkin-stats">
                 <span>本月已签到: {{ monthlyStats.daysChecked }}天</span>
+                <br>
+                <span>已连续签到: {{ consecutiveDays }}天</span>
               </div>
               <button class="close-btn" @click="showCalendar = false">关闭</button>
             </div>
@@ -1625,6 +1627,34 @@ today.setHours(0, 0, 0, 0);
 const checkDate = new Date(date);
 return checkDate < today;
 };
+
+const consecutiveDays = ref(0); // 新增响应式变量
+
+const fetchConsecutiveCheckins = async () => {
+    try {
+        const userId = localStorage.getItem('userid');
+        const response = await fetch(`http://localhost:8008/api/checkins/consecutive?userId=${userId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch consecutive check-ins');
+        }
+
+        const result = await response.json();
+        consecutiveDays.value = result.data; // 假设返回的数据结构中有连续签到天数
+        console.log(`已连续签到: ${consecutiveDays.value}天`); // 控制台打印
+    } catch (error) {
+        console.error('Error fetching consecutive check-ins:', error);
+    }
+};
+
+onMounted(() => {
+    fetchConsecutiveCheckins(); // 组件挂载时获取连续签到天数
+});
 
 // 修改笔记相关的响应式变量
 const showNotePanel = ref(false);
