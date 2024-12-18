@@ -69,7 +69,8 @@ server:
 
 logging:
   level:
-    root: DEBUG  # 设置全局日志级别为DEBUG
+    root: WARN  # 关闭其他所有日志
+    org.sevengod.javabe: INFO  # 只看你的应用包的INFO级别日志
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
