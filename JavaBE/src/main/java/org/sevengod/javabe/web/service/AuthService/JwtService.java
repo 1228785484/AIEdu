@@ -21,9 +21,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 @RequiredArgsConstructor
 public class JwtService {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -42,8 +47,11 @@ public class JwtService {
     }
 
     public String generateToken(User user) {
+        log.info("Generating token for user: " + user.getUsername());
+        
         // 获取用户角色
         List<String> roles = getUserRoles(user.getUserId());
+        log.info("User roles: " + roles);
         
         String token = JWT.create()
                 .withSubject(user.getUsername())
@@ -57,6 +65,8 @@ public class JwtService {
         // 使用Redisson处理单点登录
         String userKey = String.format(USER_TOKEN_PREFIX, user.getUserId());
         String tokenKey = String.format(TOKEN_KEY_PREFIX, user.getUserId(), token);
+        
+        log.info("Storing token in Redis - UserKey: " + userKey + ", TokenKey: " + tokenKey);
 
         // 获取用户之前的token
         RBucket<String> userTokenBucket = redissonClient.getBucket(userKey);
@@ -64,12 +74,19 @@ public class JwtService {
         
         // 如果存在旧token，删除它
         if (oldToken != null) {
+            log.info("Found old token, deleting it");
             redissonClient.getBucket(String.format(TOKEN_KEY_PREFIX, user.getUserId(), oldToken)).delete();
         }
 
-        // 存储新token
-        userTokenBucket.set(token, jwtExpiration, TimeUnit.MILLISECONDS);
-        redissonClient.getBucket(tokenKey).set(user.getUserId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+        try {
+            // 存储新token
+            userTokenBucket.set(token, jwtExpiration, TimeUnit.MILLISECONDS);
+            redissonClient.getBucket(tokenKey).set(user.getUserId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+            log.info("Successfully stored new token in Redis");
+        } catch (Exception e) {
+            log.error("Failed to store token in Redis: " + e.getMessage(), e);
+            throw e;
+        }
 
         return token;
     }
@@ -101,18 +118,34 @@ public class JwtService {
 
     public Boolean validateToken(String token, UserDetails userDetails) {
         try {
+            Long userId = extractUserId(token);
+            log.info("Validating token for userId: " + userId);
+            
             // 使用Redisson验证token
-            RBucket<String> tokenBucket = redissonClient.getBucket(String.format(TOKEN_KEY_PREFIX, extractUserId(token), token));
+            String tokenKey = String.format(TOKEN_KEY_PREFIX, userId, token);
+            RBucket<String> tokenBucket = redissonClient.getBucket(tokenKey);
             if (!tokenBucket.isExists()) {
+                log.warn("Token not found in Redis. Key: " + tokenKey);
                 return false;  // token不在Redis中，说明已经注销或是无效的
             }
+            log.info("Token found in Redis");
 
             DecodedJWT jwt = decodeToken(token);
-            if (jwt == null) return false;
+            if (jwt == null) {
+                log.warn("Failed to decode JWT token");
+                return false;
+            }
+            log.info("JWT decoded successfully");
 
             final String username = jwt.getSubject();
-            return (username.equals(userDetails.getUsername()) && !isTokenExpired(jwt));
+            boolean usernameMatch = username.equals(userDetails.getUsername());
+            boolean notExpired = !isTokenExpired(jwt);
+            
+            log.info("Username match: " + usernameMatch + ", Token not expired: " + notExpired);
+            
+            return (usernameMatch && notExpired);
         } catch (JWTVerificationException e) {
+            log.error("JWT verification failed: " + e.getMessage(), e);
             return false;
         }
     }

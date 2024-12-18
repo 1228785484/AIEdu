@@ -51,6 +51,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setIsActive(true);
 
+        // 保存用户
         userService.save(user);
 
         return ResponseEntity.ok(Map.of("message", "注册成功"));

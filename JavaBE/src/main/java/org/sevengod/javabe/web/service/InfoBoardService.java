@@ -15,9 +15,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.DayOfWeek;
+import java.time.format.TextStyle;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 @Service
 public class InfoBoardService {
@@ -38,14 +42,14 @@ public class InfoBoardService {
     private RedissonClient redissonClient;
 
     /**
-     * Check if user has completed quiz for a chapter
+     * 检查用户是否完成了某章节的测验
      *
-     * @param userId    user ID
-     * @param chapterId chapter ID
-     * @return true if quiz is completed
+     * @param userId    用户ID
+     * @param chapterId 章节ID
+     * @return 如果测验已完成返回true
      */
     public boolean getQuizCompleteStatus(Long userId, Long chapterId) {
-        // First get quiz ID for this chapter
+        // 首先获取章节的测验ID
         LambdaQueryWrapper<Quizzes> quizQuery = new LambdaQueryWrapper<>();
         quizQuery.eq(Quizzes::getChapterId, chapterId);
         List<Long> quizIds = quizzesMapper.selectList(quizQuery)
@@ -53,7 +57,7 @@ public class InfoBoardService {
                 .map(Quizzes::getQuizId)
                 .toList();
 
-        // Check quiz submissions for this chapter's quizzes
+        // 检查章节的测验提交情况
         if (!quizIds.isEmpty()) {
             LambdaQueryWrapper<QuizSubmission> quizWrapper = new LambdaQueryWrapper<>();
             quizWrapper.eq(QuizSubmission::getUserId, userId)
@@ -64,38 +68,38 @@ public class InfoBoardService {
     }
 
     /**
-     * Check if user has completed both quiz and personalized content for a chapter
+     * 检查用户是否完成了某章节的测验和个性化内容
      *
-     * @param userId    user ID
-     * @param chapterId chapter ID
-     * @return true if both quiz submission and personalized content exist
+     * @param userId    用户ID
+     * @param chapterId 章节ID
+     * @return 如果测验和个性化内容都完成则返回true
      */
     public boolean getCompleteStatus(Long userId, Long chapterId) {
-        // Check quiz completion
+        // 检查测验完成情况
         boolean hasQuiz = getQuizCompleteStatus(userId, chapterId);
 
-        // Check personalized contents for this chapter
+        // 检查个性化内容情况
         LambdaQueryWrapper<PersonalizedContents> contentWrapper = new LambdaQueryWrapper<>();
         contentWrapper.eq(PersonalizedContents::getUserId, userId)
                 .eq(PersonalizedContents::getChapterId, chapterId)
                 .eq(PersonalizedContents::getIsActive, true);
         boolean hasContent = personalizedContentsMapper.exists(contentWrapper);
 
-        // Return true only if both exist
+        // 只有测验和个性化内容都完成才返回true
         return hasQuiz && hasContent;
     }
 
     /**
-     * Get completion statistics for all chapters under a unit
+     * 获取单元内所有章节的完成统计信息
      *
-     * @param userId user ID
-     * @param unitId unit ID
-     * @return Map containing total chapters and completed chapters count
+     * @param userId 用户ID
+     * @param unitId 单元ID
+     * @return 包含总章节数和已完成章节数的Map
      */
     public Map<String, Integer> getUnitCompletionStats(Long userId, Long unitId) {
         Map<String, Integer> result = new HashMap<>();
 
-        // Get all chapters for this unit
+        // 获取单元内所有章节
         LambdaQueryWrapper<Chapter> chapterQuery = new LambdaQueryWrapper<>();
         chapterQuery.eq(Chapter::getUnitId, unitId);
         List<Chapter> chapters = chapterMapper.selectList(chapterQuery);
@@ -103,7 +107,7 @@ public class InfoBoardService {
         int totalChapters = chapters.size();
         int completedChapters = 0;
 
-        // Check completion status for each chapter
+        // 检查每个章节的完成情况
         for (Chapter chapter : chapters) {
             if (getCompleteStatus(userId, chapter.getChapterId())) {
                 completedChapters++;
@@ -117,21 +121,21 @@ public class InfoBoardService {
     }
 
     /**
-     * Get quiz completion statistics for all chapters under a unit
+     * 获取单元内所有章节的测验完成统计信息
      *
-     * @param userId user ID
-     * @param unitId unit ID
-     * @return Map containing completed quizzes and total quizzes count
+     * @param userId 用户ID
+     * @param unitId 单元ID
+     * @return 包含已完成测验数和总测验数的Map
      */
     public Map<String, Integer> getQuizCompletionStats(Long userId, Long unitId) {
         Map<String, Integer> result = new HashMap<>();
 
-        // Get all chapters for this unit
+        // 获取单元内所有章节
         LambdaQueryWrapper<Chapter> chapterQuery = new LambdaQueryWrapper<>();
         chapterQuery.eq(Chapter::getUnitId, unitId);
         List<Chapter> chapters = chapterMapper.selectList(chapterQuery);
 
-        // Get all quizzes for these chapters
+        // 获取章节的测验ID
         List<Long> chapterIds = chapters.stream()
                 .map(Chapter::getChapterId)
                 .toList();
@@ -140,12 +144,12 @@ public class InfoBoardService {
         int completedQuizzes = 0;
 
         if (!chapterIds.isEmpty()) {
-            // Get total quizzes
+            // 获取总测验数
             LambdaQueryWrapper<Quizzes> quizQuery = new LambdaQueryWrapper<>();
             quizQuery.in(Quizzes::getChapterId, chapterIds);
             totalQuizzes = quizzesMapper.selectCount(quizQuery).intValue();
 
-            // Count completed quizzes
+            // 计算完成的测验数
             for (Chapter chapter : chapters) {
                 if (getQuizCompleteStatus(userId, chapter.getChapterId())) {
                     completedQuizzes++;
@@ -160,16 +164,16 @@ public class InfoBoardService {
     }
 
     /**
-     * Get course completion percentage for a user
+     * 获取用户课程的完成百分比
      *
-     * @param userId   user ID
-     * @param courseId course ID
-     * @return Map containing completion percentage as a string
+     * @param userId   用户ID
+     * @param courseId 课程ID
+     * @return 包含完成百分比的Map（字符串格式）
      */
     public Map<String, String> getCourseCompletionPercentage(Long userId, Long courseId) {
         Map<String, String> result = new HashMap<>();
 
-        // Get all chapters for this course
+        // 获取课程内所有章节
         LambdaQueryWrapper<Chapter> chapterQuery = new LambdaQueryWrapper<>();
         chapterQuery.eq(Chapter::getCourseId, courseId);
         List<Chapter> chapters = chapterMapper.selectList(chapterQuery);
@@ -177,14 +181,14 @@ public class InfoBoardService {
         int totalChapters = chapters.size();
         int completedChapters = 0;
 
-        // Count completed chapters
+        // 计算完成的章节数
         for (Chapter chapter : chapters) {
             if (getCompleteStatus(userId, chapter.getChapterId())) {
                 completedChapters++;
             }
         }
 
-        // Calculate percentage (integer part only)
+        // 计算完成百分比（只取整数部分）
         int percentage = totalChapters > 0 ? (completedChapters * 100) / totalChapters : 0;
         result.put("completionPercentage", String.valueOf(percentage));
 
@@ -192,45 +196,95 @@ public class InfoBoardService {
     }
 
     /**
-     * Update daily study times for a user's chapter completion
+     * 更新用户完成章节的每日学习次数
      *
-     * @param userId    user ID
-     * @param chapterId chapter ID
-     * @return true if the study time was incremented, false if chapter not completed
+     * @param userId    用户ID
+     * @param chapterId 章节ID
+     * @return 如果学习次数更新成功返回true，如果章节未完成返回false
      */
     public boolean studyTimesUpdate(Long userId, Long chapterId) {
-        // Check if chapter is completed first
+        // 首先检查章节是否完成
         if (!getCompleteStatus(userId, chapterId)) {
             return false;
         }
 
-        // Key format: study:daily:u:{userId}:count
-        String key = String.format("study:daily:u:%d:count", userId);
+        // 每日计数器key格式: user:{userId}:study:daily
+        String dailyKey = String.format("user:%d:study:daily", userId);
+        
+        // 每周计数器key格式: user:{userId}:study:weekly:{dayOfWeek}
+        LocalDateTime now = LocalDateTime.now();
+        String weeklyKey = String.format("user:%d:study:weekly:%d", userId, now.getDayOfWeek().getValue());
 
-        // Use atomic increment operation
-        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        // 使用原子操作更新每日和每周计数器
+        RAtomicLong dailyCounter = redissonClient.getAtomicLong(dailyKey);
+        RAtomicLong weeklyCounter = redissonClient.getAtomicLong(weeklyKey);
 
-        // Increment and set expiration if it's the first time
-        long currentValue = atomicLong.incrementAndGet();
-        if (currentValue == 1) {
-            // Set expiration to 24 hours from now
-            atomicLong.expire(Duration.ofHours(24));
+        // 递增两个计数器
+        long dailyValue = dailyCounter.incrementAndGet();
+        weeklyCounter.incrementAndGet();
+
+        if (dailyValue == 1) {
+            // 计算到今天结束的剩余时间
+            LocalDateTime endOfDay = now.toLocalDate().plusDays(1).atStartOfDay();
+            Duration timeUntilEndOfDay = Duration.between(now, endOfDay);
+            
+            // 设置每日计数器的过期时间
+            dailyCounter.expire(timeUntilEndOfDay);
+            
+            // 设置每周计数器的过期时间
+            // 计算到下周一的剩余天数
+            int daysUntilNextWeek = 8 - now.getDayOfWeek().getValue(); // 使用8而不是7确保覆盖整个当天
+            LocalDateTime endOfWeek = now.toLocalDate().plusDays(daysUntilNextWeek).atStartOfDay();
+            Duration timeUntilEndOfWeek = Duration.between(now, endOfWeek);
+            weeklyCounter.expire(timeUntilEndOfWeek);
         }
 
         return true;
     }
 
     /**
-     * Get user's total study times for today
+     * 获取用户今日的学习次数
      *
-     * @param userId user ID
-     * @return number of completed chapters today
+     * @param userId 用户ID
+     * @return 今日完成的章节数
      */
     public int getStudyTimes(Long userId) {
-        String key = String.format("study:daily:u:%d:count", userId);
-
-        // Get the atomic long, which returns 0 if key doesn't exist
+        String key = String.format("user:%d:study:daily", userId);
         RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
         return (int) atomicLong.get();
+    }
+
+    /**
+     * 获取用户过去一周的学习次数
+     *
+     * @param userId 用户ID
+     * @return 包含一周内每天学习次数的Map
+     */
+    public Map<String, Integer> getWeeklyStudyTimes(Long userId) {
+        Map<String, Integer> weeklyStats = new HashMap<>();
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 获取一周内每天的统计数据
+        for (int i = 1; i <= 7; i++) {
+            String key = String.format("user:%d:study:weekly:%d", userId, i);
+            RAtomicLong counter = redissonClient.getAtomicLong(key);
+            // 使用简单的数字格式作为key
+            String dayName = String.valueOf(i);
+            weeklyStats.put(dayName, (int) counter.get());
+        }
+        
+        return weeklyStats;
+    }
+
+    /**
+     * 获取用户本周的总学习次数
+     *
+     * @param userId 用户ID
+     * @return 本周完成的总章节数
+     */
+    public int getTotalWeeklyStudyTimes(Long userId) {
+        return getWeeklyStudyTimes(userId).values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
     }
 }

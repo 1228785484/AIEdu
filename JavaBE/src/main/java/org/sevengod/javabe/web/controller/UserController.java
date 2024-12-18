@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     
     private final UserService userService;
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'TEACHER')")
     @Operation(summary = "获取用户列表", description = "分页获取用户列表，支持按用户名、邮箱和激活状态筛选")
     @GetMapping("/list")
     public AjaxResult getUserList(

@@ -21,7 +21,7 @@ public class RolesController {
 
     @PostMapping("/teacher/{userId}")
     @Operation(summary = "分配教师角色")
-    @PreAuthorize("hasAnyRole('ADMIN')")  // 只有管理员可以分配教师角色
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public AjaxResult teacherAssign(@PathVariable Long userId) {
         if (rolesService.assignTeacherRole(userId)) {
             return AjaxResult.success("教师角色分配成功");
@@ -31,7 +31,7 @@ public class RolesController {
 
     @GetMapping("/{id}")
     @Operation(summary = "获取角色详情")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")  // 管理员和教师都可以查看角色详情
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'TEACHER')")
     public AjaxResult getById(@PathVariable Long id) {
         Roles role = rolesService.getById(id);
         return role != null ? AjaxResult.success(role) : AjaxResult.error("角色不存在");
