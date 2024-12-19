@@ -496,17 +496,46 @@ series: [
 ]
 });
 
-// const selectedAction = ref(''); // 用于跟踪当前选中的动作
+// ... existing code ...
+
+// 添加新的响应式变量来保存测验状态
+const quizState = ref({
+  answers: [],
+  results: null,
+  score: 0,
+  isCompleted: false
+});
+
+// 修改 selectAction 函数
 function selectAction(action) {
-if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
-  // 如果正在测验中且未显示结果，显示确认弹窗
-  showSubmitModal.value = true;
-  // 保存用户想要切换到的动作
-  pendingAction.value = action;
-} else {
-  selectedAction.value = action;
+  if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
+    showSubmitModal.value = true;
+    pendingAction.value = action;
+  } else {
+    selectedAction.value = action;
+    // 如果切换到测验模块，恢复之前的测验状态
+    if (action === 'test' && quizState.value.isCompleted) {
+      showResults.value = true;
+      score.value = quizState.value.score;
+      // 恢复答案显示
+      setTimeout(() => {
+        displaySavedAnswers();
+      }, 100);
+    }
+  }
 }
-}
+
+// const selectedAction = ref(''); // 用于跟踪当前选中的动作
+// function selectAction(action) {
+// if (quizStarted.value && selectedAction.value === 'test' && !showResults.value) {
+//   // 如果正在测验中且未显示结果，显示确认弹窗
+//   showSubmitModal.value = true;
+//   // 保存用户想要切换到的动作
+//   pendingAction.value = action;
+// } else {
+//   selectedAction.value = action;
+// }
+// }
 
 // 目树数据改为响应式
 const treeData = ref([]);
@@ -779,28 +808,64 @@ if (treeData.value.length > 0) {
   await checkAllNodes(treeData.value);
 }
 
-// ... 其他现有的 onMounted 代码 ...
 });
 
-// 在组件挂载时检查所有叶子节点的完成状态
-// onMounted(async () => {
-//   await loadCourseTree();
-//   // 递归检查所有叶子节点的完成状态
-//   const checkAllNodes = async (nodes) => {
-//     for (const node of nodes) {
-//       if (!node.children || node.children.length === 0) {
-//         await checkChapterCompletion(node.id);
-//       } else if (node.children) {
-//         await checkAllNodes(node.children);
-//       }
-//     }
-//   };
-//   if (treeData.value.length > 0) {
-//     await checkAllNodes(treeData.value);
-//   }
 
-//   // ... rest of existing onMounted code ...
-// });
+const displaySavedAnswers = () => {
+  if (!quizState.value.isCompleted) return;
+
+  const c = quizState.value.results;
+  c.forEach((question, index) => {
+    const userAnswer = quizState.value.answers[index];
+    
+    // 显示答案和解析
+    document.getElementById(`user-answer-${index}`).textContent = 
+      Array.isArray(userAnswer) ? userAnswer.join(', ') : userAnswer || '未作答';
+    document.getElementById(`correct-answer-${index}`).textContent = 
+      Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
+    document.getElementById(`explanation-${index}`).textContent = question.explanations;
+    document.getElementById(`answer-display-${index}`).style.display = 'block';
+
+    // 选中用户之前选择的选项
+    if (question.type === 'single') {
+      // 单选题
+      if (userAnswer) {
+        const input = document.querySelector(`#question-${index}-${userAnswer}`);
+        if (input) {
+          input.checked = true;
+          // 添加选中样式
+          input.nextElementSibling.style.backgroundColor = 'rgb(236,201,237)';
+        }
+      }
+    } else {
+      // 多选题
+      if (Array.isArray(userAnswer)) {
+        userAnswer.forEach(answer => {
+          const input = document.querySelector(`#question-${index}-${answer}`);
+          if (input) {
+            input.checked = true;
+            // 添加选中样式
+            input.nextElementSibling.style.backgroundColor = 'rgb(236,201,237)';
+          }
+        });
+      }
+    }
+
+    // 禁用所有选项，防止重复作答
+    const allInputs = document.querySelectorAll(`input[name="question-${index}"]`);
+    allInputs.forEach(input => {
+      input.disabled = true;
+    });
+
+    // 判断答案是否正确并显示对应图标和得分
+    const isCorrect = Array.isArray(userAnswer) ?
+      JSON.stringify(userAnswer.sort()) === JSON.stringify(Array.isArray(question.answer) ? question.answer.sort() : [question.answer]) :
+      userAnswer === question.answer;
+
+    document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
+    document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
+  });
+};
 
 // 修改 handleNodeClick 函数
 const handleNodeClick = async (nodeData) => {
@@ -830,6 +895,16 @@ if (nodeData.children && nodeData.children.length > 0) {
   await updateTestPoints(chapterId);
   return;
 }
+
+// 重置测验状态
+quizState.value = {
+  answers: [],
+  results: null,
+  score: 0,
+  isCompleted: false
+};
+showResults.value = false;
+
 
 // 获取章节内容
 try {
@@ -1043,15 +1118,16 @@ setTimeout(() => {
 }, 1000);
 };
 
-// 确认提交方法
+
+// 修改 confirmSubmit 函数
 const confirmSubmit = () => {
-showSubmitModal.value = false;
+  showSubmitModal.value = false;
 
-let totalScore = 0;
-const userAnswers = [];
-let c = JSON.parse(JSON.stringify(que))._value;
-
-// 禁用所有输入框
+  let totalScore = 0;
+  const userAnswers = [];
+  let c = JSON.parse(JSON.stringify(que))._value;
+  // ... existing answer processing code ...
+  // 禁用所有输入框
 function disableInputs() {
   const allInputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
   allInputs.forEach(input => {
@@ -1060,81 +1136,61 @@ function disableInputs() {
 }
 
 if (c) {
-  c.forEach((question, index) => {
-  const questionId = `question-${index}`;
-  const selectedInputs = document.querySelectorAll(`input[name="${questionId}"]:checked`);
-  
-  if (selectedInputs.length > 0) {
-      // 根据题目类型处理答案
-      if (question.type === 'single') {
-      // 单选题：只取第一个选中的值
-      const userAnswer = selectedInputs[0].value;
-      userAnswers.push(userAnswer);
+    c.forEach((question, index) => {
+      const questionId = `question-${index}`;
+      const selectedInputs = document.querySelectorAll(`input[name="${questionId}"]:checked`);
       
-      // 判断答案是否正确
-      if (userAnswer === question.answer) {
-          totalScore += 10;
-      }
-      // 显示答案和解析
-      document.getElementById(`user-answer-${index}`).textContent = userAnswer;
-      document.getElementById(`correct-answer-${index}`).textContent = question.answer;
-      document.getElementById(`explanation-${index}`).textContent = question.explanations;
-      document.getElementById(`answer-display-${index}`).style.display = 'block';
-
-      // 判断答案是否正确显示对应图标和得分
-      const isCorrect = userAnswer === question.answer;
-      document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
-      document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
-      } else if (question.type === 'multiple') {
-      // 多选题：收集所有选中的值
-      const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
-      userAnswers.push(userAnswer);
-      // 判断多选题答案是否完全正确
-      const correctAnswer = Array.isArray(question.answer) ? 
-          question.answer.sort() : 
-          [question.answer].sort();
+      if (selectedInputs.length > 0) {
+        // 根据题目类型处理答案
+        if (question.type === 'single') {
+          const userAnswer = selectedInputs[0].value;
+          userAnswers.push(userAnswer);
           
-      if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
-          totalScore += 10;
+          // 判断答案是否正确
+          if (userAnswer === question.answer) {
+            totalScore += 10;
+          }
+        } else if (question.type === 'multiple') {
+          const userAnswer = Array.from(selectedInputs).map(input => input.value).sort();
+          userAnswers.push(userAnswer);
+          
+          // 判断多选题答案是否完全正确
+          const correctAnswer = Array.isArray(question.answer) ? 
+            question.answer.sort() : 
+            [question.answer].sort();
+            
+          if (JSON.stringify(userAnswer) === JSON.stringify(correctAnswer)) {
+            totalScore += 10;
+          }
+        }
+      } else {
+        // 如果没有选择答案
+        userAnswers.push(question.type === 'single' ? '' : []);
       }
-      // 显示答案和解析
-      document.getElementById(`user-answer-${index}`).textContent = userAnswer.join(', ');
-      document.getElementById(`correct-answer-${index}`).textContent = 
-          Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
-      document.getElementById(`explanation-${index}`).textContent = question.explanations;
-      document.getElementById(`answer-display-${index}`).style.display = 'block';
-      
-      // 判断答案是否正确并显示对图标得分
-      const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
-      document.getElementById(`answer-icon-${index}`).textContent = isCorrect ? '✅' : '❌';
-      document.getElementById(`score-display-${index}`).textContent = `你的得分：${isCorrect ? '10.0' : '0.0'}`;
-      }
-  } else {
-      // 如果没有选择答案，推入null或空数组
-      userAnswers.push(question.type === 'single' ? null : []);
-      document.getElementById(`user-answer-${index}`).textContent = '  作答';
-      document.getElementById(`correct-answer-${index}`).textContent = 
-      Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
-      document.getElementById(`explanation-${index}`).textContent = question.explanations;
-      document.getElementById(`answer-display-${index}`).style.display = 'block';
-
-      // 未作答显示错误图标0分
-      document.getElementById(`answer-icon-${index}`).textContent = '❌';
-      document.getElementById(`score-display-${index}`).textContent = '你的得分：0.0';
+      clearInterval(timerId);
+      timerId = null;
+    });
   }
-  clearInterval(timerId);
-  timerId = null;
-  });
-}
 
 // 更新答案数组和分   
 answers.value = userAnswers;
 score.value = totalScore;
-
-// 显  结果
+// 显结果
 showResults.value = true;
 
-// 准   提   据
+
+// 保存测验状态
+quizState.value = {
+  answers: userAnswers,
+  results: c,
+  score: totalScore,
+  isCompleted: true
+};
+
+// 使用 displaySavedAnswers 显示答案和解析
+displaySavedAnswers();
+// ... rest of the existing code ...
+  // 准   提   据
 quizData.value = {
   quizId: quizId.value,
   userId: Number(localStorage.getItem('userid')),
@@ -1169,8 +1225,7 @@ quizStarted.value = false; // 重置测验状态
 
 // 显示提交成功消息
 showTemporaryMessage('提交成功！');
-}
-
+};
 
 
 // 修改提交测验分数的函数
