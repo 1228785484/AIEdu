@@ -36,4 +36,14 @@ public class RolesController {
         Roles role = rolesService.getById(id);
         return role != null ? AjaxResult.success(role) : AjaxResult.error("角色不存在");
     }
+
+    @PostMapping("/student/{userId}")
+    @Operation(summary = "分配学生角色")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    public AjaxResult studentAssign(@PathVariable Long userId) {
+        if (rolesService.assignStudentRole(userId)) {
+            return AjaxResult.success("学生角色分配成功");
+        }
+        return AjaxResult.error("学生角色分配失败");
+    }
 }

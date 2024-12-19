@@ -5,6 +5,7 @@ import org.sevengod.javabe.dto.LoginRequest;
 import org.sevengod.javabe.dto.RegisterRequest;
 import org.sevengod.javabe.entity.dto.User;
 import org.sevengod.javabe.web.service.UserService;
+import org.sevengod.javabe.web.service.RolesService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,6 +25,7 @@ public class AuthService {
     private final UserService userService;
     private final VerificationCodeService verificationCodeService;
     private final PasswordEncoder passwordEncoder;
+    private final RolesService rolesService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
@@ -53,6 +55,9 @@ public class AuthService {
 
         // 保存用户
         userService.save(user);
+
+        // 为新用户分配学生角色
+        rolesService.assignStudentRole(user.getUserId());
 
         return ResponseEntity.ok(Map.of("message", "注册成功"));
     }

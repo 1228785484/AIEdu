@@ -18,4 +18,13 @@ public class RolesServiceImpl extends ServiceImpl<RolesMapper, Roles> implements
         teacherRole.setAssignedAt(LocalDateTime.now());
         return this.save(teacherRole);
     }
+
+    @Override
+    public boolean assignStudentRole(Long userId) {
+        Roles studentRole = new Roles();
+        studentRole.setUserId(userId);
+        studentRole.setRoleName("student");
+        studentRole.setAssignedAt(LocalDateTime.now());
+        return this.save(studentRole);
+    }
 }
