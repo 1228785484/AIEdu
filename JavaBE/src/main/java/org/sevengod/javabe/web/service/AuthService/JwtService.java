@@ -119,29 +119,29 @@ public class JwtService {
     public Boolean validateToken(String token, UserDetails userDetails) {
         try {
             Long userId = extractUserId(token);
-            log.info("Validating token for userId: " + userId);
+//            log.info("Validating token for userId: " + userId);
             
             // 使用Redisson验证token
             String tokenKey = String.format(TOKEN_KEY_PREFIX, userId, token);
             RBucket<String> tokenBucket = redissonClient.getBucket(tokenKey);
             if (!tokenBucket.isExists()) {
-                log.warn("Token not found in Redis. Key: " + tokenKey);
+//                log.warn("Token not found in Redis. Key: " + tokenKey);
                 return false;  // token不在Redis中，说明已经注销或是无效的
             }
-            log.info("Token found in Redis");
+//            log.info("Token found in Redis");
 
             DecodedJWT jwt = decodeToken(token);
             if (jwt == null) {
-                log.warn("Failed to decode JWT token");
+//                log.warn("Failed to decode JWT token");
                 return false;
             }
-            log.info("JWT decoded successfully");
+//            log.info("JWT decoded successfully");
 
             final String username = jwt.getSubject();
             boolean usernameMatch = username.equals(userDetails.getUsername());
             boolean notExpired = !isTokenExpired(jwt);
             
-            log.info("Username match: " + usernameMatch + ", Token not expired: " + notExpired);
+//            log.info("Username match: " + usernameMatch + ", Token not expired: " + notExpired);
             
             return (usernameMatch && notExpired);
         } catch (JWTVerificationException e) {

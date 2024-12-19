@@ -13,7 +13,7 @@ import WebsocketTest from '../views/TestPages/WebsocketTest.vue';
 import FileUploader from '../views/TestPages/FileUploader.vue';  // 导入 FileUploader 组件
 import CheckInCalendar from '../views/TestPages/CheckInCalendar.vue';  // 导入签到日历组件
 import CourseDetail from '@/views/CourseDetail.vue'
-
+import StreamMessage from '../views/TestPages/StreamMessage.vue'  // 导入流式消息测试组件
 
 // 配置路由
 const routes = [
@@ -84,6 +84,12 @@ const routes = [
     name: 'CourseDetail',
     component: CourseDetail,
     props: true
+  },
+  {
+    path: '/stream-message',
+    name: 'stream-message',
+    component: StreamMessage,
+    meta: { requiresAuth: true }
   }
 ];
 
