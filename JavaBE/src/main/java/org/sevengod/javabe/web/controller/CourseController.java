@@ -306,4 +306,23 @@ public class CourseController {
             return AjaxResult.error("获取学习次数失败：" + e.getMessage());
         }
     }
+
+    @GetMapping("/weekly-study-times")
+    @Operation(summary = "获取每周学习次数", description = "获取用户过去一周内每天的学习次数")
+    @Parameters({
+        @Parameter(name = "userId", description = "用户ID", required = true,
+                schema = @Schema(type = "integer", format = "int64", example = "1"))
+    })
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "400", description = "获取失败")
+    })
+    public AjaxResult getWeeklyStudyTimes(@RequestParam Long userId) {
+        try {
+            Map<String, Integer> weeklyStats = infoBoardService.getWeeklyStudyTimes(userId);
+            return AjaxResult.success("获取每周学习次数成功", weeklyStats);
+        } catch (Exception e) {
+            return AjaxResult.error("获取每周学习次数失败：" + e.getMessage());
+        }
+    }
 }
