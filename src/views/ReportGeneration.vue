@@ -165,7 +165,7 @@
 
           <!-- 实时数据图表 -->
           <div v-if="selectedChart === 'realtime'" class="chart-section">
-            <h3 class="section-title">学习轨迹实时数据</h3>
+            <!-- <h3 class="section-title">学习轨迹实时数据</h3> -->
             <div class="data-chart">
               <VChart class="chart" :option="dataRecordOption" />
             </div>
@@ -654,7 +654,7 @@ const dataRecordOption = ref({
     trigger: 'axis'
   },
   legend: {
-    data: ['学习时长', '完成任务数']
+    data: ['学习时长', '学习次数']
   },
   xAxis: {
     type: 'category',
@@ -693,6 +693,255 @@ const dataRecordOption = ref({
     }
   ]
 })
+
+
+
+// 获取指定日期的格式化字符串 YYYY-MM-DD
+const formatDate = (date) => {
+  return date.toISOString().split('T')[0]
+}
+
+// 获取单日学习时长
+const getDailyLearningDuration = async (date) => {
+  try {
+    const userId = localStorage.getItem('userid')
+    const courseId = localStorage.getItem('selectedCourseId')
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(`http://localhost:8008/api/study-time/duration?userId=${userId}&courseId=${courseId}&date=${date}`, {
+      method: 'get',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    })
+
+    const result = await response.json()
+    console.log(result)
+    if (result.code === 200) {
+      console.log(result.data.durationSeconds)
+      return result.data.durationSeconds/60 || 0 // 假设返回的是分钟数
+    }
+    return 0
+  } catch (error) {
+    console.error(`获取${date}学习时长失败:`, error)
+    return 0
+  }
+}
+
+
+// 获取本周的日期数组（周一到周日）
+const getWeekDays = () => {
+  const dates = []
+  const today = new Date()
+  const day = today.getDay() || 7 // 将周日的0转换为7
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - (day - 1)) // 设置为本周一的日期
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + i)
+    dates.push(formatDate(date))
+  }
+  return dates
+}
+
+// 获取单日学习次数
+// 获取单日学习次数
+const getDailyTaskCount = async () => {
+  try {
+    const userId = localStorage.getItem('userid')
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(`http://localhost:8008/api/course/weekly-study-times?userId=${userId}`, {
+      method: 'get',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    })
+
+    const result = await response.json()
+    console.log(result)
+    if (result.code === 200) {
+      // 返回一个数组,包含周一到周日的学习次数
+      return [
+        result.data['1'] || 0,
+        result.data['2'] || 0,
+        result.data['3'] || 0,
+        result.data['4'] || 0,
+        result.data['5'] || 0,
+        result.data['6'] || 0,
+        result.data['7'] || 0
+      ]
+    }
+    return [0, 0, 0, 0, 0, 0, 0]
+  } catch (error) {
+    console.error('获取周学习次数失败:', error)
+    return [0, 0, 0, 0, 0, 0, 0]
+  }
+}
+
+
+const fetchLearningRecords = async () => {
+  try {
+    isLoading.value = true
+    const dates = getWeekDays()
+    const today = new Date()
+    
+    const durationPromises = dates.map(date => {
+      const dateObj = new Date(date)
+      return dateObj > today ? Promise.resolve(0) : getDailyLearningDuration(date)
+    })
+    
+    // 获取一周的学习次数
+    const tasks = await getDailyTaskCount()
+    const durations = await Promise.all(durationPromises)
+    const dateLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+
+    // 更新图表配置，添加完整的 yAxis 配置
+    dataRecordOption.value = {
+      title: {
+        text: '学习数据记录',
+        left: 'center',
+        top: 20
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: function(params) {
+          let result = params[0].axisValue + '<br/>'
+          params.forEach(param => {
+            const value = param.seriesName === '学习时长' 
+              ? param.value + ' 分钟'
+              : param.value + ' 个任务'
+            result += param.marker + param.seriesName + ': ' + value + '<br/>'
+          })
+          return result
+        }
+      },
+      legend: {
+        data: ['学习时长', '学习次数'],
+        top: 60
+      },
+      grid: {
+        top: 100,
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: dateLabels,
+        axisLabel: {
+          color: '#666'
+        }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: '学习时长(分钟)',
+          position: 'left',
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: '#5284DE'
+            }
+          },
+          axisLabel: {
+            formatter: '{value} 分钟'
+          }
+        },
+        {
+          type: 'value',
+          name: '学习次数',
+          position: 'right',
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: '#91cc75'
+            }
+          },
+          axisLabel: {
+            formatter: '{value} 个'
+          }
+        }
+      ],
+      series: [
+        {
+          name: '学习时长',
+          type: 'line',
+          yAxisIndex: 0,
+          data: durations,
+          smooth: true,
+          itemStyle: {
+            color: '#5284DE'
+          },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [{
+                offset: 0,
+                color: 'rgba(82,132,222,0.3)'
+              }, {
+                offset: 1,
+                color: 'rgba(82,132,222,0.1)'
+              }]
+            }
+          }
+        },
+        {
+          name: '学习次数',
+          type: 'line',
+          yAxisIndex: 1,
+          data: tasks,
+          smooth: true,
+          itemStyle: {
+            color: '#91cc75'
+          },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [{
+                offset: 0,
+                color: 'rgba(145,204,117,0.3)'
+              }, {
+                offset: 1,
+                color: 'rgba(145,204,117,0.1)'
+              }]
+            }
+          }
+        }
+      ]
+    }
+  } catch (error) {
+    console.error('获取学习记录失败:', error)
+    ElMessage.error('获取学习记录失败')
+  } finally {
+    isLoading.value = false
+  }
+}
+// 修改 watch 函数
+watch([activeNav, selectedChart], ([newNav, newChart]) => {
+  if (newNav === 'learning') {
+    if (!learningReport.value) {
+      generateLearningReport()
+    }
+    fetchUnitQuizScores()
+  } else if (newNav === 'assessment' && newChart === 'realtime') {
+    fetchLearningRecords()
+  }
+})
+
+// ... existing code ...
+
+
 
 const downloadReport = async () => {
   if (!currentReport.value) {
@@ -1246,4 +1495,10 @@ const downloadReport = async () => {
   color: #66b1ff;
   text-decoration: underline;
 }
+
+.data-chart {
+  height: 600px;
+  width: 800px;
+}
+
 </style>
