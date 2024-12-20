@@ -287,4 +287,33 @@ public class InfoBoardService {
                 .mapToInt(Integer::intValue)
                 .sum();
     }
+
+    /**
+     * 获取用户在指定课程中完成的总章节数
+     * 
+     * @param userId   用户ID
+     * @param courseId 课程ID
+     * @return 用户在该课程中完成的总章节数
+     */
+    public Integer getCompletedChaptersCount(Long userId, Long courseId) {
+        // 使用LambdaQueryWrapper查询指定课程的章节
+        LambdaQueryWrapper<Chapter> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(Chapter::getChapterId)
+               .eq(Chapter::getCourseId, courseId);
+        List<Chapter> courseChapters = chapterMapper.selectList(wrapper);
+        
+        if (courseChapters.isEmpty()) {
+            return 0;
+        }
+
+        // 统计已完成的章节数
+        int completedCount = 0;
+        for (Chapter chapter : courseChapters) {
+            if (getCompleteStatus(userId, chapter.getChapterId())) {
+                completedCount++;
+            }
+        }
+        
+        return completedCount;
+    }
 }
