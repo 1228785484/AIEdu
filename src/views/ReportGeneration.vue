@@ -173,7 +173,7 @@
 
           <!-- 能力雷达图 -->
           <div v-if="selectedChart === 'radar'" class="chart-section">
-            <h3 class="section-title">能力评估雷达图</h3>
+            <!-- <h3 class="section-title">能力评估雷达图</h3> -->
             <div class="radar-chart">
               <VChart class="chart" :option="radarChartOption" />
             </div>
@@ -228,6 +228,11 @@ const learningReport = ref(null)
 const selectedChart = ref('realtime')
 const isReportLoading = ref(false)
 const activeUnit = ref(null)
+const totalScore = ref(null)//所有单元平均分
+const weekStudytimes = ref(null)//一周的学习次数总数
+const totalStudyDuration = ref(null)//总共的学习时长
+const progress = ref(null)//学习进度
+const continueCheckins = ref(null)//连续签到的天数
 
 const quizChartOption = ref({
   grid: {
@@ -290,6 +295,9 @@ const loadCourseTree = async () => {
         selectedChapter.value = courseTree.value[0].id
       }
     }
+    // 课程树加载成功后调用 fetchTotalQuizScore
+    totalScore.value = await fetchTotalQuizScore();
+    console.log(totalScore.value)
   } catch (error) {
     console.error('Error loading course tree:', error)
   }
@@ -602,6 +610,9 @@ watch(activeNav, (newValue) => {
 
 onMounted(() => {
   loadCourseTree()
+  fetchLearningRecords()
+  getLearningProgress()
+  fetchConsecutiveCheckins()
 })
 
 const radarChartOption = ref({
@@ -716,9 +727,9 @@ const getDailyLearningDuration = async (date) => {
     })
 
     const result = await response.json()
-    console.log(result)
+    // console.log(result)
     if (result.code === 200) {
-      console.log(result.data.durationSeconds)
+      // console.log(result.data.durationSeconds)
       return result.data.durationSeconds/60 || 0 // 假设返回的是分钟数
     }
     return 0
@@ -796,6 +807,13 @@ const fetchLearningRecords = async () => {
     const tasks = await getDailyTaskCount()
     const durations = await Promise.all(durationPromises)
     const dateLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+
+    //计算这一周的总学习次数
+    for (let i=0;i<tasks.length;i++){
+      // console.log(tasks[i])
+      weekStudytimes.value += tasks[i]
+    }
+    console.log(weekStudytimes.value)
 
     // 更新图表配置，添加完整的 yAxis 配置
     dataRecordOption.value = {
@@ -987,6 +1005,203 @@ const downloadReport = async () => {
     ElMessage.error('报告生成失败，请重试')
   }
 }
+
+// ... existing code ...
+
+// 添加获取总学习时长的函数
+const fetchTotalStudyDuration = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const courseId = localStorage.getItem('selectedCourseId');
+    
+    const response = await fetch(`http://localhost:8008/api/study-time/duration/total?userId=${userId}&courseId=${courseId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch total study duration');
+    }
+
+    const result = await response.json();
+    console.log('总学习时长:', result.data); // 处理返回的数据
+    totalStudyDuration.value = result.data.totalDurationSeconds
+    console.log(totalStudyDuration.value)
+  } catch (error) {
+    console.error('获取总学习时长失败:', error);
+  }
+};
+
+const fetchTotalQuizScore = async () => {
+  try {
+    const userId = localStorage.getItem('userid');
+    const token = localStorage.getItem('token');
+    const allScores = [];
+
+    console.log('课程树:', courseTree.value); // 打印课程树
+
+    for (const chapter of courseTree.value) {
+      const response = await fetch('http://localhost:8008/quiz/getUnitQuizScores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: userId,
+          unitId: chapter.id
+        })
+      });
+
+      if (!response.ok) {
+        console.error(`请求失败: ${response.status} - ${await response.text()}`);
+        continue; // 跳过当前单元
+      }
+
+      const result = await response.json();
+      // console.log('测验结果:', result); // 打印测验结果
+
+      if (result.code === 200) {
+        const chapterScores = result.data.chapter_scores;
+        if (chapterScores && chapterScores.length > 0) {
+          const totalScore = chapterScores.reduce((sum, score) => sum + score.score, 0);
+          const averageScore = totalScore / chapterScores.length;
+          allScores.push(averageScore);
+        }
+      }
+    }
+
+    const totalAverageScore = allScores.length > 0 ? allScores.reduce((sum, score) => sum + score, 0) / allScores.length : 0;
+
+    console.log('总分:', totalAverageScore);
+    return totalAverageScore;
+  } catch (error) {
+    console.error('获取测验总分失败:', error);
+    return 0;
+  }
+};
+
+// 添加获取学习进度的函数
+const getLearningProgress = async () => {
+try {
+  const userId = localStorage.getItem('userid');
+  const courseId = localStorage.getItem('selectedCourseId');
+  
+  const response = await fetch(`http://localhost:8008/api/course/course-completion-percentage?userId=${userId}&courseId=${courseId}`, {
+  method: 'GET',
+  headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+  });
+
+  if (!response.ok) {
+  throw new Error('Failed to fetch learning progress');
+  }
+
+  const result = await response.json();
+  // 更新进度值
+  console.log(result)
+  progress.value = parseInt(result.data.completionPercentage);
+  console.log(progress.value)
+} catch (error) {
+  console.error('Error fetching learning progress:', error);
+}
+};
+//获取连续签到的天数
+const fetchConsecutiveCheckins = async () => {
+    try {
+        const userId = localStorage.getItem('userid');
+        const response = await fetch(`http://localhost:8008/api/checkins/consecutive?userId=${userId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch consecutive check-ins');
+        }
+
+        const result = await response.json();
+        continueCheckins.value = result.data
+        console.log(`已连续签到: ${continueCheckins.value}天`); // 控制台打印
+    } catch (error) {
+        console.error('Error fetching consecutive check-ins:', error);
+    }
+};
+
+const baseValue = 50; // 基础值
+
+// 计算雷达图的五个维度的值
+const calculateRadarValues = () => {
+  const radarValues = [
+    totalScore.value !== null ? baseValue + totalScore.value : baseValue,
+    weekStudytimes.value !== null ? baseValue + weekStudytimes.value : baseValue,
+    totalStudyDuration.value !== null ? baseValue + totalStudyDuration.value : baseValue,
+    progress.value !== null ? baseValue + progress.value : baseValue,
+    continueCheckins.value !== null ? baseValue + continueCheckins.value : baseValue,
+  ];
+
+  return radarValues.map(value => Math.min(value, 100)); // 确保值不超过100
+};
+
+// 更新雷达图数据
+const updateRadarChart = () => {
+  const radarValues = calculateRadarValues();
+
+  radarChartOption.value = {
+    title: {
+      text: '能力维度分析'
+    },
+    tooltip: {},
+    legend: {
+      data: ['能力水平']
+    },
+    radar: {
+      shape: 'polygon',
+      name: {
+        textStyle: {
+          color: '#666',
+          fontSize: 14
+        }
+      },
+      indicator: [
+        { name: '单元平均分', max: 100 },
+        { name: '一周学习次数', max: 100 },
+        { name: '总学习时长', max: 100 },
+        { name: '学习进度', max: 100 },
+        { name: '连续签到天数', max: 100 }
+      ]
+    },
+    series: [{
+      name: '能力评估',
+      type: 'radar',
+      data: [{
+        value: radarValues,
+        name: '能力水平',
+        itemStyle: {
+          color: '#5284DE'
+        },
+        areaStyle: {
+          color: 'rgba(82, 132, 222, 0.3)'
+        }
+      }]
+    }]
+  };
+};
+
+// 在适当的地方调用 updateRadarChart，例如在数据更新后
+watch([totalScore, weekStudytimes, totalStudyDuration, progress, continueCheckins], () => {
+  updateRadarChart();
+});
+// ... existing code ...
+
+fetchTotalStudyDuration()
+// let m = fetchTotalQuizScore()
+// console.log(m)
+
 </script>
 
 <style scoped>
@@ -1497,6 +1712,11 @@ const downloadReport = async () => {
 }
 
 .data-chart {
+  height: 600px;
+  width: 800px;
+}
+
+.radar-chart {
   height: 600px;
   width: 800px;
 }
