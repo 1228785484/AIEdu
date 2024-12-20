@@ -82,8 +82,9 @@ public class StreamMessageServiceImpl implements StreamMessageService {
                 .retrieve()
                 .bodyToFlux(String.class)
                 .doOnNext(message -> log.debug("Received raw message: {}", message))
-                .flatMap(this::extractAnswer)
+                .concatMap(this::extractAnswer)  
                 .filter(message -> message != null)
+                .publishOn(Schedulers.boundedElastic())  
                 .doOnNext(message -> log.debug("Sending formatted message: {}", message))
                 .onErrorResume(e -> {
                     log.error("Error in sendStreamMessage", e);
