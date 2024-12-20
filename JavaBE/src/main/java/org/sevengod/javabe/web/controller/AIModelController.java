@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AIModelController {
     private final AIModelService aiModelService;
 
-    @Operation(summary = "预测学习时间", description = "根据用户学习情况和课程难度预测完成学习所需时间")
+    @Operation(summary = "预测学习时间", description = "根据用户学习情况和课程难度预测完成学习所需时间(小时)")
     @GetMapping("/predict")
     public AjaxResult predictLearnTime(
             @Parameter(description = "用户ID") @RequestParam Long userId,
