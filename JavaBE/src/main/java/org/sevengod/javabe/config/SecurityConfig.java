@@ -53,10 +53,22 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/test/**").permitAll() // 允许测试接口
+                        .requestMatchers("/api/agent/stream").permitAll() // 允许流式消息端点
+                        .requestMatchers("/api/agent/**").authenticated() // 其他 agent 接口需要认证
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.error("Unauthorized error: {}", authException.getMessage());
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            log.error("Access denied error: {}", accessDeniedException.getMessage());
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Error: Access Denied");
+                        })
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

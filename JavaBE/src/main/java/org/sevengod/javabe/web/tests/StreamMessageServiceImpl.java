@@ -88,8 +88,7 @@ public class StreamMessageServiceImpl implements StreamMessageService {
                 .doOnNext(message -> log.debug("Sending formatted message: {}", message))
                 .onErrorResume(e -> {
                     log.error("Error in sendStreamMessage", e);
-                    return Mono.just("data: {\"error\": \"" + e.getMessage() + "\"}\n\n");
-                })
-                .doOnComplete(() -> log.info("Stream completed for request: {}", request));
+                    return Flux.error(e);
+                });
     }
 }
