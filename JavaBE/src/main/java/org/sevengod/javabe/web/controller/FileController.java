@@ -69,7 +69,7 @@ public class FileController {
         try {
             response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
             response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, "UTF-8"));
-            
+            log.info("正在下载:{}", fileName);
             minioService.downloadFile(bucketName, fileName, userId, response.getOutputStream());
         } catch (Exception e) {
             log.error("文件下载失败", e);

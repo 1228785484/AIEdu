@@ -118,14 +118,49 @@ export default {
       }
     }
 
-    // 上���失败的处理
+    // 上传失败的处理
     const handleUploadError = (error) => {
       ElMessage.error('文件上传失败：' + error.message)
     }
 
     // 下载文件
-    const handleDownload = (file) => {
-      window.open(file.fileUrl, '_blank')
+    const handleDownload = async (file) => {
+      try {
+        // 从fileUrl中提取实际的对象名称，去除查询参数
+        const objectName = file.fileUrl.split('/').slice(-1)[0].split('?')[0]
+        console.log('文件名:', objectName)
+        const params = new URLSearchParams({
+          fileName: objectName, // 使用从URL中提取的对象名称
+          bucketName: bucketName.value,
+          userId: userId.value
+        })
+
+        const response = await fetch(`${baseUrl}/api/file/download?${params}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`下载失败: ${response.status}`)
+        }
+
+        // 获取文件blob
+        const blob = await response.blob()
+        const downloadUrl = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = objectName // 使用实际的文件名
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(downloadUrl)
+
+        ElMessage.success('开始下载文件')
+      } catch (error) {
+        ElMessage.error('文件下载失败：' + error.message)
+      }
     }
 
     // 删除文件
