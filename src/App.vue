@@ -28,6 +28,8 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="personal">个人信息</el-dropdown-item>
+                    <el-dropdown-item v-if="roleName === 'STUDENT'" command="authenticateTeacher">教师认证</el-dropdown-item>
+                    <el-dropdown-item v-if="roleName === 'TEACHER' || roleName === 'ADMIN'" command="teacher">教师管理</el-dropdown-item>
                     <el-dropdown-item command="logout">退出登录</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -60,6 +62,9 @@ export default {
   computed: {
     isLoggedIn() {
       return localStorage.getItem('token') !== null
+    },
+    roleName() {
+      return localStorage.getItem('roleName'); // 获取角色名称
     }
   },
   watch: {
@@ -86,15 +91,41 @@ export default {
         localStorage.removeItem('token');
         localStorage.removeItem('username');
         localStorage.removeItem('email');
+        localStorage.removeItem('userid');
+        localStorage.removeItem('roleName'); // 清除角色名称
         this.username = '未登录';
         ElMessage.success('已退出登录');
         this.$router.push('/');
-        // 刷新页面以确保状态完全重置
-        setTimeout(() => {
-          window.location.reload();
-        }, 300);
       } else if (command === 'personal') {
         this.$router.push('/personal-info');
+      } else if (command === 'teacher') {
+        this.$router.push('/teacher');
+      } else if (command === 'authenticateTeacher') {
+        this.authenticateTeacher();
+      }
+    },
+    async authenticateTeacher() {
+      const userId = localStorage.getItem('userid'); // 确保 userId 已正确存储
+      if (!userId) {
+        ElMessage.error('用户ID未找到，请重新登录');
+        return;
+      }
+      try {
+        const response = await fetch(`http://localhost:8008/api/roles/teacher/${userId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          ElMessage.success('教师认证成功');
+        } else {
+          const errorData = await response.json();
+          ElMessage.error(errorData.message || '教师认证失败');
+        }
+      } catch (error) {
+        console.error('Error during teacher authentication:', error);
+        ElMessage.error('教师认证过程中出现错误');
       }
     }
   },
@@ -184,7 +215,7 @@ html, body {
   flex: 1;
   padding: 20px;
   background-color: #f5f7fa;
-  min-height: calc(100vh - 60px); /* 减去header的高度 */
+  min-height: calc(100vh - 60px); /* 减去header高度 */
   box-sizing: border-box;
 }
 
