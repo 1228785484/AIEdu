@@ -158,6 +158,32 @@ const sanitizeAndFormat = (message) => {
       'g'
     )
     
+    // 处理代码缩进的函数
+    const processIndentation = (lines) => {
+      let indentLevel = 0
+      const indentSize = 2 // 缩进空格数
+      
+      return lines.map(line => {
+        const trimmedLine = line.trim()
+        
+        // 处理大括号的缩进
+        if (trimmedLine.includes('}')) {
+          indentLevel = Math.max(0, indentLevel - 1)
+        }
+        
+        // 计算当前行的缩进
+        const indent = ' '.repeat(indentLevel * indentSize)
+        const formattedLine = indent + trimmedLine
+        
+        // 处理下一行的缩进级别
+        if (trimmedLine.includes('{')) {
+          indentLevel++
+        }
+        
+        return formattedLine
+      })
+    }
+    
     // 按行处理内容
     const lines = message.split('\n')
     
@@ -178,18 +204,21 @@ const sanitizeAndFormat = (message) => {
           if (currentCodeBlock) {
             // 按行处理代码内容，保留换行
             const formattedLines = currentCodeBlock.content.trim().split('\n')
+            
+            // 先处理每行的关键字和空格
             const processedLines = formattedLines.map(line => {
               return line
-                // 只对类型关键字后面添加空格
                 .replace(typeKeywordRegex, '$1 ')
-                // 处理同一行内的多余空格
                 .replace(/\s+/g, ' ')
                 .trim()
             })
             
+            // 应用缩进
+            const indentedLines = processIndentation(processedLines)
+            
             // 应用语法高亮，保持换行
             const highlightedCode = hljs.highlight(
-              processedLines.join('\n'),
+              indentedLines.join('\n'),
               { language: currentCodeBlock.lang || 'plaintext' }
             ).value
             
