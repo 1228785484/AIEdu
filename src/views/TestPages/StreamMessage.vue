@@ -87,7 +87,28 @@ const handleSend = async () => {
     eventSource.onmessage = (event) => {
       const messageToUpdate = messages.value.find(m => m.id === aiMessageId)
       if (messageToUpdate) {
-        messageToUpdate.text += event.data
+        // 在接收数据时就处理关键字
+        let processedData = event.data
+        const keywords = [
+          'void', 'int', 'char', 'float', 'double',
+          'long', 'short', 'unsigned', 'signed',
+          'struct', 'enum', 'const', 'static',
+          'return', 'sizeof'
+        ]
+        
+        // 处理括号前的关键字
+        keywords.forEach(keyword => {
+          const regex = new RegExp(`${keyword}(?=\\()`, 'g')
+          processedData = processedData.replace(regex, `${keyword} `)
+        })
+        
+        // 处理其他位置的关键字
+        keywords.forEach(keyword => {
+          const regex = new RegExp(`\\b${keyword}\\b(?!\\s|["'])`, 'g')
+          processedData = processedData.replace(regex, `${keyword} `)
+        })
+        
+        messageToUpdate.text += processedData
         messageToUpdate.formattedText = sanitizeAndFormat(messageToUpdate.text)
         messages.value = [...messages.value]
         nextTick(() => scrollToBottom())
@@ -152,12 +173,6 @@ const sanitizeAndFormat = (message) => {
       'return', 'sizeof'
     ]
     
-    // 创建类型关键字正则表达式
-    const typeKeywordRegex = new RegExp(
-      `\\b(${typeKeywords.join('|')})\\b(?![\\s"'])`,
-      'g'
-    )
-    
     // 处理代码缩进的函数
     const processIndentation = (lines) => {
       let indentLevel = 0
@@ -173,7 +188,16 @@ const sanitizeAndFormat = (message) => {
         
         // 计算当前行的缩进
         const indent = ' '.repeat(indentLevel * indentSize)
-        const formattedLine = indent + trimmedLine
+        
+        // 处理关键字后面的空格
+        let processedLine = trimmedLine
+        for (const keyword of typeKeywords) {
+          // 使用预格式化的HTML空格
+          const regex = new RegExp(`\\b${keyword}\\b(?![\\s"'])`, 'g')
+          processedLine = processedLine.replace(regex, `${keyword} `)
+        }
+        
+        const formattedLine = indent + processedLine
         
         // 处理下一行的缩进级别
         if (trimmedLine.includes('{')) {
@@ -193,7 +217,8 @@ const sanitizeAndFormat = (message) => {
           isInCodeBlock = true
           codeBlockId++
           const lang = line.slice(3).trim()
-          buffer += `\n<pre><code class="language-${lang}" id="code-block-${codeBlockId}">\n`
+          // 使用 pre 标签的 white-space: pre 属性来保持空格
+          buffer += `\n<pre style="white-space: pre"><code class="language-${lang}" id="code-block-${codeBlockId}">\n`
           currentCodeBlock = {
             id: codeBlockId,
             lang: lang,
@@ -205,18 +230,10 @@ const sanitizeAndFormat = (message) => {
             // 按行处理代码内容，保留换行
             const formattedLines = currentCodeBlock.content.trim().split('\n')
             
-            // 先处理每行的关键字和空格
-            const processedLines = formattedLines.map(line => {
-              return line
-                .replace(typeKeywordRegex, '$1 ')
-                .replace(/\s+/g, ' ')
-                .trim()
-            })
+            // 应用缩进和关键字处理
+            const indentedLines = processIndentation(formattedLines)
             
-            // 应用缩进
-            const indentedLines = processIndentation(processedLines)
-            
-            // 应用语法高亮，保持换行
+            // 应用语法高亮，保持换行和空格
             const highlightedCode = hljs.highlight(
               indentedLines.join('\n'),
               { language: currentCodeBlock.lang || 'plaintext' }
@@ -228,9 +245,11 @@ const sanitizeAndFormat = (message) => {
           currentCodeBlock = null
         }
         continue
-      }
-      
-      if (isInCodeBlock) {
+      } else if (line.startsWith('###')) {
+        // 确保标题格式正确
+        const titleText = line.slice(3).trim()
+        buffer += `\n<h3>${titleText}</h3>\n`
+      } else if (isInCodeBlock) {
         if (currentCodeBlock) {
           currentCodeBlock.content += line + '\n'
           const codeElement = document.getElementById(`code-block-${currentCodeBlock.id}`)
@@ -239,16 +258,19 @@ const sanitizeAndFormat = (message) => {
           }
         }
       } else {
-        // 处理标题和列表
-        if (line.startsWith('###')) {
-          buffer += '\n' + line + '\n\n'
-        } else if (line.trim().startsWith('-')) {
+        // 处理普通文本、列表和加粗
+        if (line.trim().startsWith('-') || line.trim().startsWith('1.')) {
+          // 处理列表项
           if (!buffer.endsWith('\n\n')) {
             buffer += '\n'
           }
-          buffer += line.replace(/^(\s*)-\s*/, '$1- ') + '\n'
+          // 处理列表项中的加粗
+          const processedLine = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          buffer += processedLine + '\n\n'  // 确保列表项之间有空行
         } else {
-          buffer += line + '\n'
+          // 处理普通文本中的加粗
+          const processedLine = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          buffer += processedLine + '\n'
         }
       }
     }
@@ -509,5 +531,33 @@ const sanitizeAndFormat = (message) => {
   .hljs {
     background: transparent;
   }
+}
+
+.markdown-content {
+  line-height: 1.6;
+}
+
+.markdown-content h3 {
+  margin: 1.5em 0 1em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #eaecef;
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #24292e;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.markdown-content li {
+  margin: 0.5em 0;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+  color: #24292e;
 }
 </style>
