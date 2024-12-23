@@ -98,6 +98,14 @@
 <script>
 import { ElMessage } from 'element-plus';
 
+function parseJwt(token) {
+  if (!token) return null;
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+  return JSON.parse(jsonPayload);
+}
+
 export default {
   name: 'HomePage',
   data() {
@@ -145,6 +153,15 @@ export default {
           localStorage.setItem('email', data.email);
           localStorage.setItem('userid', data.userid);
           
+          // 解析 JWT 获取角色信息
+          const decodedToken = parseJwt(data.token);
+          console.log('解析后的 JWT:', decodedToken); // 添加调试信息
+          if (decodedToken && decodedToken.roles && decodedToken.roles.length > 0) {
+            localStorage.setItem('roleName', decodedToken.roles[0]); // 存储角色名称
+          } else {
+            console.error('JWT 中没有角色信息');
+          }
+          
           ElMessage.success('登录成功');
           this.showLoginModal = false;
           this.$router.go(0); // 刷新页面以更新状态
@@ -180,7 +197,7 @@ export default {
             }
           }, 1000);
           
-          alert('验证码已发送到您的邮箱，如未收到，请耐心等待或再发送一次');
+          alert('验证码已发送到您的邮箱，如未收到，请耐等待或再发送一次');
         } else {
           alert('验证码发送失败，请稍后重试');
         }
