@@ -1,15 +1,12 @@
 package org.sevengod.javabe.web.tests;
 
-import org.sevengod.javabe.entity.vo.StreamMessageRequest;
-import reactor.core.publisher.Flux;
+import org.sevengod.javabe.entity.req.StreamMessageRequest;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface StreamMessageService {
-    Flux<String> getAgentMessages();
-    
-    /**
-     * 发送流式消息请求
-     * @param request 流式消息请求体
-     * @return 流式响应
-     */
-    Flux<String> sendStreamMessage(StreamMessageRequest request);
+    SseEmitter getAgentMessages();
+    SseEmitter sendStreamMessage(StreamMessageRequest request);
+    void onCompletion(SseEmitter emitter);
+    void onTimeout(SseEmitter emitter);
+    void onError(SseEmitter emitter, Throwable throwable);
 }

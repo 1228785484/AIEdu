@@ -10,12 +10,14 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "docx": "^9.1.0",
+    "dompurify": "^3.2.3",
     "echarts": "^5.5.1",
     "element-plus": "^2.5.6",
     "file-saver": "^2.0.5",
+    "highlight.js": "^11.11.0",
     "html-loader": "^0.5.5",
     "markdown-loader": "^8.0.0",
-    "marked": "^15.0.3",
+    "marked": "^15.0.4",
     "vue": "^3.4.15",
     "vue-echarts": "^7.0.3",
     "vue-router": "^4.0.13"

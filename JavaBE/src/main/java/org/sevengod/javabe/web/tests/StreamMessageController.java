@@ -1,14 +1,12 @@
 package org.sevengod.javabe.web.tests;
 
-import com.esotericsoftware.minlog.Log;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sevengod.javabe.entity.vo.StreamMessageRequest;
-import org.springframework.http.MediaType;
+import org.sevengod.javabe.entity.req.StreamMessageRequest;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/agent")
@@ -19,23 +17,40 @@ public class StreamMessageController {
 
     private final StreamMessageService streamMessageService;
 
-    @GetMapping(value = "/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "获取消息流(没用)")
-    public Flux<String> getMessages() {
-        return streamMessageService.getAgentMessages()
-                .onErrorResume(e -> {
-                    log.error("Error in getMessages", e);
-                    return Flux.error(e);
-                });
+    @GetMapping(value = "/messages")
+    @Operation(summary = "获取消息流")
+    public SseEmitter getMessages() {
+        SseEmitter emitter = streamMessageService.getAgentMessages();
+        
+        // 设置完成、超时和错误的回调
+        emitter.onCompletion(() -> streamMessageService.onCompletion(emitter));
+        emitter.onTimeout(() -> streamMessageService.onTimeout(emitter));
+        emitter.onError((ex) -> streamMessageService.onError(emitter, ex));
+        
+        return emitter;
     }
 
-    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/stream")
     @Operation(summary = "发送流式消息")
-    public Flux<String> sendStreamMessage(@RequestBody StreamMessageRequest request) {
-        return streamMessageService.sendStreamMessage(request)
-                .onErrorResume(e -> {
-                    log.error("Error in sendStreamMessage", e);
-                    return Flux.just("event: error\ndata: " + e.getMessage() + "\n\n");
-                });
+    public SseEmitter sendStreamMessage(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "abc-123") String user) {
+        
+        // 创建请求对象
+        StreamMessageRequest request = StreamMessageRequest.builder()
+                .inputs(new java.util.HashMap<>())
+                .query(query)
+                .responseMode("streaming")
+                .user(user)
+                .build();
+        
+        SseEmitter emitter = streamMessageService.sendStreamMessage(request);
+        
+        // 设置完成、超时和错误的回调
+        emitter.onCompletion(() -> streamMessageService.onCompletion(emitter));
+        emitter.onTimeout(() -> streamMessageService.onTimeout(emitter));
+        emitter.onError((ex) -> streamMessageService.onError(emitter, ex));
+        
+        return emitter;
     }
 }
