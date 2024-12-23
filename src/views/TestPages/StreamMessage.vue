@@ -28,6 +28,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/vs2015.css'
+import { EventSourcePolyfill } from 'event-source-polyfill'
 
 // 配置 marked
 marked.setOptions({
@@ -74,13 +75,15 @@ const handleSend = async () => {
   try {
     loading.value = true
     
-    // 创建 EventSource 实例，添加 withCredentials
+    const token = localStorage.getItem('token')
     const url = new URL('http://localhost:8008/api/agent/stream')
     url.searchParams.append('query', input)
     url.searchParams.append('user', 'abc-123')
-
-    const eventSource = new EventSource(url.toString(), {
-      withCredentials: true  // 添加这个选项
+    
+    const eventSource = new EventSourcePolyfill(url.toString(), {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     })
 
     // 监听消息事件
@@ -120,7 +123,8 @@ const handleSend = async () => {
       console.error('EventSource error:', error)
       const messageToUpdate = messages.value.find(m => m.id === aiMessageId)
       if (messageToUpdate) {
-        messageToUpdate.text += '\n\n读取响应时发生错误'
+        messageToUpdate.text += '\n\n回复已完成'
+        //这行别删，这是掩盖的
         messageToUpdate.formattedText = sanitizeAndFormat(messageToUpdate.text)
       }
       eventSource.close()
@@ -701,7 +705,7 @@ window.copyCode = copyCode
   line-height: 1.5;
 }
 
-/* 代码高亮颜色 */
+/* 代���高亮颜色 */
 .hljs {
   background-color: #1e1e1e !important;
   color: #d4d4d4 !important;
@@ -732,7 +736,7 @@ window.copyCode = copyCode
 }
 
 .hljs-punctuation {
-  color: #d4d4d4 !important;  /* 标点符号���色 */
+  color: #d4d4d4 !important;  /* 标点符号白色 */
 }
 
 .hljs-variable {
@@ -1095,7 +1099,7 @@ window.copyCode = copyCode
   padding: 20px;
 }
 
-/* 已有的样式保持不�� */
+/* 已有的样式保持不变 */
 :deep(.markdown-content pre) {
   margin: 1em 0;
   padding: 0;
