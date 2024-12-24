@@ -83,6 +83,17 @@
                   </div>
                 </div>
               </div>
+              <div class="report-end">
+                <div class="summary-content">
+                  <img src="@/assets/时长.png" alt="预测学习时长" class="summary-icon">
+                  <div class="text-content">
+                    <!-- <h4>预测学习时长</h4> -->
+                     <h4>AI预测您下一章节学习时间：</h4>
+                    <p>{{ predictedStudyDuration }} 分钟</p>
+                  </div>
+                </div>
+              </div>
+              
             </div>
             
             <!-- 空状态 -->
@@ -169,6 +180,7 @@
             <div class="data-chart">
               <VChart class="chart" :option="dataRecordOption" />
             </div>
+            
           </div>
 
           <!-- 能力雷达图 -->
@@ -233,6 +245,36 @@ const weekStudytimes = ref(null)//一周的学习次数总数
 const totalStudyDuration = ref(null)//总共的学习时长
 const progress = ref(null)//学习进度
 const continueCheckins = ref(null)//连续签到的天数
+const predictedStudyDuration = ref(null)//预测学习时长
+
+const fetchPredictedStudyDuration = async () => {
+  const userId = localStorage.getItem('userid'); // 从本地存储获取用户ID
+  const courseId = localStorage.getItem('selectedCourseId'); // 从本地存储获取课程ID
+  const difficulties = ['EASY', 'MEDIUM', 'HARD']
+  const randomInt = Math.floor(Math.random() * (2 - 0 + 1)) + 0;
+  const difficulty = difficulties[randomInt]; // 固定的难度参数
+  console.log(randomInt,'这是随机数')
+  const url = `http://localhost:8008/api/ai/predict?userId=${userId}&courseId=${courseId}&difficulty=${difficulty}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}` // 如果需要身份验证
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(data,'这是预测时间')
+      predictedStudyDuration.value = data.data; // 假设返回的数据中有 predictedDuration 字段
+    } else {
+      console.error('获取预测学习时长失败:', response.statusText);
+    }
+  } catch (error) {
+    console.error('请求错误:', error);
+  }
+};
 
 const quizChartOption = ref({
   grid: {
@@ -613,6 +655,7 @@ onMounted(() => {
   fetchLearningRecords()
   getLearningProgress()
   fetchConsecutiveCheckins()
+  fetchPredictedStudyDuration()
 })
 
 const radarChartOption = ref({
@@ -1027,7 +1070,7 @@ const fetchTotalStudyDuration = async () => {
 
     const result = await response.json();
     console.log('总学习时长:', result.data); // 处理返回的数据
-    totalStudyDuration.value = result.data.totalDurationSeconds
+    totalStudyDuration.value = Math.round(result.data.totalDurationSeconds/60)
     console.log(totalStudyDuration.value)
   } catch (error) {
     console.error('获取总学习时长失败:', error);
@@ -1712,8 +1755,9 @@ fetchTotalStudyDuration()
 }
 
 .data-chart {
-  height: 600px;
-  width: 800px;
+  margin-top:-20px;
+  height: 500px;
+  width: 930px;
 }
 
 .radar-chart {
@@ -1721,4 +1765,36 @@ fetchTotalStudyDuration()
   width: 800px;
 }
 
+.report-end {
+  margin-top: 20px; /* 与上方内容的间距 */
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  display: flex; /* 使用 Flexbox 布局 */
+  align-items: center; /* 垂直居中对齐 */
+}
+
+.summary-content {
+  display: flex; /*使用 Flexbox 布局*/
+  align-items: center; /*垂直居中对齐*/
+}
+
+.summary-icon {
+  width: 40px; /* 设置图片宽度 */
+  height: 40px; /* 设置图片高度 */
+  margin-right: 15px; /* 图片与文字之间的间距 */
+}
+
+
+.text-content h4 {
+  margin: 0 0 5px; /* 调整标题的间距 */
+  color: #303133;
+}
+
+.text-content p {
+  margin: 0; /* 去掉段落的默认间距 */
+  font-size: 16px;
+  color: #606266;
+}
 </style>
