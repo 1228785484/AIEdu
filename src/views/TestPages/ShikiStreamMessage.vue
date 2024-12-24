@@ -2,7 +2,7 @@
   <el-container>
     <el-main>
       <div class="chat-container">
-        <div class="messages-container">
+        <div class="messages-container" ref="messagesContainer">
           <div v-for="message in messages" :key="message.id" class="message">
             <div class="message-content" 
                  :class="{ 'user-message': message.isUser }" 
@@ -41,6 +41,18 @@ const eventSource = ref(null)
 const inUserCodeBlock = ref(false)
 const currentMessageId = ref(null)
 const messageStates = ref(new Set()) // 用于跟踪已处理的消息
+
+const keywords = ['int', 'void', 'return', 'public', 'private', 'protected', 'class', 'interface', 'static', 'final'];
+
+const processKeywords = (text) => {
+  let processedText = text;
+  keywords.forEach(keyword => {
+    // 使用正则表达式确保匹配的是完整的单词，且后面没有空格
+    const regex = new RegExp(`\\b${keyword}\\b(?![\\s])`, 'g');
+    processedText = processedText.replace(regex, `${keyword} `);
+  });
+  return processedText;
+};
 
 const renderMarkdown = async (text) => {
   try {
@@ -122,7 +134,8 @@ const processStreamMessage = (() => {
       return true
     }
 
-    accumulatedText += event.data
+    // 处理关键字空格
+    accumulatedText += processKeywords(event.data)
     const now = Date.now()
     
     // 如果距离上次渲染时间超过了间隔，立即渲染
@@ -156,6 +169,31 @@ const processStreamMessage = (() => {
     return false
   }
 })()
+
+const handleEventSource = (eventSource) => {
+  eventSource.onmessage = async (event) => {
+    const msgTimestamp = new Date().toISOString()
+    try {
+      const isDone = await processStreamMessage(event, messages.value.length - 1)
+      if (isDone) {
+        console.log(`[${msgTimestamp}] Stream completed for message:`, { messageId: currentMessageId.value })
+        closeEventSource()
+      }
+    } catch (error) {
+      console.error(`[${msgTimestamp}] Error processing message:`, { 
+        messageId: currentMessageId.value,
+        error
+      })
+      closeEventSource()
+    }
+  };
+
+  eventSource.onerror = (error) => {
+    console.error('EventSource error:', error);
+    loading.value = false;
+    eventSource.close();
+  };
+};
 
 const handleKeydown = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
@@ -259,33 +297,7 @@ const startStream = async () => {
       connectionTimeout: 30000
     })
 
-    eventSource.value.onmessage = async (event) => {
-      const msgTimestamp = new Date().toISOString()
-      try {
-        const isDone = await processStreamMessage(event, messages.value.length - 1)
-        if (isDone) {
-          console.log(`[${msgTimestamp}] Stream completed for message:`, { messageId: currentMessageId.value })
-          closeEventSource()
-        }
-      } catch (error) {
-        console.error(`[${msgTimestamp}] Error processing message:`, { 
-          messageId: currentMessageId.value,
-          error
-        })
-        closeEventSource()
-      }
-    }
-
-    eventSource.value.onerror = (error) => {
-      const errorTimestamp = new Date().toISOString()
-      console.log(`[${errorTimestamp}] EventSource error for message:`, { 
-        messageId: currentMessageId.value,
-        error,
-        readyState: eventSource.value?.readyState
-      })
-      
-      closeEventSource()
-    }
+    handleEventSource(eventSource.value)
 
     eventSource.value.onopen = () => {
       console.log(`[${timestamp}] EventSource connection opened for message:`, { 
