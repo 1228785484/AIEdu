@@ -310,6 +310,38 @@
           class="note-textarea"
         ></textarea>
         
+        <!-- 添加文件上传功能 -->
+        <input 
+          type="file" 
+          @change="handleFileUpload" 
+          accept=".jpg" 
+          multiple 
+          class="file-input"
+        />
+        <div class="image-preview-container">
+          <table>
+            <thead>
+              <tr>
+                <th>文件名</th>
+                <th>预览</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(image, index) in uploadedImages[currentChapterId]" :key="index">
+                <td class="file-name" style="word-wrap: break-word; white-space: normal;">{{ image.name }}</td> <!-- 显示文件名 -->
+                <td>
+                  <img :src="image.url" alt="Uploaded Image" class="preview-image" /> <!-- 显示图片预览 -->
+                </td>
+                <td>
+                  <button @click="removeImage(currentChapterId, index)" class="action-link delete-link">删除</button>
+                  <button @click="handleDownloadButtonClick(currentChapterId, index)" class="action-link download-link">下载</button> <!-- 添加下载按钮 -->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
         <div class="privacy-setting">
           <label class="privacy-label">
             <input 
@@ -588,6 +620,7 @@ loadCourseTree();
 updateLearningProgress();
 updateStudyTimes();
 updateTaskPoints();
+loadImagesFromLocalStorage();
 });
 
 // el-tree 需要的默认属性配置
@@ -1939,6 +1972,139 @@ try {
 } finally {
   isExporting.value = false;
 }
+};
+const uploadedImages = ref({}); // 存储每个章节的上传图片
+
+// 处理文件上传
+const handleFileUpload = async (event) => {
+  const files = event.target.files;
+  const chapterId = currentChapterId.value; // 获取当前章节ID
+  const userId = localStorage.getItem('userid'); // 获取用户ID
+  const bucketName = 'notes'; // 确保这里是正确的存储桶名称
+
+  if (!uploadedImages.value[chapterId]) {
+    uploadedImages.value[chapterId] = []; // 初始化章节的图片数组
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.type === 'image/jpeg') { // 仅支持 JPG 格式
+      const formData = new FormData(); // 创建 FormData 对象
+      formData.append('file', file); // 将文件添加到 FormData 对象
+
+      // 调用后端接口上传图片
+      try {
+        const response = await fetch(`http://localhost:8008/api/file/upload?bucketName=${bucketName}&userId=${userId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData // 使用 FormData 作为请求体
+        });
+
+        const result = await response.json(); // 解析响应结果
+
+        // 检查后端返回的状态
+        if (response.ok && result.code === 200 && result.msg.includes('上传成功')) {
+          uploadedImages.value[chapterId].push({ name: file.name, url: URL.createObjectURL(file) }); // 上传成功，添加图片到数组
+          saveImagesToLocalStorage(); // 保存到 localStorage
+          alert('上传成功！'); // 显示成功消息
+        } else {
+          alert('上传失败: ' + (result.msg || '请重试')); // 显示失败消息
+        }
+      } catch (error) {
+        console.error('上传图片时出错:', error);
+        alert('上传失败，请重试');
+      }
+    } else {
+      alert('请上传 JPG 格式的图片');
+    }
+  }
+};
+
+// 保存图片到 localStorage
+const saveImagesToLocalStorage = () => {
+  localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages.value));
+};
+
+// 从 localStorage 加载图片
+const loadImagesFromLocalStorage = () => {
+  const storedImages = localStorage.getItem('uploadedImages');
+  if (storedImages) {
+    uploadedImages.value = JSON.parse(storedImages);
+  }
+};
+
+// 添加下载文件的函数
+const handleDownloadButtonClick = async (chapterId, index) => {
+  const image = uploadedImages.value[chapterId][index]; // 获取要下载的图片对象
+  const userId = localStorage.getItem('userid'); // 获取用户ID
+  const bucketName = 'notes'; // 存储桶名称
+  // 修改文件名格式
+  const formattedFileName = `${userId}_${image.name}`;
+
+  try {
+    const response = await fetch(`http://localhost:8008/api/file/download?bucketName=${bucketName}&fileName=${encodeURIComponent(formattedFileName)}&userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      const blob = await response.blob(); // 获取文件的 Blob 对象
+      const url = window.URL.createObjectURL(blob); // 创建下载链接
+      const a = document.createElement('a'); // 创建一个链接元素
+      a.href = url;
+      a.download = image.name; // 设置下载文件名
+      document.body.appendChild(a);
+      a.click(); // 触发下载
+      a.remove(); // 移除链接元素
+      window.URL.revokeObjectURL(url); // 释放 Blob URL
+      alert('下载成功！'); // 显示成功消息
+    } else {
+      alert('下载失败: ' + (await response.text() || '请重试')); // 显示失败消息
+    }
+  } catch (error) {
+    console.error('下载文件时出错:', error);
+    alert('下载失败，请重试');
+  }
+};
+
+
+// 删除图片
+const removeImage = async (chapterId, index) => {
+  const image = uploadedImages.value[chapterId][index]; // 获取要删除的图片对象
+  const userId = localStorage.getItem('userid'); // 获取用户ID
+  const bucketName = 'notes'; // 存储桶名称
+  
+  try {
+    const response = await fetch(`http://localhost:8008/api/file/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        userId: userId,
+        bucketName: bucketName,
+        objectName: image.name // 使用文件名
+      })
+    });
+
+    const result = await response.json(); // 解析响应结果
+
+    if (response.ok && result.code === 200) {
+      uploadedImages.value[chapterId].splice(index, 1); // 从指定章节的数组中移除图片
+      saveImagesToLocalStorage(); // 更新localStorage
+      alert('图片删除成功！'); // 显示成功消息
+    } else {
+      alert(`删除失败: ${result.msg || '请重试'}`); // 显示失败消息
+    }
+  } catch (error) {
+    console.error('删除图片时出错:', error);
+    alert('删除失败，请重试');
+  }
 };
 
 </script>
@@ -3293,6 +3459,38 @@ align-items: center;
   color: #666;
   margin: 15px 0;
   padding: 0 20px;
+}
+.image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.image-preview {
+    position: relative;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.preview-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.file-input {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.action-link {
+    color: blue; /* 蓝色字体 */
+    text-decoration: underline; /* 带下划线 */
+    background: none; /* 无背景 */
+    border: none; /* 无边框 */
+    margin-left: 10px; /* 添加左边距以分隔按钮 */
+    font-size: 14px; /* 设置字体大小 */
 }
   </style>
   
