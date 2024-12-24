@@ -25,7 +25,7 @@ public class AIModelServiceImpl implements AIModelService {
     private final ChapterMapper chapterMapper;
     private final RestTemplate restTemplate;
 
-    private final String predictUrl="http://10.7.81.138:5000/predict";
+    private final String predictUrl="http://10.7.81.200:5000/predict";
     private final String authToken="393dc2fd-c2d2-4c31-b546-e21d24faf006";
 
     @Override

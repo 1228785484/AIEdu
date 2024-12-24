@@ -1,10 +1,11 @@
-package org.sevengod.javabe.web.tests;
+package org.sevengod.javabe.web.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sevengod.javabe.entity.req.StreamMessageRequest;
+import org.sevengod.javabe.web.service.StreamMessageService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 

@@ -1,4 +1,4 @@
-package org.sevengod.javabe.web.tests;
+package org.sevengod.javabe.web.service.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sevengod.javabe.entity.req.StreamMessageRequest;
 import org.sevengod.javabe.entity.resp.StreamResponse;
+import org.sevengod.javabe.web.service.StreamMessageService;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -16,8 +17,6 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.springframework.web.reactive.function.client.WebClient;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @Service

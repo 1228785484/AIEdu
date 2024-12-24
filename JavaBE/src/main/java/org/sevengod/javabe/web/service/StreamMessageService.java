@@ -1,4 +1,4 @@
-package org.sevengod.javabe.web.tests;
+package org.sevengod.javabe.web.service;
 
 import org.sevengod.javabe.entity.req.StreamMessageRequest;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
