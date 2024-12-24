@@ -620,6 +620,7 @@ loadCourseTree();
 updateLearningProgress();
 updateStudyTimes();
 updateTaskPoints();
+loadImagesFromLocalStorage();
 });
 
 // el-tree 需要的默认属性配置
