@@ -15,7 +15,7 @@
               <el-menu-item v-if="isLoggedIn" index="/project-square">项目广场</el-menu-item>
               <el-menu-item v-if="isLoggedIn" index="/ai-assistant">AI助手</el-menu-item>
               <el-menu-item v-if="isLoggedIn" index="/ai-learning">AI学习</el-menu-item>
-              <el-menu-item v-if="isLoggedIn" index="/c-assistant">
+              <el-menu-item v-if="isLoggedIn" index="/shiki-chat">
                 <el-icon><Monitor /></el-icon>
                 <span>C语言助教</span>
               </el-menu-item>

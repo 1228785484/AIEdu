@@ -99,6 +99,15 @@ const routes = [
     meta: {
       requiresAuth: true  // 需要登录才能访问
     }
+  },
+  {
+    path: '/shiki-chat',
+    name: 'ShikiChat',
+    component: () => import('../views/TestPages/ShikiStreamMessage.vue'),
+    meta: {
+      title: 'Shiki Chat',
+      requiresAuth: true
+    }
   }
   // {
   //   path: '/teacher', // 添加教师管理页面的路由
