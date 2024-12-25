@@ -2141,7 +2141,7 @@ min-width: 250px;
 height: 650px;
 background-color: #f8f9fa;
 border-radius: 15px;
-box-shadow: 0 10px 10px rgb(237, 201, 237);
+box-shadow: 0 10px 10px #ccc;
 flex-shrink: 0;
 overflow: hidden;
 }
@@ -2364,7 +2364,7 @@ min-width: 500px;
 height: 650px;
 background-color: #f8f9fa;
 border-radius: 15px;
-box-shadow: 0 10px 10px rgb(237, 201, 237);
+box-shadow: 0 10px 10px #ccc;
 flex-shrink: 0;
 overflow: hidden;
 position: relative;
@@ -2457,7 +2457,7 @@ min-width: 280px;
 height: 650px;
 background-color: #f8f9fa;
 border-radius: 15px;
-box-shadow: 0 10px 10px rgb(237, 201, 237);
+box-shadow: 0 10px 10px #ccc;
 flex-shrink: 0;
 }
 
