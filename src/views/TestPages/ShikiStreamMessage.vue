@@ -80,6 +80,14 @@ const renderMarkdown = async (text) => {
         }
       }
       
+      // 处理代码块外的破折号
+      if (!inCodeBlock && line.trim().startsWith('-')) {
+        // 确保破折号后有空格，并且保持原有缩进
+        const indent = line.match(/^\s*/)[0]
+        const content = line.trim().substring(1).trim()
+        line = `${indent}- ${content}`
+      }
+      
       if (line.startsWith('```')) {
         inCodeBlock = !inCodeBlock
         processedLines.push(line)
@@ -116,19 +124,33 @@ const processStreamMessage = (() => {
   let debounceTimer = null
   let lastRenderTime = Date.now()
   const RENDER_INTERVAL = 50 // 每50ms更新一次
+  let previousMessageIndex = -1
   
   return async (event, messageIndex) => {
+    // 只在消息索引变化时重置累积文本
+    if (messageIndex !== previousMessageIndex) {
+      accumulatedText = ''
+      previousMessageIndex = messageIndex
+    }
+
     if (event.data === '[DONE]') {
       if (debounceTimer) {
         clearTimeout(debounceTimer)
         debounceTimer = null
       }
-      // 最后一次渲染，确保显示所有内容
+      // 消息完成时的最后一次渲染
       const rendered = await renderMarkdown(accumulatedText)
       messages.value[messageIndex] = {
         ...messages.value[messageIndex],
         text: rendered
       }
+      // 清空累积的文本，并创建新的消息占位
+      accumulatedText = ''
+      messages.value.push({
+        id: generateId(),
+        text: '',
+        isUser: false
+      })
       await nextTick()
       scrollToBottom()
       return true
@@ -180,10 +202,7 @@ const handleEventSource = (eventSource) => {
         closeEventSource()
       }
     } catch (error) {
-      console.error(`[${msgTimestamp}] Error processing message:`, { 
-        messageId: currentMessageId.value,
-        error
-      })
+      console.error(`[${msgTimestamp}] Error processing stream message:`, error)
       closeEventSource()
     }
   };
