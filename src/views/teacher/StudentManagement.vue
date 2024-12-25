@@ -60,56 +60,57 @@
         </tr>
       </thead>
       <tbody v-if="!searchResult">
-        <tr  v-for="user in enrolledStudents" :key="user.userId">
-          <td>{{ user.userId || '-' }}</td>
-          <td>{{ user.username || '-' }}</td>
-          <td>{{ user.email || '-' }}</td>
-          <td>{{ user.progress+'%' || '未开始' }}</td>
+        <tr v-for="user in enrolledStudents" :key="user.userId">
+          <td>{{ user.userId }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.progress }}%</td>
           <td>
-            <el-button type="text" @click="viewUserDetails(user.userId)">查看</el-button>
+            <el-button type="text" @click="viewUserDetails(user.userId, user.username)">查看</el-button>
           </td>
           <td>
-            <el-button type="text" @click="confirmDeleteUser(user)">删除</el-button>
+            <el-button type="text" style="color: #F56C6C;" @click="confirmDeleteUser(user)">删除</el-button>
           </td>
         </tr>
-        
       </tbody>
-        <!-- 显示搜索结果 -->
-        <tr v-if="searchResult">
+      <tbody v-else>
+        <tr>
           <td>{{ searchResult.userId }}</td>
           <td>{{ searchResult.username }}</td>
           <td>{{ searchResult.email }}</td>
           <td>{{ searchResult.progress }}%</td>
           <td>
-            <el-button type="text" @click="viewUserDetails(searchResult.userId)">查看</el-button>
+            <el-button type="text" @click="viewUserDetails(searchResult.userId, searchResult.username)">查看</el-button>
           </td>
           <td>
-            <el-button type="text" @click="confirmDeleteUser(user.userId)">删除</el-button>
+            <el-button type="text" style="color: #F56C6C;" @click="confirmDeleteUser(searchResult)">删除</el-button>
           </td>
         </tr>
-      <tbody>
-
       </tbody>
     </table>
     <!-- 手动添加用户的对话框 -->
-    <!-- <el-dialog title="手动添加学生" :visible.sync="dialogVisible">
-      <el-input v-model="newUserId" placeholder="用户ID" style="margin-bottom: 10px;" />
-      <el-input v-model="newUsername" placeholder="用户名" style="margin-bottom: 10px;" />
-      <el-input v-model="newEmail" placeholder="邮箱" style="margin-bottom: 10px;" />
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="addStudent">确 定</el-button>
-      </span>
-    </el-dialog> -->
-     <!-- 手动添加用户的对话框 -->
-     <!-- 手动添加用户的对话框 -->
-    <el-dialog title="手动添加学生" v-model:visible="dialogVisible">
-      <el-input v-model="newUserId" placeholder="用户ID" style="margin-bottom: 10px;" />
-      <el-input v-model="newUsername" placeholder="用户名" style="margin-bottom: 10px;" />
-      <el-input v-model="newEmail" placeholder="邮箱" style="margin-bottom: 10px;" />
+    <el-dialog 
+      title="手动添加学生" 
+      v-model="dialogVisible"
+      width="40%"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="form" label-width="80px" style="padding: 20px;">
+        <el-form-item label="用户ID" style="margin-bottom: 25px;">
+          <el-input v-model="newUserId" placeholder="请输入用户ID" />
+        </el-form-item>
+        <el-form-item label="用户名" style="margin-bottom: 25px;">
+          <el-input v-model="newUsername" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="邮箱" style="margin-bottom: 25px;">
+          <el-input v-model="newEmail" placeholder="请输入邮箱" />
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="addStudent">确 定</el-button>
+        <div class="dialog-footer" style="padding: 20px 0 10px;">
+          <el-button @click="dialogVisible = false" style="margin-right: 15px;">取 消</el-button>
+          <el-button type="primary" @click="addStudent">确 定</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -117,28 +118,23 @@
 
 <script>
 import { ref, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 export default {
   name: 'StudentManagement',
   setup() {
-    const route = useRoute()
     const router = useRouter()
     const searchStudentQuery = ref('')
-    const courseUsers = ref([])
-    const currentCourseId = ref(route.params.courseId || null)
-    const courseList = ref([]) // 新增：课程列表
-    const selectedCourse = ref('') // 新增：选中的课程
-     // ... existing code ...
-    const users = ref([]) // 新增：存储所有用户
-    const enrolledStudents = ref([]) // 新增：存储选了指定课程的学生
-    const searchResult = ref(null) // 新增：存储搜索结果
-    // 新增：手动添加用户的输入
+    const selectedCourse = ref('')
+    const courseList = ref([])
+    const users = ref([])
+    const enrolledStudents = ref([])
+    const searchResult = ref(null)
     const newUserId = ref('')
     const newUsername = ref('')
     const newEmail = ref('')
-    const dialogVisible = ref(false) // 控制对话框的显示
+    const dialogVisible = ref(false)
 
     // 显示添加用户的对话框
     const showAddUserDialog = () => {
@@ -157,15 +153,20 @@ export default {
         }
 
         // 检查用户是否已存在
-        const existingStudent = enrolledStudents.value.find(student => student.userId === newUserId.value);
+        const existingStudent = enrolledStudents.value.find(student => 
+            student.userId === parseInt(newUserId.value) || 
+            student.username === newUsername.value || 
+            student.email === newEmail.value
+        );
+        
         if (existingStudent) {
             ElMessage.warning('该用户已在列表中');
             return;
         }
 
-        // 添加新用户
+        // 添加新用户到列表末尾
         enrolledStudents.value.push({
-            userId: newUserId.value,
+            userId: parseInt(newUserId.value),
             username: newUsername.value,
             email: newEmail.value,
             progress: 0 // 默认学习进度为0
@@ -179,9 +180,6 @@ export default {
         ElMessage.success('用户添加成功');
         dialogVisible.value = false; // 关闭对话框
     };
-
-    
-
 
     // 确认删除用户
     const confirmDeleteUser = (student) => {
@@ -208,13 +206,9 @@ export default {
     // 删除用户
     const deleteUser = (student) => {
         // 从 enrolledStudents 中删除该用户
-        // enrolledStudents.value = enrolledStudents.value.filter(s => s.userId !== student.userId);
         enrolledStudents.value = enrolledStudents.value.filter(s => s.userId !== student.userId);
         ElMessage.success('删除成功');
-        console.log(enrolledStudents.value,'这是删除后的')
     };
-
-    // ... existing code ...
 
     // 搜索学生
     const searchStudents = async () => {
@@ -241,8 +235,6 @@ export default {
             ElMessage.warning('该用户不存在');
         }
     };
-
-    
 
     // 获取用户列表
     const fetchUserList = async () => {
@@ -331,11 +323,11 @@ export default {
           const role = await fetchUserRole(user.userId); // 获取用户角色
           console.log(role,'这是角色')
           if (role === 'student') {
-            console.log(JSON.parse(JSON.stringify(user)).userId,currentCourseId.value,'这是用户Id和选择的')
-              const isEnrolled = await checkEnrollmentStatus(JSON.parse(JSON.stringify(user)).userId, currentCourseId.value);
+            console.log(JSON.parse(JSON.stringify(user)).userId,selectedCourse.value,'这是用户Id和选择的')
+              const isEnrolled = await checkEnrollmentStatus(JSON.parse(JSON.stringify(user)).userId, selectedCourse.value);
               console.log(isEnrolled,'这是判断学生是否选了这个课程')
               if (isEnrolled) {
-                const progress = await fetchStudyProgress(user.userId, currentCourseId.value); // 获取学习进度
+                const progress = await fetchStudyProgress(user.userId, selectedCourse.value); // 获取学习进度
                 enrolledStudents.value.push({
                     userId: user.userId,
                     username: user.username,
@@ -379,8 +371,7 @@ export default {
         fetchCourseList(); // 获取课程列表
     });
 
-    // 新增：获取课程列表
-    // 新增：获取课程列表
+    // 获取课程列表
     const fetchCourseList = async () => {
       try {
         const token = localStorage.getItem('token')
@@ -416,101 +407,32 @@ export default {
 
     // 监听选中的课程变化
     watch(selectedCourse, (newCourseId) => {
-      currentCourseId.value = newCourseId // 将所选课程的courseId赋值给currentCourseId
-      console.log(currentCourseId.value,"这是选择的课程")
-      // fetchCourseUsers()
-      filterEnrolledStudents()
+      console.log('Selected course changed:', newCourseId);
+      if (newCourseId) {
+        filterEnrolledStudents();
+      }
     })
 
-    
-
-    // 获取选课学生列表
-    // const fetchCourseUsers = async () => {
-    //   try {
-    //     const token = localStorage.getItem('token')
-    //     if (!token) {
-    //       ElMessage.error('未登录或登录已过期，请重新登录')
-    //       router.push('/login')
-    //       return
-    //     }
-
-    //     // 如果有courseId，则获取该课程的学生，否则获取所有学生
-    //     const url = currentCourseId.value
-    //       ? `http://localhost:8008/api/course/${currentCourseId.value}/enrolled-users`
-    //       : 'http://localhost:8008/api/course/enrolled-users'
-
-    //     const response = await fetch(url, {
-    //       method: 'GET',
-    //       headers: {
-    //         'Authorization': `Bearer ${token}`,
-    //         'Content-Type': 'application/json'
-    //       }
-    //     })
-
-    //     if (!response.ok) {
-    //       throw new Error('获取选课学生失败')
-    //     }
-
-    //     const result = await response.json()
-    //     if (result.code === 200) {
-    //       courseUsers.value = result.data.map(user => ({
-    //         ...user,
-    //         studyProgress: user.progress || 0
-    //       }))
-    //       console.log(result.data,'这是选这门课程的学生')
-    //     } else {
-    //       throw new Error(result.msg || '获取选课学生失败')
-    //     }
-    //   } catch (error) {
-    //     console.error('获取选课学生失败:', error)
-    //     ElMessage.error('获取选课学生失败，请稍后重试')
-    //   }
-    // }
-
-    // 监听courseId的变化
-    watch(() => route.params.courseId, (newCourseId) => {
-      currentCourseId.value = newCourseId
+    // 查看用户详情
+    const viewUserDetails = (userId, userName) => {
+      console.log('viewUserDetails called with userId:', userId);
+      if (!selectedCourse.value) {
+        ElMessage.warning('请先选择课程');
+        return;
+      }
+      console.log('Setting currentStudentId:', userId);
+      console.log('Setting currentCourseId:', selectedCourse.value);
       
-    })
-
-    // 搜索学生
-    // const searchStudents = async () => {
-    //   try {
-    //     if (!searchStudentQuery.value) {
-    //       // await fetchCourseUsers()
-    //       return
-    //     }
-
-    //     const token = localStorage.getItem('token')
-    //     if (!token) {
-    //       ElMessage.error('未登录或登录已过期，请重新登录')
-    //       router.push('/login')
-    //       return
-    //     }
-
-    //     const response = await fetch(`http://localhost:8008/api/course/search-students?query=${encodeURIComponent(searchStudentQuery.value)}`, {
-    //       method: 'GET',
-    //       headers: {
-    //         'Authorization': `Bearer ${token}`,
-    //         'Content-Type': 'application/json'
-    //       }
-    //     })
-
-    //     if (!response.ok) {
-    //       throw new Error('搜索学生失败')
-    //     }
-
-    //     const result = await response.json()
-    //     if (result.code === 200) {
-    //       courseUsers.value = result.data
-    //     } else {
-    //       throw new Error(result.msg || '搜索学生失败')
-    //     }
-    //   } catch (error) {
-    //     console.error('搜索学生失败:', error)
-    //     ElMessage.error('搜索学生失败，请稍后重试')
-    //   }
-    // }
+      // 直接跳转到学生学习情况路由，并传递用户信息
+      router.push({ 
+        name: 'StudyRecords',
+        query: { 
+          userId: userId,
+          userName: userName,
+          courseId: selectedCourse.value
+        }
+      });
+    };
 
     // 重置搜索
     const resetSearch = async () => {
@@ -518,128 +440,28 @@ export default {
       // await fetchCourseUsers()
     }
 
-    // 查看用户详情
-    const viewUserDetails = async (userId) => {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          ElMessage.error('未登录或登录已过期，请重新登录')
-          router.push('/login')
-          return
-        }
-
-        const response = await fetch(`http://localhost:8008/api/user/${userId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error('获取用户详情失败')
-        }
-
-        const result = await response.json()
-        if (result.code === 200) {
-          router.push({
-            name: 'StudentProgress',
-            params: {
-              userId: userId,
-              courseId: currentCourseId.value
-            }
-          })
-        } else {
-          throw new Error(result.msg || '获取用户详情失败')
-        }
-      } catch (error) {
-        console.error('获取用户详情失败:', error)
-        ElMessage.error('获取用户详情失败，请稍后重试')
-      }
-    }
-
-    // 确认删除用户
-    // const confirmDeleteUser = (userId) => {
-    //   ElMessageBox.confirm(
-    //     '确定要删除该学生吗？',
-    //     '警告',
-    //     {
-    //       confirmButtonText: '确定',
-    //       cancelButtonText: '取消',
-    //       type: 'warning',
-    //     }
-    //   )
-    //     .then(() => {
-    //       deleteUser(userId)
-    //     })
-    //     .catch(() => {
-    //       ElMessage({
-    //         type: 'info',
-    //         message: '已取消删除'
-    //       })
-    //     })
-    // }
-
-    // // 删除用户
-    // const deleteUser = async (userId) => {
-    //   try {
-    //     const token = localStorage.getItem('token')
-    //     if (!token) {
-    //       ElMessage.error('未登录或登录已过期，请重新登录')
-    //       router.push('/login')
-    //       return
-    //     }
-
-    //     const response = await fetch(`http://localhost:8008/api/course/remove-student/${userId}`, {
-    //       method: 'DELETE',
-    //       headers: {
-    //         'Authorization': `Bearer ${token}`,
-    //         'Content-Type': 'application/json'
-    //       }
-    //     })
-
-    //     if (!response.ok) {
-    //       throw new Error('删除学生失败')
-    //     }
-
-    //     const result = await response.json()
-    //     if (result.code === 200) {
-    //       ElMessage.success('删除成功')
-    //       // await fetchCourseUsers()
-    //     } else {
-    //       throw new Error(result.msg || '删除学生失败')
-    //     }
-    //   } catch (error) {
-    //     console.error('删除学生失败:', error)
-    //     ElMessage.error('删除学生失败，请稍后重试')
-    //   }
-    // }
-
     // 返回上一页
     const goBack = () => {
       router.go(-1)
     }
 
-    // 初始化时获取学生列表
-    onMounted(() => {
-      // fetchCourseUsers()
-      fetchCourseList()//获取课程列表
-    })
-
     return {
       searchStudentQuery,
-      courseUsers,
-      courseList,
       selectedCourse,
-      enrolledStudents, // 新增：返回选了课程的学生
-      searchResult, // 新增：返回搜索结果
-      viewUserDetails,
-      confirmDeleteUser,
+      courseList,
+      enrolledStudents,
+      searchResult,
+      dialogVisible,
+      newUserId,
+      newUsername,
+      newEmail,
+      showAddUserDialog,
+      addStudent,
       searchStudents,
       resetSearch,
-      goBack,
-      showAddUserDialog, // 修改后的函数
-      addStudent // 新增：添加学生的方法
+      confirmDeleteUser,
+      viewUserDetails,
+      goBack
     }
   }
 }
