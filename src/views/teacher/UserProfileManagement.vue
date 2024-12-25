@@ -1,8 +1,7 @@
 <template>
   <div class="profile-info" style="margin-top: 20px;">
     <h2>用户信息/个人资料</h2>
-    <div class="total-users">
-      <p style="font-size: 18px;">总人数: {{ filteredUsers.length }}</p>
+    <div class="search-area">
       <el-select v-model="searchField" placeholder="选择搜索字段" style="width: 150px;">
         <el-option label="用户ID" value="userId"></el-option>
         <el-option label="用户名" value="username"></el-option>
@@ -12,14 +11,17 @@
         v-model="localSearchQuery"
         placeholder="输入搜索内容"
         class="search-input"
-        style="width: 200px; margin-left: 10px;"
       />
       <el-button 
-        type="text" 
-        @click="searchStudents" 
-        style="margin-left: 5px; color: #409EFF; border: 1px solid #409EFF; border-radius: 4px; padding: 5px 10px;">
+        type="primary"
+        size="medium"
+        @click="searchStudents"
+        class="search-button">
         查询
       </el-button>
+      <div class="total-users">
+        <span>总人数: {{ filteredUsers.length }}</span>
+      </div>
     </div>
     <table class="info-table">
       <thead>
@@ -50,7 +52,6 @@
     </table>
   </div>
 </template>
-
 
 <script>
 export default {
@@ -138,37 +139,36 @@ export default {
     },
 
     // 分配角色
-    // 分配角色
-async assignRole(user, role) {
-  let apiUrl = '';
-  if (role === 'teacher') {
-    apiUrl = `http://localhost:8008/api/roles/teacher/${user.userId}`;
-  } else if (role === 'student') {
-    apiUrl = `http://localhost:8008/api/roles/student/${user.userId}`;
-  } else {
-    return;
-  }
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
+    async assignRole(user, role) {
+      let apiUrl = '';
+      if (role === 'teacher') {
+        apiUrl = `http://localhost:8008/api/roles/teacher/${user.userId}`;
+      } else if (role === 'student') {
+        apiUrl = `http://localhost:8008/api/roles/student/${user.userId}`;
+      } else {
+        return;
       }
-    });
 
-    if (response.ok) {
-      user.role = role === 'teacher' ? 'teacher' : 'student'; // 更新角色
-      alert(`成功分配角色：${role} 给 用户ID: ${user.userId}`);
-    } else {
-      alert('分配角色失败: 请求失败');
-    }
-  } catch (error) {
-    console.error('分配角色失败:', error);
-    alert('分配角色失败，请稍后重试');
-  }
-},
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          user.role = role === 'teacher' ? 'teacher' : 'student'; // 更新角色
+          alert(`成功分配角色：${role} 给 用户ID: ${user.userId}`);
+        } else {
+          alert('分配角色失败: 请求失败');
+        }
+      } catch (error) {
+        console.error('分配角色失败:', error);
+        alert('分配角色失败，请稍后重试');
+      }
+    },
     // 搜索用户
     searchStudents() {
       if (!this.localSearchQuery) {
@@ -184,20 +184,152 @@ async assignRole(user, role) {
 };
 </script>
 
-  
-  <style scoped>
+<style scoped>
   .profile-info {
-    padding: 20px;
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   }
+  
+  .search-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    background: #f8f9fc;
+    padding: 16px;
+    border-radius: 8px;
+  }
+  
+  .search-input {
+    flex: 1;
+    max-width: 300px;
+  }
+
+  .search-button {
+    margin-left: 0 !important;
+    height: 40px;
+    padding: 0 20px;
+    font-weight: 500;
+    border-radius: 6px;
+  }
+
+  .total-users {
+    margin-left: auto;
+    padding: 0 16px;
+    border-left: 2px solid #e0e7ff;
+  }
+  
+  .total-users span {
+    color: #2196f3;
+    font-weight: 500;
+    font-size: 15px;
+  }
+  
   .info-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(33, 150, 243, 0.08);
   }
-  .info-table th, .info-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-  }
+  
   .info-table th {
-    background-color: #f2f2f2;
+    background: #f5f7fa;
+    color: #2196f3;
+    font-weight: 600;
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 2px solid #e8f4fe;
   }
-  </style>
+  
+  .info-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f7ff;
+    color: #333;
+  }
+  
+  .info-table tr:hover {
+    background-color: #f8fbff;
+  }
+  
+  .info-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* 按钮样式优化 */
+  :deep(.el-button) {
+    transition: all 0.3s ease;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  
+  :deep(.el-button--danger) {
+    background: #f44336;
+    border-color: #f44336;
+    color: white;
+  }
+  
+  :deep(.el-button--danger:hover) {
+    background: #ef5350;
+    border-color: #ef5350;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  :deep(.el-button--primary) {
+    background: #2196f3;
+    border-color: #2196f3;
+    color: white;
+  }
+  
+  :deep(.el-button--primary:hover) {
+    background: #42a5f5;
+    border-color: #42a5f5;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  :deep(.el-button--success) {
+    background: #4caf50;
+    border-color: #4caf50;
+    color: white;
+  }
+  
+  :deep(.el-button--success:hover) {
+    background: #66bb6a;
+    border-color: #66bb6a;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  /* 输入框样式优化 */
+  :deep(.el-input__inner) {
+    height: 40px;
+    line-height: 40px;
+    border-color: #e0e7ff;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: #ffffff;
+  }
+  
+  :deep(.el-input__inner:hover) {
+    border-color: #2196f3;
+  }
+  
+  :deep(.el-input__inner:focus) {
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  }
+  
+  /* 标题样式 */
+  h2 {
+    color: #2196f3;
+    font-size: 24px;
+    margin-bottom: 24px;
+    font-weight: 600;
+  }
+</style>
