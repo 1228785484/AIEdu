@@ -16,7 +16,11 @@ import CourseDetail from '@/views/CourseDetail.vue'
 import StreamMessage from '../views/TestPages/StreamMessage.vue'  // 导入流式消息测试组件
 import Teacher from '../views/Teacher.vue'; // 导入 Teacher 组件
 import StudentManagement from '../views/teacher/StudentManagement.vue' // 导入 StudentManagement 组件
+import StudyRecords from '../views/teacher/StudyRecords.vue' // 导入 StudyRecords 组件
 import CourseZhangjie from '../components/Coursezhangjie.vue'; // 导入 CourseZhangjie 组件
+import UserProfileManagement from '../views/teacher/UserProfileManagement.vue'; // 导入 UserProfileManagement 组件
+import CourseManagement from '../views/teacher/CourseManagement.vue'; // 导入 CourseManagement 组件
+import AiTeaching from '../views/teacher/AiTeaching.vue'; // 导入 AiTeaching 组件
 
 // 配置路由
 const routes = [
@@ -93,6 +97,13 @@ const routes = [
         component: StudentManagement,
         name: 'course-students',
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'student/:userId/records',
+        component: StudyRecords,
+        name: 'StudyRecords',
+        props: true,
+        meta: { requiresAuth: true }
       }
     ]
   },
@@ -121,17 +132,36 @@ const routes = [
   },
   {
     path: '/teacher',
+    component: Teacher,
     children: [
       {
         path: '',
-        name: 'TeacherManagement',
-        component: Teacher,
-        meta: { requiresAuth: true } // 如果需要身份验证，可以添加此元信息
+        name: 'UserProfileManagement',
+        component: UserProfileManagement,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'course-management',
+        name: 'CourseManagement',
+        component: CourseManagement,
+        meta: { requiresAuth: true }
       },
       {
         path: 'student-management',
         name: 'StudentManagement',
         component: StudentManagement,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'study-records',
+        name: 'StudyRecords',
+        component: StudyRecords,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'ai-teaching',
+        name: 'AiTeaching',
+        component: AiTeaching,
         meta: { requiresAuth: true }
       }
     ]
