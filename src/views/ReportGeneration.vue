@@ -1003,14 +1003,18 @@ watch([activeNav, selectedChart], ([newNav, newChart]) => {
   }
 })
 
-// ... existing code ...
+// 添加 HTML 转义函数
+const stripHtml = (html) => {
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  return temp.textContent || temp.innerText;
+};
 
-
-
+// 修改 downloadReport 函数
 const downloadReport = async () => {
   if (!currentReport.value) {
-    ElMessage.warning('请先选择章节生成报告')
-    return
+    ElMessage.warning('请先选择章节生成报告');
+    return;
   }
 
   try {
@@ -1025,10 +1029,10 @@ const downloadReport = async () => {
             spacing: { after: 200 }
           }),
           
-          // 正文内容 - 将每个段落转换为 Word 段落
+          // 正文内容 - 将每个段落转换为纯文本后再创建 Word 段落
           ...currentReport.value.content.map(paragraph => 
             new Paragraph({
-              text: paragraph,
+              text: stripHtml(paragraph), // 移除 HTML 标签
               spacing: { after: 200 },
               style: {
                 paragraph: {
@@ -1041,18 +1045,16 @@ const downloadReport = async () => {
           )
         ]
       }]
-    })
+    });
 
-    const blob = await Packer.toBlob(doc)
-    saveAs(blob, `${currentReport.value.chapterName}-学习报告.docx`)
-    ElMessage.success('报告下载成功！')
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${currentReport.value.chapterName}-学习报告.docx`);
+    ElMessage.success('报告下载成功！');
   } catch (error) {
-    console.error('生成Word文档时出错:', error)
-    ElMessage.error('报告生成失败，请重试')
+    console.error('生成Word文档时出错:', error);
+    ElMessage.error('报告生成失败，请重试');
   }
-}
-
-// ... existing code ...
+};
 
 // 添加获取总学习时长的函数
 const fetchTotalStudyDuration = async () => {

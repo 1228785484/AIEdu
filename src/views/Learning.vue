@@ -992,7 +992,7 @@ try {
       que.value = quizResult.data.questions;
       if (quizResult && quizResult.data && quizResult.data.questions) {
       testData.value = { content: renderQuizQuestions(quizResult.data.questions) };
-      showQuizModal.value = true; // 显示弹窗
+      showQuizModal.value = true; // 显示��窗
       quizStarted.value = false; // 重置测验状态
       showResults.value = false; // 重置结果示状态
       timeLeft.value = totalMinutes * 60; // 重置倒计时时间
@@ -1946,42 +1946,54 @@ try {
 }
 };
 
-// 导出为Word文档
+// 修改 exportToDoc 函数
 const exportToDoc = async () => {
-try {
-  isExporting.value = true;
-  let docContent = '<html><body>';
-  docContent += '<h1>学习笔记整合</h1>';
+  try {
+    isExporting.value = true;
+    // 添加 UTF-8 BOM 头
+    let docContent = '\ufeff';
+    docContent += '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
+    docContent += '<head>';
+    // 设置 UTF-8 编码
+    docContent += '<meta charset="UTF-8">';
+    docContent += '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></xml><![endif]-->';
+    docContent += '<style>body { font-family: "Microsoft YaHei", SimSun, serif; }</style>';
+    docContent += '</head><body>';
+    docContent += '<h1 style="text-align:center">学习笔记整合</h1>';
 
-  allNotes.value.forEach(note => {
-  docContent += `
-      <div style="margin-bottom: 20px;">
-      <h2>章节 ${note.chapterTitle || note.chapterId}</h2>
-      <p>${note.content}</p>
-      <p><small>创建时间: ${new Date(note.createdAt).toLocaleString()}</small></p>
-      </div>
-  `;
-  });
+    allNotes.value.forEach(note => {
+      docContent += `
+        <div style="margin-bottom: 20px;">
+          <h2>章节 ${note.chapterTitle || note.chapterId}</h2>
+          <p style="line-height: 1.5;">${note.content}</p>
+          <p style="color: #666; font-size: 12px;">创建时间: ${new Date(note.createdAt).toLocaleString()}</p>
+          <hr/>
+        </div>
+      `;
+    });
 
-  docContent += '</body></html>';
+    docContent += '</body></html>';
 
-  // 创建Blob对象
-  const blob = new Blob([docContent], { type: 'application/msword' });
-  // 创建下载链接
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = '学习笔记整合.doc';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    // 创建 Blob 对象，指定 UTF-8 编码
+    const blob = new Blob([docContent], { 
+      type: 'application/msword;charset=utf-8' 
+    });
 
-  displayTemporaryMessage('导出成功！');
-} catch (error) {
-  console.error('导出失败:', error);
-  displayTemporaryMessage('导出失败，请重试');
-} finally {
-  isExporting.value = false;
-}
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '学习笔记整合.doc';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    displayTemporaryMessage('导出成功！');
+  } catch (error) {
+    console.error('导出失败:', error);
+    displayTemporaryMessage('导出失败，请重试');
+  } finally {
+    isExporting.value = false;
+  }
 };
 const uploadedImages = ref({}); // 存储每个章节的上传图片
 

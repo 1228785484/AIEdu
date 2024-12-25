@@ -38,8 +38,8 @@
           <el-form-item label="标题">
             <el-input v-model="chapterForm.title" />
           </el-form-item>
-          <el-form-item label="内容提示词">
-            <el-input v-model="chapterForm.content_prompt" type="textarea" />
+          <el-form-item label="章节ID">
+            <el-input-number v-model="chapterForm.chapterId" :min="1" />
           </el-form-item>
           <el-form-item label="序号">
             <el-input-number v-model="chapterForm.sequenceNumber" :min="1" />
@@ -86,8 +86,8 @@
         dialogVisible: false,
         chapterForm: {
           title: '',
-          content_prompt: '',
-          sequenceNumber: 1
+          sequenceNumber: 1,
+          chapterId: 1
         }
       }
     },
@@ -100,6 +100,8 @@
       },
       handleAddChapter() {
         this.dialogVisible = true
+        const maxId = Math.max(...this.chapters.map(c => c.chapterId), 0)
+        this.chapterForm.chapterId = maxId + 1
       },
       async fetchChapters() {
         try {
@@ -170,90 +172,40 @@
         console.log('No matching unit found')
         return null
       },
-      async submitAddChapter() {
-        try {
-          const token = localStorage.getItem('token')
-          if (!token) {
-            this.$message.error('未登录或登录已过期，请重新登录')
-            this.$router.push('/login')
-            return
-          }
-
-          const response = await fetch(`http://localhost:8008/api/unit/${this.unitId}/chapter`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(this.chapterForm),
-            credentials: 'include'
-          })
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-
-          const result = await response.json()
-          if (result.code === 200) {
-            this.$message.success('添加章节成功')
-            this.dialogVisible = false
-            await this.fetchChapters()
-            this.chapterForm = { title: '', content_prompt: '', sequenceNumber: 1 }
-          } else {
-            throw new Error(result.msg || '添加章节失败')
-          }
-        } catch (error) {
-          console.error('添加章节失败:', error)
-          this.$message.error('添加章节失败，请稍后重试')
+      submitAddChapter() {
+        const newChapter = {
+          chapterId: this.chapterForm.chapterId,
+          title: this.chapterForm.title,
+          sequence_number: this.chapterForm.sequenceNumber
         }
+        
+        this.chapters.push(newChapter)
+        this.dialogVisible = false
+        this.chapterForm = { title: '', sequenceNumber: 1, chapterId: '' }
+        
+        this.$message.success('添加章节成功')
       },
-      async handleDeleteChapters() {
-        try {
-          if (!this.selectedChapters.length) {
-            this.$message.warning('请选择删除的章节')
-            return
-          }
-
-          await this.$confirm('确认删除选中的章节？', '提示', {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          })
-
-          const token = localStorage.getItem('token')
-          if (!token) {
-            this.$message.error('未登录或登录已过期，请重新登录')
-            this.$router.push('/login')
-            return
-          }
-
-          const chapterIds = this.selectedChapters.map(chapter => chapter.chapterId)
-          const response = await fetch(`http://localhost:8008/api/unit/chapter/batch`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(chapterIds),
-            credentials: 'include'
-          })
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-
-          const result = await response.json()
-          if (result.code === 200) {
-            this.$message.success('删除章节成功')
-            await this.fetchChapters()
-          } else {
-            throw new Error(result.msg || '删除章节失败')
-          }
-        } catch (error) {
-          if (error.toString().includes('cancel')) return
-          console.error('删除章节失败:', error)
-          this.$message.error('删除章节失败，请稍后重试')
+      handleDeleteChapters() {
+        if (!this.selectedChapters.length) {
+          this.$message.warning('请选择要删除的章节')
+          return
         }
+        
+        this.$confirm('确认删除选中的章节？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          // 获取要删除的章节ID列表
+          const deleteIds = this.selectedChapters.map(chapter => chapter.chapterId)
+          
+          // 从chapters数组中过滤掉要删除的章节
+          this.chapters = this.chapters.filter(chapter => !deleteIds.includes(chapter.chapterId))
+          
+          this.$message.success('删除章节成功')
+        }).catch(() => {
+          // 用户点击取消，不做任何操作
+        })
       }
     }
   }

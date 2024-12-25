@@ -57,6 +57,9 @@
     <!-- 添加单元对话框 -->
     <el-dialog v-model="dialogVisible" title="添加单元" width="500px">
       <el-form :model="unitForm" label-width="100px">
+        <el-form-item label="单元ID">
+          <el-input-number v-model="unitForm.unitId" :min="1" />
+        </el-form-item>
         <el-form-item label="标题">
           <el-input v-model="unitForm.title" />
         </el-form-item>
@@ -90,11 +93,25 @@ export default {
   },
   data() {
     return {
-      units: [],
+      units: [
+        {
+          unitId: 1,
+          title: '单元一',
+          description: '基础知识介绍',
+          sequenceNumber: 1
+        },
+        {
+          unitId: 2,
+          title: '单元二',
+          description: '进阶概念学习',
+          sequenceNumber: 2
+        }
+      ],
       searchQuery: '',
       selectedUnits: [],
       dialogVisible: false,
       unitForm: {
+        unitId: 1,
         title: '',
         description: '',
         sequenceNumber: 1
@@ -111,51 +128,7 @@ export default {
       )
     }
   },
-  async created() {
-    const courseId = this.$route.params.courseId
-    await this.fetchCourseUnits(courseId)
-  },
   methods: {
-    async fetchCourseUnits(courseId) {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          this.$message.error('未登录或登录已过期，请重新登录')
-          this.$router.push('/login')
-          return
-        }
-
-        const params = new URLSearchParams({
-          courseId: courseId
-        })
-        
-        const response = await fetch(`http://localhost:8008/api/course/findUnits?${params.toString()}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        })
-        
-        const result = await response.json()
-
-        if (response.ok) {
-          this.units = result.map(unit => ({
-            unitId: unit.unitId,
-            title: unit.title,
-            description: unit.description,
-            sequenceNumber: unit.sequenceNumber
-          }))
-        } else {
-          throw new Error(result.msg || '获取课程单元数据失败')
-        }
-      } catch (error) {
-        console.error('获取课程单元数据失败:', error)
-        this.$message.error('获取课程单元数据失败，请稍后重试')
-        this.units = []
-      }
-    },
     handleSearch() {
       // 搜索功能通过计算属性 filteredUnits 自动实现
     },
@@ -164,86 +137,46 @@ export default {
     },
     handleAddUnit() {
       this.dialogVisible = true
+      const maxId = Math.max(...this.units.map(u => u.unitId), 0)
+      this.unitForm.unitId = maxId + 1
     },
-    async submitAddUnit() {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          this.$message.error('未登录或登录已过期，请重新登录')
-          this.$router.push('/login')
-          return
-        }
-
-        const response = await fetch(`http://localhost:8008/api/course/${this.$route.params.courseId}/unit`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(this.unitForm),
-          credentials: 'include'
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const result = await response.json()
-        if (result.code === 200) {
-          this.$message.success('添加单元成功')
-          this.dialogVisible = false
-          await this.fetchCourseUnits(this.$route.params.courseId)
-        } else {
-          throw new Error(result.msg || '添加单元失败')
-        }
-      } catch (error) {
-        console.error('添加单元失败:', error)
-        this.$message.error('添加单元失败，请稍后重试')
+    submitAddUnit() {
+      const newUnit = {
+        unitId: this.unitForm.unitId,
+        title: this.unitForm.title,
+        description: this.unitForm.description,
+        sequenceNumber: this.unitForm.sequenceNumber
       }
+      
+      this.units.push(newUnit)
+      
+      this.dialogVisible = false
+      this.unitForm = {
+        unitId: 1,
+        title: '',
+        description: '',
+        sequenceNumber: 1
+      }
+      
+      this.$message.success('添加单元成功')
     },
-    async handleDeleteUnits() {
-      try {
-        const unitIds = this.selectedUnits.map(unit => unit.unitId)
-        
-        await this.$confirm('确认删除选中的单元吗？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
-
-        const token = localStorage.getItem('token')
-        if (!token) {
-          this.$message.error('未登录或登录已过期，请重新登录')
-          this.$router.push('/login')
-          return
-        }
-
-        const response = await fetch(`http://localhost:8008/api/course/unit/batch`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(unitIds),
-          credentials: 'include'
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const result = await response.json()
-        if (result.code === 200) {
-          this.$message.success('删除单元成功')
-          await this.fetchCourseUnits(this.$route.params.courseId)
-        } else {
-          throw new Error(result.msg || '删除单元失败')
-        }
-      } catch (error) {
-        if (error.toString().includes('cancel')) return
-        console.error('删除单元失败:', error)
-        this.$message.error('删除单元失败，请稍后重试')
+    handleDeleteUnits() {
+      if (!this.selectedUnits.length) {
+        this.$message.warning('请选择要删除的单元')
+        return
       }
+      
+      this.$confirm('确认删除选中的单元吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        const deleteIds = this.selectedUnits.map(unit => unit.unitId)
+        this.units = this.units.filter(unit => !deleteIds.includes(unit.unitId))
+        this.$message.success('删除单元成功')
+      }).catch(() => {
+        // 用户点击取消，不做任何操作
+      })
     },
     handleTitleClick(unit) {
       this.$router.push({

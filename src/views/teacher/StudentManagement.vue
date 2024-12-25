@@ -1,7 +1,10 @@
 <template>
   <div class="profile-info">
     <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2 class="course-title">课程/学生管理</h2>
+      <h2 class="course-title">
+        <span class="title-icon">📚</span>
+        课程/学生管理
+      </h2>
       <div>
         <el-button type="primary" @click="showAddUserDialog">手动添加</el-button>
         <el-button type="default" @click="goBack">返回</el-button>
@@ -11,32 +14,30 @@
     <div style="margin-bottom: 20px;">
       <p style="font-size: 18px;">选择课程的总人数: {{ enrolledStudents.length }}</p>
       <div style="display: flex; align-items: center;">
-        <el-input
-          v-model="searchStudentQuery"
-          placeholder="输入学生用户名查找"
-          class="search-input"
-          style="width: 300px; font-size: 16px;" 
-        />
-        <el-button 
-          @click="searchStudents" 
-          :disabled="!selectedCourse"
-          type="primary" 
-          style="margin-left: 10px; font-size: 16px;">
-          查询
-        </el-button>
-        <el-button 
-          @click="resetSearch" 
-          style="margin-left: 10px; font-size: 16px;">
-          返回
-        </el-button>
-        <el-select v-model="selectedCourse" placeholder="选择课程" style="width: 200px; margin-left: 10px;">
+        <el-select 
+          v-model="selectedCourse" 
+          placeholder="选择课程" 
+          style="width: 200px; margin-right: 10px;"
+        >
           <el-option
             v-for="course in courseList"
             :key="course.courseId" 
             :label="course.title" 
             :value="course.courseId" 
           />
-      </el-select>
+        </el-select>
+        <el-input
+          v-model="searchStudentQuery"
+          placeholder="输入学生用户名查找"
+          class="search-input"
+        />
+        <el-button 
+          @click="searchStudents" 
+          :disabled="!selectedCourse"
+          type="primary" 
+          class="search-button">
+          查询
+        </el-button>
       </div>
     </div>
 
@@ -468,10 +469,34 @@ export default {
 </script>
 
 <style scoped>
+.profile-info {
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.08);
+}
+
+.course-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 24px;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 28px;
+}
+
 .info-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 .info-table th,
@@ -479,10 +504,11 @@ export default {
   border: 1px solid #dcdfe6;
   padding: 12px;
   text-align: center;
+  transition: all 0.3s ease;
 }
 
 .info-table th {
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa, #e4e7ed);
   color: #606266;
   font-weight: bold;
 }
@@ -492,6 +518,50 @@ export default {
 }
 
 .search-input {
-  margin-right: 10px;
+  width: 300px;
+  margin: 0 10px;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus-within {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.search-button {
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.search-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+/* 对话框样式优化 */
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #409EFF, #3a8ee6);
+  padding: 20px;
+  margin: 0;
+}
+
+:deep(.el-dialog__title) {
+  color: white;
+  font-weight: 500;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+:deep(.el-dialog__footer) {
+  border-top: 1px solid #f0f2f5;
+  padding: 16px 24px;
 }
 </style>
