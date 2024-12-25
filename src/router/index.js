@@ -87,6 +87,21 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/course/:courseId/units',
+    name: 'CourseUnits',
+    component: () => import('../views/CourseUnits.vue')
+  },
+  {
+    path: '/course/:courseId/unit/:unitId',
+    name: 'UnitChapters',
+    component: () => import('../views/UnitChapters.vue'),
+    props: route => ({
+      courseId: route.params.courseId,
+      unitId: route.params.unitId,
+      unitTitle: decodeURIComponent(route.params.unitTitle || '')
+    })
+  },
+  {
     path: '/course/:courseId',
     name: 'CourseDetail',
     component: CourseDetail,
