@@ -13,15 +13,15 @@
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'chapter' }" @click="activeNav = 'chapter'">
         <el-icon class="nav-icon"><DocumentIcon /></el-icon>
-        章节报告
+        <span class="nav-text">章节报告</span>
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'learning' }" @click="activeNav = 'learning'">
         <el-icon class="nav-icon"><DataAnalysis /></el-icon>
-        整体报告
+        <span class="nav-text">整体报告</span>
       </div>
       <div class="nav-item" :class="{ active: activeNav === 'assessment' }" @click="activeNav = 'assessment'">
         <el-icon class="nav-icon"><TrendCharts /></el-icon>
-        学习轨迹
+        <span class="nav-text">学习轨迹</span>
       </div>
     </div>
     <div class="main-content">
@@ -107,7 +107,7 @@
           <div class="overall-report-section">
             <div class="report-header">
               <h3>整体学习情况报告</h3>
-              <el-button type="primary" @click="generateLearningReport" :loading="isReportLoading">
+              <el-button type="primary" @click="generateLearningReport" :loading="isReportLoading" class="update-report-button">
                 <el-icon><Refresh /></el-icon>
                 更新报告
               </el-button>
@@ -154,6 +154,7 @@
                   size="small"
                   :loading="isLoading"
                   @click="fetchUnitQuizScores"
+                  class="flesh-data"
                 />
               </el-tooltip>
             </div>
@@ -168,9 +169,9 @@
         <div v-if="activeNav === 'assessment'" class="assessment-container">
           <!-- 图表切换按钮 -->
           <div class="chart-switch">
-            <el-radio-group v-model="selectedChart" size="large">
-              <el-radio-button label="realtime">实时数据</el-radio-button>
-              <el-radio-button label="radar">能力雷达</el-radio-button>
+            <el-radio-group v-model="selectedChart" size="large" class="custom-radio-group">
+              <el-radio-button label="realtime" class="custom-radio-button">实时数据</el-radio-button>
+              <el-radio-button label="radar" class="custom-radio-button">能力雷达</el-radio-button>
             </el-radio-group>
           </div>
 
@@ -247,6 +248,7 @@ const progress = ref(null)//学习进度
 const continueCheckins = ref(null)//连续签到的天数
 const predictedStudyDuration = ref(null)//预测学习时长
 
+
 const fetchPredictedStudyDuration = async () => {
   const userId = localStorage.getItem('userid'); // 从本地存储获取用户ID
   const courseId = localStorage.getItem('selectedCourseId'); // 从本地存储获取课程ID
@@ -267,7 +269,7 @@ const fetchPredictedStudyDuration = async () => {
     if (response.ok) {
       const data = await response.json();
       console.log(data,'这是预测时间')
-      predictedStudyDuration.value = data.data; // 假设返回的数据中有 predictedDuration 字段
+      predictedStudyDuration.value = Math.round(data.data*60); // 假设返回的数据中有 predictedDuration 字段
     } else {
       console.error('获取预测学习时长失败:', response.statusText);
     }
@@ -375,7 +377,7 @@ const handleChapterChange = async (chapterId) => {
     currentReport.value = null
     return
   }
-  
+  fetchPredictedStudyDuration()
   try {
     isLoading.value = true
     
@@ -655,12 +657,13 @@ onMounted(() => {
   fetchLearningRecords()
   getLearningProgress()
   fetchConsecutiveCheckins()
-  fetchPredictedStudyDuration()
+  // fetchPredictedStudyDuration()
 })
 
 const radarChartOption = ref({
   title: {
-    text: '能力维度分析'
+    // text: '能力维度分析',
+    // textAlign: 'center' // 确保文本居中对齐
   },
   tooltip: {},
   legend: {
@@ -1196,7 +1199,7 @@ const updateRadarChart = () => {
 
   radarChartOption.value = {
     title: {
-      text: '能力维度分析'
+      // text: '能力维度分析',
     },
     tooltip: {},
     legend: {
@@ -1212,10 +1215,10 @@ const updateRadarChart = () => {
       },
       indicator: [
         { name: '单元平均分', max: 100 },
-        { name: '一周学习次数', max: 100 },
-        { name: '总学习时长', max: 100 },
-        { name: '学习进度', max: 100 },
-        { name: '连续签到天数', max: 100 }
+        { name: '平台活跃度', max: 100 },/*一周学习次数*/
+        { name: '自主学习', max: 100 },/*总学习时长*/
+        { name: '学习完成率', max: 100 },
+        { name: '到课率', max: 100 }/*连续学习次数*/
       ]
     },
     series: [{
@@ -1328,7 +1331,7 @@ fetchTotalStudyDuration()
 }
 
 .nav-menu {
-  width: 200px;
+  width: 40px;
   flex-shrink: 0;
   background: white;
   border-radius: 4px;
@@ -1376,19 +1379,19 @@ fetchTotalStudyDuration()
   border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
 }
 
+
 .nav-item {
-  height: 70px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  height: 40px;
+  display: flex; /* 使用 Flexbox 布局 */
+  align-items: center; /* 在交叉轴上居中对齐所有子元素 */
+  cursor: pointer; /* 如果需要，为导航项添加指针光标 */
   transition: all 0.2s;
   font-size: 15px;
   color: #666;
   gap: 8px;
   padding: 12px 0;
 }
+
 
 .nav-item:hover {
   color: #3f51b5;
@@ -1402,9 +1405,15 @@ fetchTotalStudyDuration()
 
 .nav-icon {
   font-size: 24px;
-  margin-bottom: 4px;
+  margin-left: 80px;
   color: inherit;
 }
+
+.nav-text {
+  /* 这里可以添加文本的样式，如字体大小、颜色等 */
+  margin-left: 8px; /* 如果需要，可以在文本和图标之间添加一些间隔 */
+}
+
 
 .nav-item:hover .nav-icon,
 .nav-item.active .nav-icon {
@@ -1755,12 +1764,15 @@ fetchTotalStudyDuration()
 }
 
 .data-chart {
-  margin-top:-20px;
+  margin-top:60px;
+  margin-left: 80px;
   height: 500px;
   width: 930px;
 }
 
 .radar-chart {
+  margin-top:60px;
+  margin-left: 100px;
   height: 600px;
   width: 800px;
 }
@@ -1797,4 +1809,62 @@ fetchTotalStudyDuration()
   font-size: 16px;
   color: #606266;
 }
+
+.chart-switch {
+  display: flex;
+  justify-content: center; /* 居中对齐 */
+  margin: 20px 0; /* 上下间距 */
+}
+
+::v-deep .el-radio-button__inner {
+  background-color: #C0C0C0; /* 修改背景颜色 */
+  color: white; /* 修改文字颜色 */
+}
+
+/* 当 radio-button 被选中时的样式 */
+::v-deep .el-radio-button__orig-radio:checked + .el-radio-button__inner {
+  background-color:#0000CD; /* 修改选中状态的背景颜色 */
+  border-color:#0000CD; /* 修改选中状态的边框颜色 */
+}
+
+::v-deep .el-radio-button.is-active .el-radio-button__original-radio:not(:disabled)+.el-radio-button__inner {
+    background-color:#0000CD;
+    border-color: #0000CD;
+}
+
+.download-btn{
+  background-color:#1974f4f2; /* 按钮背景颜色 */
+  color: white; /* 按钮文字颜色 */
+}
+.download-btn:hover{
+  background-color: #004bcdf2; /* 按钮背景颜色 */
+  color: white; /* 按钮文字颜色 */
+}
+
+/* 修改更新报告按钮的颜色 */
+.update-report-button {
+  background-color: #1974f4f2; /* 按钮背景颜色 */
+  color: white; /* 按钮文字颜色 */
+  transition: background-color 0.3s; /* 添加过渡效果 */
+}
+
+.update-report-button:hover {
+  background-color: #004bcdf2; /* 按钮背景颜色 */
+  color: white; /* 按钮文字颜色 */
+}
+
+.update-report-button.is-loading{
+  background-color: #afb3baf2; /* 激活状态的背景颜色 */
+  border-color: #afb3baf2;
+
+}
+
+.flesh-data{
+  background-color:#1974f4f2;
+}
+
+.flesh-data:hover{
+  background-color: #0000CD;
+}
 </style>
+
