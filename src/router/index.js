@@ -14,7 +14,8 @@ import FileUploader from '../views/TestPages/FileUploader.vue';  // 导入 FileU
 import CheckInCalendar from '../views/TestPages/CheckInCalendar.vue';  // 导入签到日历组件
 import CourseDetail from '@/views/CourseDetail.vue'
 import StreamMessage from '../views/TestPages/StreamMessage.vue'  // 导入流式消息测试组件
-// import Teacher from '../views/Teacher.vue'; // 导入 Teacher 组件
+import Teacher from '../views/Teacher.vue'; // 导入 Teacher 组件
+import StudentManagement from '../views/teacher/StudentManagement.vue' // 导入 StudentManagement 组件
 
 // 配置路由
 const routes = [
@@ -84,7 +85,15 @@ const routes = [
     path: '/course/:courseId',
     name: 'CourseDetail',
     component: CourseDetail,
-    props: true
+    props: true,
+    children: [
+      {
+        path: 'students',
+        component: StudentManagement,
+        name: 'course-students',
+        meta: { requiresAuth: true }
+      }
+    ]
   },
   {
     path: '/stream-message',
@@ -108,13 +117,24 @@ const routes = [
       title: 'Shiki Chat',
       requiresAuth: true
     }
-  }
-  // {
-  //   path: '/teacher', // 添加教师管理页面的路由
-  //   name: 'TeacherManagement',
-  //   component: Teacher,
-  //   meta: { requiresAuth: true } // 如果需要身份验证，可以添加此元信息
-  // }
+  },
+  {
+    path: '/teacher',
+    children: [
+      {
+        path: '',
+        name: 'TeacherManagement',
+        component: Teacher,
+        meta: { requiresAuth: true } // 如果需要身份验证，可以添加此元信息
+      },
+      {
+        path: 'student-management',
+        name: 'StudentManagement',
+        component: StudentManagement,
+        meta: { requiresAuth: true }
+      }
+    ]
+  },
 ];
 
 // 创建路由实例
