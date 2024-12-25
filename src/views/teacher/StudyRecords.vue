@@ -381,107 +381,113 @@
   
   <style scoped>
   .profile-info {
-    padding: 24px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      background-color: #f9f9f9;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 
   .header-actions {
-    padding-bottom: 16px;
-    border-bottom: 1px solid #ebeef5;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #007BFF; /* 修改横线颜色为蓝色 */
   }
 
   .header-actions h2 {
-    margin: 0;
-    color: #303133;
-    font-size: 20px;
+      margin: 0;
+      color: #333;
+      font-size: 22px;
+      font-weight: 600;
   }
 
   .progress-container {
-    display: flex;
-    gap: 32px;
-    margin-top: 24px;
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
   }
   
   .progress-section {
-    flex: 1;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
+      flex: 1;
+      background-color: #ffffff;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
   
   .course-tree-section {
-    width: 320px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
+      width: 280px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      padding: 24px;
+      overflow-y: auto;
+      max-height: 500px;
   }
 
   h3 {
-    margin: 0 0 16px 0;
-    color: #303133;
-    font-size: 16px;
-    font-weight: 600;
+      margin: 0 0 20px 0;
+      color: #007BFF;
+      font-size: 18px;
+      font-weight: 600;
   }
   
   .study-progress {
-    background-color: #fff;
-    border-radius: 6px;
-    padding: 16px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      background-color: #fefefe;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   }
   
   .progress-header, .progress-content {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    align-items: center;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      align-items: center;
   }
 
   .progress-header {
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #ebeef5;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ccc; /* 修改横线颜色为灰色 */
   }
   
   .evaluation {
-    margin-top: 24px;
-    background-color: #fff;
-    border-radius: 6px;
-    padding: 16px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      margin-top: 30px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   }
   
   .submit-btn {
-    margin-top: 16px;
-    width: 120px;
+      margin-top: 20px;
+      width: 130px;
+      background-color: #007BFF;
+      color: #fff;
   }
   
   .progress-label {
-    font-weight: 500;
-    color: #606266;
-    font-size: 14px;
+      font-weight: 500;
+      color: #606266;
+      font-size: 15px;
   }
   
   .progress-value {
-    text-align: center;
-    color: #303133;
+      text-align: center;
+      color: #303133;
   }
 
   .progress-value .score,
   .progress-value .count,
   .progress-value .duration {
-    font-size: 16px;
-    font-weight: 500;
+      font-size: 18px;
+      font-weight: 500;
   }
 
   :deep(.el-textarea__inner) {
-    border-radius: 4px;
-    border-color: #dcdfe6;
+      border-radius: 6px;
+      border-color: #dcdfe6;
   }
 
   :deep(.el-textarea__inner:focus) {
-    border-color: #409eff;
+      border-color: #007BFF;
   }
   </style>
