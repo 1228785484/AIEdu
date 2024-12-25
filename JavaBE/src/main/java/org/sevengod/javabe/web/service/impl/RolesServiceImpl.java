@@ -55,4 +55,11 @@ public class RolesServiceImpl extends ServiceImpl<RolesMapper, Roles> implements
         wrapper.eq(Roles::getUserId, userId);
         return this.exists(wrapper);
     }
+
+    @Override
+    public Roles getByUserId(Long userId) {
+        LambdaQueryWrapper<Roles> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Roles::getUserId, userId);
+        return this.getOne(wrapper);
+    }
 }
