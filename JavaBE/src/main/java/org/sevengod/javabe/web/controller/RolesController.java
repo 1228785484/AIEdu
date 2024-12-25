@@ -29,11 +29,11 @@ public class RolesController {
         return AjaxResult.error("教师角色分配失败");
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{userId}")
     @Operation(summary = "获取角色详情")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'TEACHER')")
-    public AjaxResult getById(@PathVariable Long id) {
-        Roles role = rolesService.getById(id);
+    public AjaxResult getById(@PathVariable Long userId) {
+        Roles role = rolesService.getByUserId(userId);
         return role != null ? AjaxResult.success(role) : AjaxResult.error("角色不存在");
     }
 

@@ -7,4 +7,5 @@ public interface RolesService extends IService<Roles> {
     boolean assignTeacherRole(Long userId);
     boolean assignStudentRole(Long userId);
     boolean checkRoleExists(Long userId);
+    Roles getByUserId(Long userId);
 }
