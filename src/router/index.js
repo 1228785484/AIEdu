@@ -16,6 +16,7 @@ import CourseDetail from '@/views/CourseDetail.vue'
 import StreamMessage from '../views/TestPages/StreamMessage.vue'  // 导入流式消息测试组件
 import Teacher from '../views/Teacher.vue'; // 导入 Teacher 组件
 import StudentManagement from '../views/teacher/StudentManagement.vue' // 导入 StudentManagement 组件
+import CourseZhangjie from '../components/Coursezhangjie.vue'; // 导入 CourseZhangjie 组件
 
 // 配置路由
 const routes = [
@@ -134,6 +135,13 @@ const routes = [
         meta: { requiresAuth: true }
       }
     ]
+  },
+  {
+    path: '/course-zhangjie/:courseId',
+    name: 'CourseZhangjie',
+    component: CourseZhangjie,
+    props: true,
+    meta: { requiresAuth: true }
   },
 ];
 

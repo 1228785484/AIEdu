@@ -1,6 +1,6 @@
 <template>
   <div class="profile-info" style="margin-top: 20px;">
-    <h2>学生信息/个人资料</h2>
+    <h2>用户信息/个人资料</h2>
     <div class="total-users">
       <p style="font-size: 18px;">总人数: {{ filteredUsers.length }}</p>
       <el-select v-model="searchField" placeholder="选择搜索字段" style="width: 150px;">
