@@ -198,36 +198,49 @@ export default {
 <style scoped>
 .ai-teaching-container {
   padding: 24px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .header {
   margin-bottom: 24px;
+  text-align: center;
 }
 
 .header h2 {
   margin: 0;
-  color: #303133;
-  font-size: 24px;
+  color: #2c3e50;
+  font-size: 28px;
+  font-weight: bold;
 }
 
 .lesson-plan-card {
   margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #3498db;
+  color: white;
+  padding: 16px;
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 18px;
-  color: #303133;
+  font-size: 20px;
 }
 
 .lesson-plan-form {
   margin-top: 24px;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 4px;
 }
 
 .chapter-select {
@@ -239,12 +252,13 @@ export default {
   padding: 16px;
   background-color: #ffffff;
   border-radius: 4px;
+  border: 1px solid #e0e0e0;
 }
 
 .lesson-plan-result h4 {
   margin: 0 0 16px;
-  color: #303133;
-  font-size: 16px;
+  color: #2c3e50;
+  font-size: 18px;
 }
 
 /* Markdown样式覆盖 */
