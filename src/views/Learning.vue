@@ -405,6 +405,11 @@
         </div>
       </div>
     </div>
+
+    <!-- 显示提示消息 -->
+    <div v-if="showTemporaryMessage" class="message-popup">
+      {{ showTemporaryMessage }}
+    </div>
   </div>
 </template>
 
@@ -1019,7 +1024,7 @@ try {
 const answers = ref([]);
 // 响应式变量，用于控制是否显示结果
 const showResults = ref(false);
-// 响应式变量，用于存储用户的得分
+// 响应式变量，用于存储�����的得分
 const score = ref(0);
 
 //渲染题目
@@ -1136,21 +1141,26 @@ const showSubmitModal = ref(false);
 const showMessage = ref(false);
 const messageText = ref('');
 
+// 添加提示消息的响应式变量
+const showTemporaryMessage = ref('');
+const messageTimeout = ref(null);
+
+// 显示临时消息的方法
+const displayTemporaryMessage = (message) => {
+  showTemporaryMessage.value = message;
+  if (messageTimeout.value) {
+    clearTimeout(messageTimeout.value);
+  }
+  messageTimeout.value = setTimeout(() => {
+    showTemporaryMessage.value = '';
+  }, 1000);
+};
+
 // 修改原有的 submitAnswers 方法
 function submitAnswers() {
 if (!quizStarted.value || timeLeft.value <= 0) return;
 showSubmitModal.value = true; // 显示确认弹窗
 }
-
-// 显示临时消息的方法
-const showTemporaryMessage = (message) => {
-messageText.value = message;
-showMessage.value = true;
-setTimeout(() => {
-  showMessage.value = false;
-}, 1000);
-};
-
 
 // 修改 confirmSubmit 函数
 const confirmSubmit = () => {
@@ -1257,7 +1267,7 @@ showResults.value = true;
 quizStarted.value = false; // 重置测验状态
 
 // 显示提交成功消息
-showTemporaryMessage('提交成功！');
+displayTemporaryMessage('提交成功！');
 };
 
 
@@ -1754,7 +1764,7 @@ const currentNoteId = ref(null);
 // 切换笔记面板
 const toggleNotePanel = () => {
 if (!currentChapterId.value && !showNotePanel.value) {
-  showTemporaryMessage('请先选择一个章节');
+  displayTemporaryMessage('请先选择一个章节');
   return;
 }
 showNotePanel.value = !showNotePanel.value;
@@ -1806,37 +1816,37 @@ try {
 const createNote = async () => {
 try {
   if (!noteContent.value.trim()) {
-  showTemporaryMessage('笔记内容不能为空');
-  return;
+    displayTemporaryMessage('笔记内容不能为空');
+    return;
   }
 
   const userId = localStorage.getItem('userid');
   const noteData = {
-  chapterId: currentChapterId.value,
-  content: noteContent.value,
-  isPrivate: isPrivate.value
+    chapterId: currentChapterId.value,
+    content: noteContent.value,
+    isPrivate: isPrivate.value
   };
 
   const response = await fetch(`http://localhost:8008/api/study-notes?userId=${userId}`, {
-  method: 'POST',
-  headers: {
+    method: 'POST',
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${localStorage.getItem('token')}`
-  },
-  body: JSON.stringify(noteData)
+    },
+    body: JSON.stringify(noteData)
   });
 
   if (response.ok) {
-  const data = await response.json();
-  currentNoteId.value = data.noteId;
-  hasNote.value = true;
-  showTemporaryMessage('笔记创建成功！');
+    displayTemporaryMessage('创建笔记成功！'); // 添加成功提示
+    const data = await response.json();
+    currentNoteId.value = data.noteId;
+    hasNote.value = true;
   } else {
-  throw new Error('创建失败');
+    throw new Error('创建失败');
   }
 } catch (error) {
   console.error('创建笔记失败:', error);
-  showTemporaryMessage('创建失败，请重试');
+  displayTemporaryMessage('创建失败，请重试');
 }
 };
 
@@ -1844,37 +1854,37 @@ try {
 const updateNote = async () => {
 try {
   if (!noteContent.value.trim()) {
-  showTemporaryMessage('笔记内容不能为空');
-  return;
+    displayTemporaryMessage('笔记内容不能为空');
+    return;
   }
 
   const userId = localStorage.getItem('userid');
   const noteData = {
-  noteId: currentNoteId.value,
-  chapterId: currentChapterId.value,
-  content: noteContent.value,
-  isPrivate: isPrivate.value
+    noteId: currentNoteId.value,
+    chapterId: currentChapterId.value,
+    content: noteContent.value,
+    isPrivate: isPrivate.value
   };
 
   const response = await fetch(`http://localhost:8008/api/study-notes/update?userId=${userId}`, {
-  method: 'POST',
-  headers: {
+    method: 'POST',
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${localStorage.getItem('token')}`
-  },
-  body: JSON.stringify(noteData)
+    },
+    body: JSON.stringify(noteData)
   });
 
   if (response.ok) {
-  showTemporaryMessage('笔记更新成功！');
-  // 更新成功后重新获取笔记内容
-  await getNoteByChapter(userId, currentChapterId.value);
+    displayTemporaryMessage('更新笔记成功！'); // 添加成功提示
+    // 更新成功后重新获取笔记内容
+    await getNoteByChapter(userId, currentChapterId.value);
   } else {
-  throw new Error('更新失败');
+    throw new Error('更新失败');
   }
 } catch (error) {
   console.error('更新笔记失败:', error);
-  showTemporaryMessage('更新失败，请重试');
+  displayTemporaryMessage('更新失败，请重试');
 }
 };
 
@@ -1885,25 +1895,25 @@ try {
 
   const userId = localStorage.getItem('userid');
   const response = await fetch(`http://localhost:8008/api/study-notes/delete/${currentNoteId.value}?userId=${userId}`, {
-  method: 'POST',
-  headers: {
+    method: 'POST',
+    headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
-  }
+    }
   });
 
   if (response.ok) {
-  hasNote.value = false;
-  currentNoteId.value = null;
-  noteContent.value = '';
-  isPrivate.value = true;
-  showNotePanel.value = false;
-  showTemporaryMessage('笔记删除成功！');
+    displayTemporaryMessage('笔记删除成功！'); // 添加成功提示
+    hasNote.value = false;
+    currentNoteId.value = null;
+    noteContent.value = '';
+    isPrivate.value = true;
+    showNotePanel.value = false;
   } else {
-  throw new Error('删除失败');
+    throw new Error('删除失败');
   }
 } catch (error) {
   console.error('删除笔记失败:', error);
-  showTemporaryMessage('删除失败，请重试');
+  displayTemporaryMessage('删除失败，请重试');
 }
 };
 
@@ -1932,7 +1942,7 @@ try {
   }
 } catch (error) {
   console.error('获取笔记失败:', error);
-  showTemporaryMessage('获取笔记失败');
+  displayTemporaryMessage('获取笔记失败');
 }
 };
 
@@ -1965,10 +1975,10 @@ try {
   link.click();
   document.body.removeChild(link);
 
-  showTemporaryMessage('导出成功！');
+  displayTemporaryMessage('导出成功！');
 } catch (error) {
   console.error('导出失败:', error);
-  showTemporaryMessage('导出失败，请重试');
+  displayTemporaryMessage('导出失败，请重试');
 } finally {
   isExporting.value = false;
 }
@@ -2602,7 +2612,7 @@ background-color:rgb(244, 219, 245);
 margin-bottom:10px;
 }
 
-/*内容区域样式 */
+/*内容���域样式 */
 #content-area{
 height:100%;
 overflow-y:auto;
@@ -3392,27 +3402,13 @@ align-items: center;
   }
   /* 已签到日期样式 */
   .day.checked {
-      background-color: rgb(236, 198, 236);
-      color: white;
-      border: none;
-      position: relative;
+      background-color: #52c41a; /* 绿色 */
+      color: white; /* 文字颜色 */
   }
-  .day.checked::after {
-      content: '✓';
-      position: absolute;
-      font-size: 12px;
-      bottom: 2px;
-      color: white;
-  }
-  /* 今天的样式 */
-  .day.today {
-      border: 2px solid rgb(236, 198, 236);
-      font-weight: bold;
-  }
-  /* 过去未签到的日期样式 - 移除×号 */
+  /* 过去未签到的日期样式 - 保持灰色 */
   .day.past-day {
-      background-color: #f5f5f5;
-      color: #999;
+      background-color: #f5f5f5; /* 灰色 */
+      color: #999; /* 文字颜色 */
       cursor: not-allowed;
       border: none; /* 移除边框 */
   }
@@ -3491,6 +3487,14 @@ align-items: center;
     border: none; /* 无边框 */
     margin-left: 10px; /* 添加左边距以分隔按钮 */
     font-size: 14px; /* 设置字体大小 */
+}
+
+/* 过去已签到的日期样式 - 修改背景颜色为绿色 */
+.day.past-day.checked {
+    background-color: #52c41a; /* 绿色 */
+    color: white; /* 文字颜色 */
+    cursor: not-allowed;
+    border: none; /* 移除边框 */
 }
   </style>
   
