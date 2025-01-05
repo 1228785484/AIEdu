@@ -3,52 +3,61 @@
     <div class="sidebar">
       <nav>
         <ul>
-          <li @click="currentComponent = 'UserProfileManagement'" :class="{ active: currentComponent === 'UserProfileManagement' }">
+          <li @click="$router.push('/teacher')" :class="{ active: $route.name === 'UserProfileManagement' }">
             <img src="@/assets/task.png" alt="用户管理" /> 用户管理
           </li>
-          <li @click="currentComponent = 'CourseManagement'" :class="{ active: currentComponent === 'CourseManagement' }">
+          <li @click="$router.push('/teacher/course-management')" :class="{ active: $route.name === 'CourseManagement' }">
             <img src="@/assets/test.png" alt="课程管理" /> 课程管理
           </li>
-          <li @click="currentComponent = 'StudentManagement'" :class="{ active: currentComponent === 'StudentManagement' }">
+          <li @click="$router.push('/teacher/student-management')" :class="{ active: $route.name === 'StudentManagement' }">
             <img src="@/assets/frequency.png" alt="学生管理" /> 学生管理
           </li>
-          <li @click="currentComponent = 'StudyRecords'" :class="{ active: currentComponent === 'StudyRecords' }">
+          <li @click="$router.push('/teacher/study-records')" :class="{ active: $route.name === 'StudyRecords' }">
             <img src="@/assets/progress.png" alt="学生学习情况" /> 学生学习情况
           </li>
-          <li @click="currentComponent = 'AiTeaching'" :class="{ active: currentComponent === 'AiTeaching' }">
+          <li @click="$router.push('/teacher/ai-teaching')" :class="{ active: $route.name === 'AiTeaching' }">
             <img src="@/assets/test.png" alt="AI教案" /> AI教案
           </li>
         </ul>
       </nav>
     </div>
     <div class="main-content">
-      <component :is="currentComponent" />
+      <router-view />
     </div>
   </div>
 </template>
 
 <script>
-import UserProfileManagement from './teacher/UserProfileManagement.vue';
-import CourseManagement from './teacher/CourseManagement.vue';
-import StudentManagement from './teacher/StudentManagement.vue';
-import StudyRecords from './teacher/StudyRecords.vue';
-import AiTeaching from './teacher/AiTeaching.vue';
+import { defineComponent, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 
-export default {
+export default defineComponent({
   name: 'TeacherView',
-  components: {
-    UserProfileManagement,
-    CourseManagement,
-    StudentManagement,
-    StudyRecords,
-    AiTeaching,
-  },
-  data() {
-    return {
-      currentComponent: 'UserProfileManagement', // 默认显示个人资料
-    };
-  },
-};
+  setup() {
+    const router = useRouter();
+
+    onMounted(() => {
+      // 检查是否需要显示学生学习情况
+      const studentId = localStorage.getItem('currentStudentId');
+      if (studentId) {
+        console.log('Found studentId in localStorage:', studentId);
+        // 使用路由导航到学习情况页面
+        router.push({
+          name: 'StudyRecords',
+          query: {
+            userId: studentId,
+            courseId: localStorage.getItem('currentCourseId')
+          }
+        });
+        // 清除存储的ID，避免影响下次访问
+        localStorage.removeItem('currentStudentId');
+        localStorage.removeItem('currentCourseId');
+      }
+    });
+
+    return {};
+  }
+});
 </script>
 
 <style scoped>

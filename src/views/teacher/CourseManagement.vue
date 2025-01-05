@@ -28,7 +28,6 @@
           <th style="width: 25%">课程名称</th>
           <th style="width: 35%">课程描述</th>
           <th style="width: 10%">编辑</th>
-          <th style="width: 10%">查看选课学生</th>
         </tr>
       </thead>
       <tbody>
@@ -38,9 +37,6 @@
           <td>{{ course?.description || '-' }}</td>
           <td>
             <el-button type="primary" size="small" @click="navigateToCourse(course.courseId)">编辑</el-button>
-          </td>
-          <td>
-            <el-button type="text" @click="viewEnrolledStudents(course.courseId)">查看选课学生</el-button>
           </td>
         </tr>
       </tbody>

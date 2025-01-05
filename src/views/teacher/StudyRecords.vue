@@ -2,7 +2,12 @@
     <div class="profile-info">
       <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2>课程/学习情况/用户：{{ currentUserName }}</h2>
-        <el-button type="primary" size="small" @click="goBack">
+        <el-button 
+          type="primary" 
+          class="back-button" 
+          size="small" 
+          @click="goBack"
+        >
           <i class="el-icon-back"></i> 返回学生管理
         </el-button>
       </div>
@@ -13,26 +18,23 @@
             <div class="progress-header">
               <div class="progress-label">完成状态</div>
               <div class="progress-label">分数</div>
-              <div class="progress-label">学习次数</div>
-              <div class="progress-label">学习时长</div>
+              <div class="progress-label">今日学习次数</div>
+              <div class="progress-label">总学习时长</div>
             </div>
             <div class="progress-content">
               <div class="progress-value">
-                <el-button 
-                  :type="isChapterCompleted ? 'success' : 'info'" 
-                  size="small" 
-                  :style="{ backgroundColor: isChapterCompleted ? '#67C23A' : '#ccc', borderColor: isChapterCompleted ? '#67C23A' : '#ccc' }">
+                <el-tag :type="isChapterCompleted ? 'success' : 'info'" size="small">
                   {{ isChapterCompleted ? '已完成' : '未完成' }}
-                </el-button>
+                </el-tag>
               </div>
               <div class="progress-value">
                 <span class="score">{{ chapterProgress[selectedNodeId]?.score || 0 }}分</span>
               </div>
               <div class="progress-value">
-                <span class="count">{{ chapterProgress[selectedNodeId]?.studyTimes || 0 }}次</span>
+                <span class="count">{{ todayStudyTimes }}次</span>
               </div>
               <div class="progress-value">
-                <span class="duration">{{ currentStudyDuration }}分钟</span>
+                <span class="duration">{{ currentStudyDuration > 0 ? `${currentStudyDuration}分钟` : '未学习' }}</span>
               </div>
             </div>
           </div>
@@ -55,7 +57,6 @@
             :userId="currentUserId"
             :chapterStatus="chapterCompletionStatus"
             @select="handleChapterSelect"
-            @chapter-progress="handleChapterProgress"
           />
         </div>
       </div>
@@ -82,6 +83,7 @@
       const evaluationText = ref('')
       const isChapterCompleted = ref(false)
       const currentStudyDuration = ref(0)
+      const todayStudyTimes = ref(0)
       const chapterProgress = ref({})
       const courseTreeData = ref([])
       const chapterCompletionStatus = ref({})
@@ -141,8 +143,8 @@
         }
       }
 
-      // 获取学习时长
-      const fetchStudyDuration = async () => {
+      // 获取章节完成状态
+      const fetchChapterCompletion = async (userId, chapterId) => {
         try {
           const token = localStorage.getItem('token')
           if (!token) {
@@ -151,58 +153,27 @@
             return
           }
 
-          const response = await fetch(`http://localhost:8008/api/study-time/duration?userId=${currentUserId.value}&chapterId=${selectedNodeId.value}`, {
-            method: 'GET',
+          const response = await fetch(`http://localhost:8008/api/course/chapter-completion?userId=${userId}&chapterId=${chapterId}`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              'Authorization': `Bearer ${token}`
             }
           })
-
-          console.log('Response status:', response.status)
-          console.log('Response headers:', Object.fromEntries(response.headers.entries()))
-
-          if (!response.ok) {
-            throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`)
-          }
-
-          const responseText = await response.text()
-          console.log('Raw response text:', responseText)
-
-          let result
-          try {
-            result = JSON.parse(responseText)
-            console.log('Parsed response:', result)
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError)
-            throw new Error('服务器返回的数据格式无效')
-          }
-
-          if (!result) {
-            throw new Error('服务器返回空数据')
-          }
-
-          if (result.code !== 200) {
-            throw new Error(result.msg || `服务器返回错误代码: ${result.code}`)
-          }
-
-          if (!result.data) {
-            throw new Error('服务器返回数据缺少data字段')
-          }
-
-          currentStudyDuration.value = Math.floor(result.data.durationSeconds / 60)
-        } catch (error) {
-          console.error('获取学习时长失败:', {
-            error: error,
-            message: error.message,
-            stack: error.stack
+          const data = await response.json()
+          console.log('章节完成状态接口返回:', {
+            url: `/api/course/chapter-completion?userId=${userId}&chapterId=${chapterId}`,
+            response: data
           })
-          ElMessage.error(error.message || '获取学习时长失败，请稍后重试')
+          if (data.code === 200) {
+            isChapterCompleted.value = data.data
+          }
+        } catch (error) {
+          console.error('获取章节完成状态失败:', error)
+          ElMessage.error('获取章节完成状态失败')
         }
       }
 
-      // 获取章节进度
-      const fetchChapterProgress = async (nodeId) => {
+      // 获取章节测验成绩
+      const fetchChapterQuizScore = async (nodeId) => {
         try {
           const token = localStorage.getItem('token')
           if (!token) {
@@ -211,141 +182,149 @@
             return
           }
 
-          const response = await fetch(`http://localhost:8008/api/course/chapter-progress?userId=${currentUserId.value}&chapterId=${nodeId}`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-
-          console.log('Response status:', response.status)
-          console.log('Response headers:', Object.fromEntries(response.headers.entries()))
-
-          if (!response.ok) {
-            throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`)
-          }
-
-          const responseText = await response.text()
-          console.log('Raw response text:', responseText)
-
-          let result
-          try {
-            result = JSON.parse(responseText)
-            console.log('Parsed response:', result)
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError)
-            throw new Error('服务器返回的数据格式无效')
-          }
-
-          if (!result) {
-            throw new Error('服务器返回空数据')
-          }
-
-          if (result.code !== 200) {
-            throw new Error(result.msg || `服务器返回错误代码: ${result.code}`)
-          }
-
-          if (!result.data) {
-            throw new Error('服务器返回数据缺少data字段')
-          }
-
-          chapterProgress.value[nodeId] = {
-            isCompleted: result.data.isCompleted,
-            score: result.data.score || 0,
-            studyTimes: result.data.studyTimes || 0
-          }
-          isChapterCompleted.value = result.data.isCompleted
-        } catch (error) {
-          console.error('获取章节进度失败:', {
-            error: error,
-            message: error.message,
-            stack: error.stack
-          })
-          ElMessage.error(error.message || '获取章节进度失败，请稍后重试')
-        }
-      }
-
-      // 处理章节选择
-      const handleChapterSelect = async (nodeId) => {
-        selectedNodeId.value = nodeId
-        await Promise.all([
-          fetchChapterProgress(nodeId),
-          fetchStudyDuration()
-        ])
-      }
-
-      // 处理章节进度更新
-      const handleChapterProgress = async (progress) => {
-        const { chapterId } = progress
-        await fetchChapterProgress(chapterId)
-      }
-
-      // 提交评价
-      const submitEvaluation = async () => {
-        try {
-          if (!evaluationText.value.trim()) {
-            ElMessage.warning('请输入评价内容')
-            return
-          }
-
-          const token = localStorage.getItem('token')
-          if (!token) {
-            ElMessage.error('未登录或登录已过期，请重新登录')
-            router.push('/login')
-            return
-          }
-
-          const response = await fetch('http://localhost:8008/api/course/submit-evaluation', {
+          const response = await fetch('http://localhost:8008/quiz/getChapterQuizScores', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              userId: currentUserId.value,
-              chapterId: selectedNodeId.value,
-              evaluation: evaluationText.value
+              chapterId: nodeId,
+              userId: currentUserId.value
             })
           })
 
-          console.log('Response status:', response.status)
-          console.log('Response headers:', Object.fromEntries(response.headers.entries()))
-
-          if (!response.ok) {
-            throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`)
-          }
-
-          const responseText = await response.text()
-          console.log('Raw response text:', responseText)
-
-          let result
-          try {
-            result = JSON.parse(responseText)
-            console.log('Parsed response:', result)
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError)
-            throw new Error('服务器返回的数据格式无效')
-          }
-
-          if (!result) {
-            throw new Error('服务器返回空数据')
-          }
-
-          if (result.code !== 200) {
-            throw new Error(result.msg || `服务器返回错误代码: ${result.code}`)
-          }
-
-          ElMessage.success('评价提交成功')
-          evaluationText.value = '' // 清空评价内容
-        } catch (error) {
-          console.error('提交评价失败:', {
-            error: error,
-            message: error.message,
-            stack: error.stack
+          const result = await response.json()
+          console.log('章节测验成绩接口返回:', {
+            url: '/quiz/getChapterQuizScores',
+            request: {
+              chapterId: nodeId,
+              userId: currentUserId.value
+            },
+            response: result
           })
-          ElMessage.error(error.message || '提交评价失败，请稍后重试')
+
+          if (result.code === 200) {
+            if (result.data && typeof result.data.score === 'number') {
+              // 如果返回了有效的分数数据
+              chapterProgress.value[nodeId] = {
+                ...chapterProgress.value[nodeId],
+                score: result.data.score,
+                studyTimes: result.data.studyTimes || 0
+              }
+            } else {
+              // 如果返回了错误信息，设置默认值
+              console.warn('测验成绩数据无效:', result.data?.message || '未知错误')
+              chapterProgress.value[nodeId] = {
+                ...chapterProgress.value[nodeId],
+                score: 0,
+                studyTimes: 0
+              }
+            }
+          } else {
+            throw new Error(result.msg || '获取测验成绩失败')
+          }
+        } catch (error) {
+          console.error('获取测验成绩失败:', error)
+          ElMessage.error('获取测验成绩失败')
+          // 设置默认值
+          chapterProgress.value[nodeId] = {
+            ...chapterProgress.value[nodeId],
+            score: 0,
+            studyTimes: 0
+          }
         }
+      }
+
+      // 获取总学习时长
+      const fetchTotalStudyDuration = async (userId, courseId) => {
+        try {
+          const token = localStorage.getItem('token')
+          if (!token) {
+            ElMessage.error('未登录或登录已过期，请重新登录')
+            router.push('/login')
+            return
+          }
+
+          const response = await fetch(`http://localhost:8008/api/study-time/duration/total?userId=${userId}&courseId=${courseId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          const result = await response.json()
+          console.log('总学习时长接口返回:', {
+            url: `/api/study-time/duration/total?userId=${userId}&courseId=${courseId}`,
+            response: result
+          })
+
+          if (result.code === 200) {
+            // 将秒转换为分钟，如果totalDurationSeconds为0则保持为0
+            currentStudyDuration.value = result.data?.totalDurationSeconds ? Math.floor(result.data.totalDurationSeconds / 60) : 0
+          } else {
+            currentStudyDuration.value = 0
+          }
+        } catch (error) {
+          console.error('获取总学习时长失败:', error)
+          ElMessage.error('获取总学习时长失败')
+          currentStudyDuration.value = 0
+        }
+      }
+
+      // 获取当天学习次数
+      const fetchTodayStudyTimes = async (userId) => {
+        try {
+          const token = localStorage.getItem('token')
+          if (!token) {
+            ElMessage.error('未登录或登录已过期，请重新登录')
+            router.push('/login')
+            return
+          }
+
+          const response = await fetch(`http://localhost:8008/api/course/study-times?userId=${userId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (!response.ok) {
+          throw new Error('Failed to fetch study times');
+          }
+          const result = await response.json()
+          console.log('当天学习次数接口返回:', {
+            url: `/api/course/study-times?userId=${userId}`,
+            response: result
+          })
+          todayStudyTimes.value = result.data
+        } catch (error) {
+          console.error('获取当天学习次数失败:', error)
+          ElMessage.error('获取当天学习次数失败')
+          todayStudyTimes.value = 0
+        }
+      }
+
+
+      // 处理章节选择
+      const handleChapterSelect = async (nodeId) => {
+        console.log('选中章节:', nodeId)
+        selectedNodeId.value = nodeId
+        if (currentUserId.value) {
+          await Promise.all([
+            fetchChapterCompletion(currentUserId.value, nodeId),
+            fetchChapterQuizScore(nodeId)
+          ])
+        }
+      }
+
+      // 提交评价
+      const submitEvaluation = async () => {
+        if (!evaluationText.value.trim()) {
+          ElMessage.warning('请输入评价内容')
+          return
+        }
+        
+        // 暂时移除接口调用，仅清空输入框
+        ElMessage.success('评价已记录')
+        evaluationText.value = ''
       }
 
       // 返回上一页
@@ -353,11 +332,28 @@
         router.push('/teacher/student-management')
       }
 
-      // 初始化
-      onMounted(async () => {
-        currentUserId.value = route.params.userId
-        currentUserName.value = route.params.userName || '未知用户'
-        await fetchCourseTree()
+      // 初始化数据
+      const initData = async () => {
+        const userId = route.query.userId
+        const userName = route.query.userName
+        const courseId = route.params.courseId || '1'
+
+        if (userId && userName) {
+          currentUserId.value = userId
+          currentUserName.value = userName
+          await Promise.all([
+            fetchCourseTree(),
+            fetchTotalStudyDuration(userId, courseId),
+            fetchTodayStudyTimes(userId)
+          ])
+        } else {
+          ElMessage.error('未找到学生信息')
+          router.push('/teacher/student-management')
+        }
+      }
+
+      onMounted(() => {
+        initData()
       })
 
       return {
@@ -367,12 +363,12 @@
         evaluationText,
         isChapterCompleted,
         currentStudyDuration,
+        todayStudyTimes,
         chapterProgress,
         courseTreeData,
         chapterCompletionStatus,
         goBack,
         handleChapterSelect,
-        handleChapterProgress,
         submitEvaluation
       }
     }
@@ -408,9 +404,10 @@
   .progress-section {
       flex: 1;
       background-color: #ffffff;
-      border-radius: 10px;
-      padding: 24px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   }
   
   .course-tree-section {
@@ -489,5 +486,12 @@
 
   :deep(.el-textarea__inner:focus) {
       border-color: #007BFF;
+  }
+
+  .back-button {
+    font-size: 16px;
+    padding: 12px 24px;
+    height: auto;
+    font-weight: 500;
   }
   </style>

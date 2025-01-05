@@ -91,6 +91,6 @@ springdoc:
     path: /swagger-ui
 minio:
   endpoint: http://localhost:9000  # MinIO服务地址
-  accessKey: admin           # 访问密钥
-  secretKey: password           # 密码
+  accessKey: minioadmin           # 访问密钥
+  secretKey: minioadmin           # 密码
   defaultBucketName: notes       # 默认存储桶名称

@@ -1,5 +1,12 @@
 <template>
   <div id="main-container">
+    <!-- 动态背景装饰 -->
+    <div class="dynamic-bg">
+      <div class="gradient-blob blob-1"></div>
+      <div class="gradient-blob blob-2"></div>
+      <div class="gradient-blob blob-3"></div>
+      <div class="grid-overlay"></div>
+    </div>
     <!-- 中间聊天框 -->
     <div id="chat-container">
       <div class="chat-header">
@@ -19,9 +26,6 @@
             <button class="action-btn" title="清空对话" @click="showClearConfirm = true">
               <i class="fas fa-trash-alt"></i>
             </button>
-            <button class="action-btn" title="设置" @click="showSettings = true">
-              <i class="fas fa-cog"></i>
-            </button>
           </div>
         </div>
       </div>
@@ -35,53 +39,6 @@
             <button class="modal-btn cancel" @click="showClearConfirm = false">取消</button>
             <button class="modal-btn confirm" @click="clearChat">确认清空</button>
           </div>
-        </div>
-      </div>
-      
-      <!-- 设置面板 -->
-      <div v-if="showSettings" class="settings-panel">
-        <div class="settings-header">
-          <h3>设置</h3>
-          <button class="close-btn" @click="showSettings = false">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="settings-body">
-          <div class="settings-group">
-            <div class="settings-title">界面设置</div>
-            <div class="settings-item card">
-              <i class="fas fa-adjust icon"></i>
-              <span>深色模式</span>
-              <label class="switch">
-                <input type="checkbox" v-model="isDarkMode" @change="toggleDarkMode">
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div class="settings-item card">
-              <i class="fas fa-font icon"></i>
-              <span>字体大小</span>
-              <div class="size-buttons">
-                <button 
-                  v-for="size in ['小', '中', '大']" 
-                  :key="size"
-                  :class="['size-btn', settings.fontSize === size ? 'active' : '']"
-                  @click="changeFontSize(size)"
-                >
-                  {{ size }}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="settings-group">
-            <div class="settings-item card">
-              <i class="fas fa-undo icon"></i>
-              <button class="reset-btn" @click="resetSettings">重置设置</button>
-            </div>
-          </div>
-        </div>
-        <div class="settings-footer">
-          <button class="settings-btn cancel" @click="showSettings = false">取消</button>
-          <button class="settings-btn save" @click="saveSettings">保存</button>
         </div>
       </div>
       
@@ -311,28 +268,15 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { marked } from "marked";
-import { ref, onMounted, watch } from 'vue';
+import { ref } from 'vue';
 
-const messages = ref([
-  { text: "你好！我是AI助手，很高兴为您服务。请问有什么我可以帮您的吗？", isUser: false },
-]);
-
-const userInput = ref("");
+const messages = ref([]);
+const userInput = ref('');
 const isLoading = ref(false);
 const isConnected = ref(true);
 const userAvatar = require("@/assets/客户头像.png");
 const botAvatar = require("@/assets/AI老师.png");
 const showClearConfirm = ref(false);
-const showSettings = ref(false);
-
-const settings = ref({
-  darkMode: false,
-  fontSize: '中',
-  language: 'zh',
-  saveHistory: true
-});
-
-const isDarkMode = ref(false); // 深色模式状态
 
 const router = useRouter();
 
@@ -469,56 +413,96 @@ const clearChat = () => {
   showClearConfirm.value = false;  // 关闭确认弹窗
 };
 
-const saveSettings = () => {
-  localStorage.setItem('chatSettings', JSON.stringify(settings.value));
-  showSettings.value = false;
-
-};
-
-// 改变字体大小的方法
-const changeFontSize = (size) => {
-  console.log(`Font size button clicked: ${size}`); // 调试信息
-  settings.value.fontSize = size;
-  document.body.style.fontSize = size === '小' ? '12px' : size === '中' ? '16px' : '20px'; // 根据选择设置字体大小
-};
-
-// 重置设置的方法
-const resetSettings = () => {
-  isDarkMode.value = false; // 重置深色模式
-  settings.value.fontSize = '中'; // 重置字体大小
-  document.body.style.fontSize = '16px'; // 重置全局字体大小
-  localStorage.removeItem('darkMode'); // 清除 localStorage 中的深色模式设置
-  localStorage.removeItem('fontSize'); // 清除 localStorage 中的字体大小设置
-};
-
-// 监听深色模式状态变化，保存到 localStorage
-watch(isDarkMode, (newValue) => {
-  localStorage.setItem('darkMode', newValue);
-});
-
-// 在组件挂载时读取 localStorage 中的深色模式设置
-onMounted(() => {
-  const savedMode = localStorage.getItem('darkMode') === 'true';
-  isDarkMode.value = savedMode;
-  document.body.classList.toggle('dark-mode', savedMode);
-});
-
 </script>
 
 <style scoped>
-/* 基础样式 */
+/* 基础容器样式优化 */
 #main-container {
   display: flex;
   justify-content: center;
   width: 100%;
   max-width: 1280px;
-  height: calc(100vh - 120px); /* 减小整体高度 */
+  height: calc(100vh - 120px);
   margin: 20px auto;
   padding: 0 20px;
   gap: 20px;
   position: relative;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+}
+
+/* 动态背景样式 */
+.dynamic-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.gradient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.5;
+  animation: float 20s infinite;
+}
+
+.blob-1 {
+  width: 250px;
+  height: 250px;
+  top: -50px;
+  right: -50px;
+  background: linear-gradient(135deg, #a5b4fc33, #818cf833);
+  animation-delay: -2s;
+}
+
+.blob-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -50px;
+  left: 20%;
+  background: linear-gradient(135deg, #93c5fd33, #60a5fa33);
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  top: 40%;
+  left: -100px;
+  background: linear-gradient(135deg, #c7d2fe33, #818cf833);
+  animation-delay: -7s;
+}
+
+.grid-overlay {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background-image: 
+    linear-gradient(rgba(145, 167, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(145, 167, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  transform: rotate(-45deg);
+  animation: gridMove 60s linear infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(10px, -10px) rotate(2deg); }
+  50% { transform: translate(-5px, 15px) rotate(-1deg); }
+  75% { transform: translate(-15px, -5px) rotate(1deg); }
+}
+
+@keyframes gridMove {
+  0% { transform: rotate(-45deg) translateY(0); }
+  100% { transform: rotate(-45deg) translateY(-100px); }
 }
 
 /* 聊天框样式优化 */
@@ -541,8 +525,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px 16px 0 0;
   color: white;
 }
 
@@ -557,7 +544,12 @@ onMounted(() => {
   height: 40px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.header-avatar:hover {
+  transform: scale(1.05);
 }
 
 .header-info {
@@ -567,13 +559,15 @@ onMounted(() => {
 }
 
 .header-title {
-  font-size: 16px;
+  font-size: 1.2rem;
   font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
 }
 
 .header-subtitle {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  color: #64748b;
 }
 
 .header-right {
@@ -600,14 +594,13 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f44336;
+  margin-left: 8px;
   transition: all 0.3s ease;
 }
 
 .status-indicator.connected {
-  background: #4caf50;
-  box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
-  animation: pulse 2s infinite;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
 }
 
 .header-actions {
@@ -620,34 +613,30 @@ onMounted(() => {
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .action-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
 }
 
-.action-btn:active {
-  transform: translateY(0);
+.action-btn i {
+  color: #64748b;
+  font-size: 14px;
+  transition: color 0.3s ease;
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
-  }
+.action-btn:hover i {
+  color: #3b82f6;
 }
 
 #chat-box {
@@ -696,10 +685,16 @@ onMounted(() => {
 .message-bubble {
   background: white;
   padding: 12px 16px;
-  border-radius: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   max-width: 80%;
   line-height: 1.5;
+  transition: transform 0.3s ease;
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .user-message .message-bubble {
@@ -784,9 +779,11 @@ onMounted(() => {
   gap: 12px;
   max-width: 900px;
   margin: 0 auto;
-  background: var(--bg-primary, #fff);
-  border-radius: 12px;
-  padding: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 0 0 16px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
@@ -804,10 +801,10 @@ onMounted(() => {
   width: 100%;
   min-height: 24px;
   max-height: 120px;
-  padding: 8px 16px;
+  padding: 12px;
   border: none;
-  border-radius: 8px;
-  background: transparent;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-primary, #333);

@@ -16,34 +16,52 @@ import CourseDetail from '@/views/CourseDetail.vue'
 import StreamMessage from '../views/TestPages/StreamMessage.vue'  // 导入流式消息测试组件
 import Teacher from '../views/Teacher.vue'; // 导入 Teacher 组件
 import StudentManagement from '../views/teacher/StudentManagement.vue' // 导入 StudentManagement 组件
+import StudyRecords from '../views/teacher/StudyRecords.vue' // 导入 StudyRecords 组件
 import CourseZhangjie from '../components/Coursezhangjie.vue'; // 导入 CourseZhangjie 组件
+import UserProfileManagement from '../views/teacher/UserProfileManagement.vue'; // 导入 UserProfileManagement 组件
+import CourseManagement from '../views/teacher/CourseManagement.vue'; // 导入 CourseManagement 组件
+import AiTeaching from '../views/teacher/AiTeaching.vue'; // 导入 AiTeaching 组件
+import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
 
 // 配置路由
 const routes = [
   {
-    path: '/',            // 根路径
-    name: 'Home',          // 路由名称
-    component: Home       // 映射 Home 组件
+    path: '/',            
+    redirect: '/login'    // 将根路径重定向到登录页面
+  },
+  {
+    path: '/home',        // 将原来的首页移到 /home 路径
+    name: 'HomePage',     
+    component: Home,
+    meta: { 
+      requiresAuth: true,
+      keepAlive: true
+    }
   },
   {
     path: '/project-square',   // 项目广场页面路径
     name: 'ProjectSquare',     // 路由名称
-    component: ProjectSquare  // 映射 ProjectSquare 组件
+    component: ProjectSquare,
+    meta: { requiresAuth: true }
   },
   {
     path: '/ai-assistant',     // AI助手页面路径
     name: 'AiAssistant',       // 路由名称
-    component: AiAssistant    // 映射 AiAssistant 组件
+    component: AiAssistant,    // 映射 AiAssistant 组件
+    meta: { requiresAuth: true }
   },
   {
     path: '/ai-learning',      // AI学习页面路径
     name: 'AiLearning',        // 路由名称
-    component: AiLearning      // 映射 AiLearning 组件
+    component: AiLearning,      // 映射 AiLearning 组件
+    meta: { requiresAuth: true }
   },
   {
     path: '/personal-info',    // 个人信息页面路径
     name: 'PersonalInfo',      // 路由名称
-    component: PersonalInfo    // 映射 PersonalInfo 组件
+    component: PersonalInfo,    // 映射 PersonalInfo 组件
+    meta: { requiresAuth: true }
   },
   {
     path: '/learning',         // 学习页面路径
@@ -56,7 +74,8 @@ const routes = [
   {
     path: '/report-generation', // 报告生成页面路径
     name: 'ReportGeneration',   // 路由名称
-    component: ReportGeneration // 映射 ReportGeneration 组件
+    component: ReportGeneration, // 映射 ReportGeneration 组件
+    meta: { requiresAuth: true }
   },
   {
     path: '/date-picker',
@@ -83,6 +102,21 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/course/:courseId/units',
+    name: 'CourseUnits',
+    component: () => import('../views/CourseUnits.vue')
+  },
+  {
+    path: '/course/:courseId/unit/:unitId',
+    name: 'UnitChapters',
+    component: () => import('../views/UnitChapters.vue'),
+    props: route => ({
+      courseId: route.params.courseId,
+      unitId: route.params.unitId,
+      unitTitle: decodeURIComponent(route.params.unitTitle || '')
+    })
+  },
+  {
     path: '/course/:courseId',
     name: 'CourseDetail',
     component: CourseDetail,
@@ -92,6 +126,13 @@ const routes = [
         path: 'students',
         component: StudentManagement,
         name: 'course-students',
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'student/:userId/records',
+        component: StudyRecords,
+        name: 'StudyRecords',
+        props: true,
         meta: { requiresAuth: true }
       }
     ]
@@ -121,17 +162,36 @@ const routes = [
   },
   {
     path: '/teacher',
+    component: Teacher,
     children: [
       {
         path: '',
-        name: 'TeacherManagement',
-        component: Teacher,
-        meta: { requiresAuth: true } // 如果需要身份验证，可以添加此元信息
+        name: 'UserProfileManagement',
+        component: UserProfileManagement,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'course-management',
+        name: 'CourseManagement',
+        component: CourseManagement,
+        meta: { requiresAuth: true }
       },
       {
         path: 'student-management',
         name: 'StudentManagement',
         component: StudentManagement,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'study-records',
+        name: 'StudyRecords',
+        component: StudyRecords,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'ai-teaching',
+        name: 'AiTeaching',
+        component: AiTeaching,
         meta: { requiresAuth: true }
       }
     ]
@@ -143,6 +203,16 @@ const routes = [
     props: true,
     meta: { requiresAuth: true }
   },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
+  }
 ];
 
 // 创建路由实例
@@ -154,17 +224,14 @@ const router = createRouter({
 // 添加全局路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
-  const publicPages = ['/login', '/register']; // 不需要登录就能访问的页面
+  const publicPages = ['/login', '/register'];
   const authRequired = !publicPages.includes(to.path);
 
-  // 如果需要登录且没有token
   if (authRequired && !token) {
-    // 如果是首页，允许访问但在组件内部处理登录状态
-    if (to.path === '/') {
-      next();
-    } else {
-      next('/');
-    }
+    next('/login');
+  } else if (token && publicPages.includes(to.path)) {
+    // 已登录用户访问登录或注册页面时重定向到首页
+    next('/home');
   } else {
     next();
   }

@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-container class="main-container">
-      <el-header>
+      <el-header v-if="isLoggedIn">
         <div class="header-content">
           <img src="@/assets/2.png" alt="Logo" class="logo">
           <div class="nav-menu">
@@ -11,38 +11,36 @@
               router
               @select="handleSelect"
             >
-              <el-menu-item index="/">首页</el-menu-item>
-              <el-menu-item v-if="isLoggedIn" index="/project-square">项目广场</el-menu-item>
-              <el-menu-item v-if="isLoggedIn" index="/ai-assistant">AI助手</el-menu-item>
-              <el-menu-item v-if="isLoggedIn" index="/ai-learning">AI学习</el-menu-item>
-              <el-menu-item v-if="isLoggedIn" index="/shiki-chat">
+              <el-menu-item index="/home">首页</el-menu-item>
+              <el-menu-item index="/project-square">项目广场</el-menu-item>
+              <el-menu-item index="/ai-assistant">AI助手</el-menu-item>
+              <el-menu-item index="/ai-learning">AI学习</el-menu-item>
+              <el-menu-item index="/shiki-chat">
                 <el-icon><Monitor /></el-icon>
                 <span>C语言助教</span>
               </el-menu-item>
             </el-menu>
           </div>
           <div class="user-info">
-            <template v-if="isLoggedIn">
-              <el-dropdown @command="handleCommand" trigger="click">
-                <img 
-                  src="@/assets/客户头像.png" 
-                  alt="用户头像" 
-                  class="user-avatar"
-                >
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="personal">个人信息</el-dropdown-item>
-                    <el-dropdown-item v-if="roleName === 'STUDENT'" command="authenticateTeacher">教师认证</el-dropdown-item>
-                    <el-dropdown-item v-if="roleName === 'TEACHER' || roleName === 'ADMIN'" command="teacher">教师管理</el-dropdown-item>
-                    <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </template>
+            <el-dropdown @command="handleCommand" trigger="click">
+              <img 
+                src="@/assets/客户头像.png" 
+                alt="用户头像" 
+                class="user-avatar"
+              >
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="personal">个人信息</el-dropdown-item>
+                  <el-dropdown-item v-if="roleName === 'STUDENT'" command="authenticateTeacher">教师认证</el-dropdown-item>
+                  <el-dropdown-item v-if="roleName === 'TEACHER' || roleName === 'ADMIN'" command="teacher">教师管理</el-dropdown-item>
+                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </el-header>
-      <el-main>
+      <el-main :class="{ 'no-header': !isLoggedIn }">
         <keep-alive>
           <router-view v-if="$route.meta.keepAlive" />
         </keep-alive>
@@ -59,47 +57,38 @@ export default {
   name: 'App',
   data() {
     return {
-      activeIndex: this.$route.path,
+      activeIndex: '/home',
       username: localStorage.getItem('username') || '未登录'
     }
   },
   computed: {
     isLoggedIn() {
-      return localStorage.getItem('token') !== null
+      return localStorage.getItem('token') !== null;
     },
     roleName() {
-      return localStorage.getItem('roleName'); // 获取角色名称
+      return localStorage.getItem('roleName');
     }
   },
   watch: {
     '$route'(to) {
       this.activeIndex = to.path;
-      // 检查登录状态和路由权限
-      if (!this.isLoggedIn && to.path !== '/') {
-        this.$router.push('/');
-        ElMessage.warning('请先登录');
-      }
     }
   },
   methods: {
     handleSelect(key) {
-      if (!this.isLoggedIn && key !== '/') {
-        ElMessage.warning('请先登录');
-        this.$router.push('/');
-        return;
-      }
       this.activeIndex = key;
     },
     handleCommand(command) {
       if (command === 'logout') {
+        // 清除所有存储的用户信息
         localStorage.removeItem('token');
         localStorage.removeItem('username');
         localStorage.removeItem('email');
         localStorage.removeItem('userid');
-        localStorage.removeItem('roleName'); // 清除角色名称
+        localStorage.removeItem('roleName');
         this.username = '未登录';
         ElMessage.success('已退出登录');
-        this.$router.push('/');
+        this.$router.push('/login');
       } else if (command === 'personal') {
         this.$router.push('/personal-info');
       } else if (command === 'teacher') {
@@ -109,7 +98,7 @@ export default {
       }
     },
     async authenticateTeacher() {
-      const userId = localStorage.getItem('userid'); // 确保 userId 已正确存储
+      const userId = localStorage.getItem('userid');
       if (!userId) {
         ElMessage.error('用户ID未找到，请重新登录');
         return;
@@ -134,9 +123,12 @@ export default {
     }
   },
   created() {
-    // 初始化时检查登录状态
-    if (!this.isLoggedIn && this.$route.path !== '/') {
-      this.$router.push('/');
+    if (this.isLoggedIn) {
+      if (this.$route.path === '/login' || this.$route.path === '/register') {
+        this.$router.push('/home');
+      }
+    } else if (this.$route.meta.requiresAuth) {
+      this.$router.push('/login');
     }
   }
 }
@@ -221,6 +213,12 @@ html, body {
   background-color: #f5f7fa;
   min-height: calc(100vh - 60px); /* 减去header高度 */
   box-sizing: border-box;
+}
+
+/* 未登录时主内容区域占满全屏 */
+.el-main.no-header {
+  min-height: 100vh;
+  padding: 0; /* 移除内边距 */
 }
 
 /* 确保内容区域最小宽度 */
